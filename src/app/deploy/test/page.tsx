@@ -98,10 +98,11 @@ export default function LiveTestPage(){
     <article className="proof-card"><span className="micro">POOLKEY</span><strong>{state.poolKeyMatched?"Matched":"Pending"}</strong><p>Must equal the verified market route</p></article>
     <article className="proof-card"><span className="micro">EXECUTOR</span><strong>{state.executorPaused?"Paused":"Active"}</strong><p>Should stay paused before the test window</p></article>
    </div>}
-   {state&&<div className="notice">Available earned quote: <code>{state.availableEarned}</code> raw units.</div>}
+   {state&&<div className="notice"><p>Available earned quote: <code>{state.availableEarned}</code> raw units.</p>{state.vault!==ZERO&&<p>Vault: <a target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/address/"+state.vault}><code>{state.vault}</code> ↗</a></p>}{state.router!==ZERO&&<p>Router: <a target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/address/"+state.router}><code>{state.router}</code> ↗</a></p>}</div>}
    {ready&&<div className="notice">Preflight passed. The route is structurally ready for a constrained live test while SwapExecutor remains paused.</div>}
    {state&&!ready&&<div className="notice danger">Preflight is incomplete. Resolve the pending item before any live swap test.</div>}
    {error&&<div className="notice danger">{error}</div>}
+   <a className="secondary" href="/deploy/release">Back to release status →</a>
   </section>
  </div></main>
 }
