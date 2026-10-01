@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import Nav from "@/components/Nav";
 import { useEffect, useState } from "react";
 import { formatEther, isAddress, type Address, type Hex } from "viem";
@@ -448,8 +447,8 @@ export default function DeployPage() {
         <span className="kicker">Routy deployment console</span>
         <h1 style={{ fontSize: 56 }}>Mainnet deployment</h1>
         <p className="muted">Robinhood Chain (4663). Transactions are initiated only by your injected wallet, one explicit confirmation at a time. No private key or seed phrase is requested or stored.</p>
-        <div className="notice danger deployment-repair-callout">
-          This historical deployment used an outdated SwapRouterAdapter. Do not repeat the full deployment. <Link href="/deploy/repair"><b>Open the two-step adapter repair →</b></Link>
+        <div className="notice deployment-repair-callout">
+          Adapter repair is complete and the canonical SwapRouterAdapter is recorded. Do not repeat the full deployment or repair flow. Swap execution remains intentionally disabled until final production validation is complete.
         </div>
 
         <div className="launch-form">
