@@ -1,0 +1,2 @@
+export function publicProtocolReady(){return Boolean(process.env.NEXT_PUBLIC_RPC_URL&&process.env.NEXT_PUBLIC_ROUTY_LAUNCHER_ADDRESS&&process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS)}
+export function protocolReadiness(){return {rpc:Boolean(process.env.NEXT_PUBLIC_RPC_URL),launcher:Boolean(process.env.NEXT_PUBLIC_ROUTY_LAUNCHER_ADDRESS),registry:Boolean(process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS)}}
