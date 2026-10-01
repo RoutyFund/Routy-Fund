@@ -1,0 +1,2 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;interface IPonsFeeEscrow{function balanceOf(address recipient)external view returns(uint256);function balanceOfToken(address recipient,address token)external view returns(uint256);function claim()external;function claimToken(address token)external;}
