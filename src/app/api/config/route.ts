@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {PONS_V2} from "@/lib/pons";import {protocolReadiness} from "@/lib/env";
+export function GET(){return NextResponse.json({chainId:4663,pons:{factory:PONS_V2.factory,feeEscrow:PONS_V2.feeEscrow,launchAndBuy:PONS_V2.launchAndBuy,poolManager:PONS_V2.poolManager},routy:protocolReadiness()})}
