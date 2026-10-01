@@ -4,7 +4,7 @@ interface IAssetRegistry{function approved(address)external view returns(bool);f
 interface IPonsFactory{struct Launch{address token;address curve;address deployer;address creatorFeeRecipient;address pairToken;uint256 graduationThreshold;uint24 poolFee;int24 tickSpacing;uint16 creatorTaxBps;bool buybackEnabled;uint8 phase;uint256 sweptQuote;uint256 sweptTokens;uint256 sweptAt;bool exists;}function getLaunchedToken(address token)external view returns(Launch memory);}
 interface IVaultFactory{function create(address token,address targetAsset,address executor)external returns(address);}
 interface IRouterFactory{function create(address token,address escrow,address quoteToken,address vault,address treasury)external returns(address);}
-interface IBindVault{function bindRouter(address,address)external;} interface IExecutorRegistry{function setVault(address,bool)external;}
+interface IBindVault{function bindRouter(address,address)external;}
 contract ProtocolLauncher {
  enum Policy{WEIGHTED_RAFFLE,EQUAL_LOTTERY,PRO_RATA}
  struct Route{address creator;address targetAsset;address quoteToken;address vault;address router;Policy policy;uint64 createdAt;}
