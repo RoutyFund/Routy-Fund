@@ -6,12 +6,12 @@ export const ROUTY_DEPLOYMENT = {
   swapExecutor: "0xc91a4e8d64Dfa97b6263d958d9EF1F35Cc37675D",
   oracleGuard: "0x3ef1bbacf2457a525e055e8e768fac7e99c617b0",
   swapOracleQuoter: "0x6d95a1c909a69482c69e21156b9a17602f15f6f9",
-  swapRouterAdapter: "0x0e1a949bedb33dfb01bbdcbc129ce759158e6f61",
+  swapRouterAdapter: "0x43327B698FEf2e097B03529101eaeC39994219CD",
   feeRouterFactory: "0xa0280edd6a3b666fce74ee9df0383af285aaf736",
   assetVaultFactory: "0x82812d91f48b88c188078e8754badd1e47345f54",
   protocolLauncher: "0xcdf195f93d6d2bb3c121938d6761a3d5a26cd0e3",
 } as const;
 
 export const ROUTY_RELEASE_STATE = {
-  swapAdapterRepairRequired: true,
+  swapAdapterRepairRequired: false,
 } as const;
