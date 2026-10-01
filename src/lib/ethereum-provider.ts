@@ -9,6 +9,9 @@ export type EthereumProvider = {
   removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
 };
 
+// Keep wallet event methods optional so injected providers without EIP-1193 listeners still work.
+
+
 export type EthereumTransactionReceipt = {
   status?: string;
   contractAddress?: string | null;
