@@ -5,6 +5,8 @@ export type EthereumRequest = {
 
 export type EthereumProvider = {
   request<T = unknown>(request: EthereumRequest): Promise<T>;
+  on?: (event: string, listener: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
 };
 
 export type EthereumTransactionReceipt = {
