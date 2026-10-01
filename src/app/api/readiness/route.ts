@@ -1,2 +1,2 @@
-import {NextResponse} from "next/server";import {ready,serverReadiness} from "@/lib/readiness";
-export function GET(){const checks=serverReadiness();return NextResponse.json({ready:ready(checks),checks,chainId:4663})}
+import {NextResponse} from "next/server";import {blockers,ready,serverReadiness} from "@/lib/readiness";
+export function GET(){const checks=serverReadiness();return NextResponse.json({ready:ready(checks),blockers:blockers(checks),checks,chainId:4663})}
