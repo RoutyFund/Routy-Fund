@@ -12,7 +12,7 @@ type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;ena
 export default function Launch(){
  const[name,setName]=useState(""); const[symbol,setSymbol]=useState(""); const[description,setDescription]=useState("");
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
- const[asset,setAsset]=useState(ROUTE_CATALOG[0].target); const[policy,setPolicy]=useState("0");
+ const[asset,setAsset]=useState<string>(ROUTE_CATALOG[0].target); const[policy,setPolicy]=useState("0");
  const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null);
  const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false);
  useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{})},[]);
