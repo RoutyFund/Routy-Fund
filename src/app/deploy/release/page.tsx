@@ -46,16 +46,18 @@ export default function ReleasePage(){
  const infra=data?.readiness.infrastructureReady===true;
  const protocol=data?.health.protocolConfigured===true;
  const swapEnabled=data?.config.routy?.swapExecutionEnabled===true;
+ const loaded=Boolean(data);
  const allStatic=infra&&protocol&&readyRoutes===3&&matchedPools===3&&!swapEnabled;
 
  return <main className="shell"><Nav/><div className="wrap">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Operator release console</span><h1>Release status.</h1><p className="lead">One screen for infrastructure, route setup, PoolKey verification and the final live-test gate.</p></div><button className="secondary" onClick={()=>void refresh()}>Refresh status</button></header>
   <div className="proof-grid">
-   <article className="proof-card"><span className="micro">INFRASTRUCTURE</span><strong>{infra?"Ready":"Blocked"}</strong><p>Environment + deployment checks</p></article>
-   <article className="proof-card"><span className="micro">ROUTES</span><strong>{readyRoutes}/3</strong><p>AAPL · TSLA · NVDA configured</p></article>
-   <article className="proof-card"><span className="micro">POOLKEYS</span><strong>{matchedPools}/3</strong><p>Verified route hashes matched</p></article>
-   <article className="proof-card"><span className="micro">SWAP EXECUTION</span><strong>{swapEnabled?"Enabled":"Paused"}</strong><p>{swapEnabled?"Live execution flag is on":"Safe pre-test state"}</p></article>
+   <article className="proof-card"><span className="micro">INFRASTRUCTURE</span><strong>{!loaded?"Checking…":infra?"Ready":"Blocked"}</strong><p>Environment + deployment checks</p></article>
+   <article className="proof-card"><span className="micro">ROUTES</span><strong>{!loaded?"—":readyRoutes+"/3"}</strong><p>AAPL · TSLA · NVDA configured</p></article>
+   <article className="proof-card"><span className="micro">POOLKEYS</span><strong>{!loaded?"—":matchedPools+"/3"}</strong><p>Verified route hashes matched</p></article>
+   <article className="proof-card"><span className="micro">SWAP EXECUTION</span><strong>{!loaded?"Checking…":swapEnabled?"Enabled":"Paused"}</strong><p>{swapEnabled?"Live execution flag is on":"Safe pre-test state"}</p></article>
   </div>
+  <section className="section"><div className="section-head"><div><span className="micro">VERIFIED MARKETS</span><h2>Route-by-route status.</h2></div></div><div className="market-directory">{["AAPL","TSLA","NVDA"].map(symbol=>{const route=routeRows.find(r=>r.symbol===symbol);const pool=poolRows.find(r=>r.symbol===symbol);const ok=route?.configurationComplete===true&&pool?.poolKeyMatches===true;return <article key={symbol}><div className="market-icon">{symbol[0]}</div><div><b>{symbol}</b><span>{!loaded?"Checking…":ok?"Registry + oracle + PoolKey verified":"Action required"}</span></div><span className="pill">{!loaded?"Checking":ok?"Ready":"Pending"}</span></article>})}</div></section>
   <section className="section">
    <div className="section-head"><div><span className="micro">FINAL CHECKLIST</span><h2>Everything before live test.</h2></div><p className="section-copy">This console never signs transactions. It only reports state and links to explicit owner or user steps.</p></div>
    <div className="flow">
