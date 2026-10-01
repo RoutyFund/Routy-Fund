@@ -50,23 +50,13 @@ contract SwapExecutor {
     mapping(address => bool) public approvedVault;
     mapping(address => PoolKey) public poolKeyForVault;
 
-    event LauncherSet(address indexed launcher);
-    event DependenciesConfigured(address indexed oracleRegistry,address indexed oracleGuard,address oracleQuoter,address routerAdapter,uint16 maxDeviationBps);
-    event VaultApproval(address indexed vault,bool approved);
-    event PoolConfigured(address indexed vault,address currency0,address currency1,uint24 fee,int24 tickSpacing);
-    event PauseStateChanged(bool paused);
-    event OwnershipTransferStarted(address indexed owner,address indexed pendingOwner);
-    event OwnershipTransferred(address indexed oldOwner,address indexed newOwner);
-    event PurchaseExecuted(address indexed vault,address indexed quoteToken,address indexed targetAsset,uint256 quoteSpent,uint256 assetReceived);
-
+    event PurchaseExecuted(address indexed vault,address indexed quoteToken,address indexed targetAsset,uint256 quoteSpent,uint256 assetReceived);\n
     modifier onlyOwner(){require(msg.sender==owner,"NOT_OWNER");_;}
     modifier onlyLauncher(){require(msg.sender==launcher&&launcher!=address(0),"NOT_LAUNCHER");_;}
 
     constructor(address owner_){require(owner_!=address(0),"ZERO_OWNER");owner=owner_;}
 
-    function transferOwnership(address next) external onlyOwner {require(next!=address(0),"ZERO_OWNER");pendingOwner=next;emit OwnershipTransferStarted(owner,next);}
-    function acceptOwnership() external {require(msg.sender==pendingOwner,"NOT_PENDING_OWNER");address old=owner;owner=msg.sender;pendingOwner=address(0);emit OwnershipTransferred(old,msg.sender);}
-    function setLauncher(address launcher_) external onlyOwner {require(launcher==address(0)&&launcher_!=address(0),"LAUNCHER_ALREADY_SET");launcher=launcher_;emit LauncherSet(launcher_);}
+    function setLauncher(address launcher_) external onlyOwner {require(launcher==address(0)&&launcher_!=address(0),"LAUNCHER_ALREADY_SET");launcher=launcher_;}
 
     function configureDependencies(address registry_,address guard_,address quoter_,address adapter_,uint16 deviation_) external onlyOwner {
         require(block.chainid==4663,"WRONG_CHAIN");
@@ -74,13 +64,11 @@ contract SwapExecutor {
         require(registry_!=address(0)&&guard_!=address(0)&&quoter_!=address(0)&&adapter_!=address(0),"ZERO_ADDRESS");
         require(deviation_>0&&deviation_<=2000,"BAD_DEVIATION");
         oracleRegistry=registry_;oracleGuard=guard_;oracleQuoter=quoter_;routerAdapter=adapter_;maxDeviationBps=deviation_;
-        emit DependenciesConfigured(registry_,guard_,quoter_,adapter_,deviation_);
     }
 
     function registerVault(address vault) external onlyLauncher {
         require(vault!=address(0)&&!approvedVault[vault],"INVALID_VAULT");
         approvedVault[vault]=true;
-        emit VaultApproval(vault,true);
     }
 
     function setPoolKey(address vault,PoolKey calldata key) external onlyOwner {
@@ -90,10 +78,9 @@ contract SwapExecutor {
         ISwapRouterAdapter.PoolKey memory adapterKey=ISwapRouterAdapter.PoolKey(key.currency0,key.currency1,key.fee,key.tickSpacing,key.hooks);
         require(ISwapRouterAdapter(routerAdapter).validatePool(quote,target,adapterKey),"INVALID_POOL");
         poolKeyForVault[vault]=key;
-        emit PoolConfigured(vault,key.currency0,key.currency1,key.fee,key.tickSpacing);
     }
 
-    function setPaused(bool next) external onlyOwner {paused=next;emit PauseStateChanged(next);}
+    function setPaused(bool next) external onlyOwner {paused=next;}
 
     function execute(address vault,uint256 amountIn,uint256 minOut,uint256 deadline) external onlyOwner {
         require(!paused&&approvedVault[vault],"NOT_ACTIVE");
