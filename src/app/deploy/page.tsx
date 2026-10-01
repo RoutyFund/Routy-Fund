@@ -339,7 +339,7 @@ export default function DeployPage() {
       setStatuses((current) => current.map((status, position) => position === index ? "awaiting wallet signature" : status));
       const hash = await provider.request({
         method: "eth_sendTransaction",
-        params: [{ from: DEPLOYER, ...(target ? { to: target } : {}), data, value: "0x0", ...(step.id === "swapExecutor" ? { gas: "0x2dc6c0" } : {}) }],
+        params: [{ from: DEPLOYER, ...(target ? { to: target } : {}), data, value: "0x0", ...(step.contract === "SwapExecutor" ? { gas: "0x2dc6c0" } : {}) }],
       }) as Hex;
       if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("Wallet tidak mengembalikan transaction hash yang valid.");
       returnedHash = hash;
