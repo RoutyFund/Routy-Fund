@@ -109,21 +109,24 @@ contract SwapExecutor {
         require(minOut*10_000>=expected*(10_000-maxDeviationBps),"MIN_OUT_DEVIATION");
 
         uint256 beforeBalance=ISwapBalance(target).balanceOf(vault);
-        ISwapRouterAdapter.PoolKey memory adapterKey=ISwapRouterAdapter.PoolKey(key.currency0,key.currency1,key.fee,key.tickSpacing,key.hooks);
-        if(quote==address(0)){
-            v.spendQuote(address(this),amountIn);
-            ISwapRouterAdapter(routerAdapter).swap{value:amountIn}(vault,quote,target,adapterKey,amountIn,minOut,deadline);
-        }else{
-            v.spendQuote(address(this),amountIn);
-            _approve(quote,routerAdapter,amountIn);
-            ISwapRouterAdapter(routerAdapter).swap(vault,quote,target,adapterKey,amountIn,minOut,deadline);
-            _approve(quote,routerAdapter,0);
-        }
+        _routeSwap(v,vault,quote,target,key,amountIn,minOut,deadline);
         uint256 received=ISwapBalance(target).balanceOf(vault)-beforeBalance;
         require(received>=minOut,"INSUFFICIENT_OUTPUT");
         require(received*10_000<=expected*(10_000+maxDeviationBps),"PRICE_DEVIATION");
         v.recordPurchase(amountIn,received);
         emit PurchaseExecuted(vault,quote,target,amountIn,received);
+    }
+
+    function _routeSwap(IVaultSwap v,address vault,address quote,address target,PoolKey memory key,uint256 amountIn,uint256 minOut,uint256 deadline) private {
+        ISwapRouterAdapter.PoolKey memory adapterKey=ISwapRouterAdapter.PoolKey(key.currency0,key.currency1,key.fee,key.tickSpacing,key.hooks);
+        v.spendQuote(address(this),amountIn);
+        if(quote==address(0)){
+            ISwapRouterAdapter(routerAdapter).swap{value:amountIn}(vault,quote,target,adapterKey,amountIn,minOut,deadline);
+        }else{
+            _approve(quote,routerAdapter,amountIn);
+            ISwapRouterAdapter(routerAdapter).swap(vault,quote,target,adapterKey,amountIn,minOut,deadline);
+            _approve(quote,routerAdapter,0);
+        }
     }
 
     function _approve(address token,address spender,uint256 amount) private {
