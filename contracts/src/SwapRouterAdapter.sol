@@ -61,7 +61,7 @@ contract SwapRouterAdapter {
         }
 
         bool zeroForOne = quote == key.currency0;
-        bytes memory actions = abi.encodePacked(bytes1(uint8(0x06)),bytes1(uint8(0x0c)),bytes1(uint8(0x0e)));
+        bytes memory actions = abi.encodePacked(bytes1(uint8(0x06)),bytes1(uint8(0x0c)),bytes1(uint8(0x0f)));
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(key,zeroForOne,uint128(amountIn),uint128(minOut),uint256(0),bytes(""));
         params[1] = abi.encode(quote,amountIn);
