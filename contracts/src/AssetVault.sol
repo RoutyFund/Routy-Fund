@@ -9,7 +9,7 @@ contract AssetVault {
  function bindRouter(address router_,address quote_) external onlyLauncher {require(router==address(0)&&router_!=address(0),"ROUTER_ALREADY_BOUND");router=router_;quoteToken=quote_;emit RouterBound(router_,quote_);}
  receive() external payable {bool earned=msg.sender==router&&router!=address(0)&&quoteToken==address(0);if(earned)totalEarned+=msg.value;emit FundsReceived(msg.sender,msg.value,earned);}
  function recordTokenEarned(uint256 amount) external onlyRouter {require(quoteToken!=address(0)&&amount>0,"INVALID_EARNING");totalEarned+=amount;emit EarnedRecorded(quoteToken,amount);}
- function transferEarnedToExecutor(uint256 amount) external onlyExecutor {require(amount>0&&amount<=totalEarned-totalSpent,"EXCEEDS_EARNED");if(quoteToken==address(0)){(bool ok,)=executor.call{value:amount}("");require(ok,"NATIVE_TRANSFER_FAILED");}else{_safeTransfer(quoteToken,executor,amount);}}
+ function spendQuote(address to,uint256 amount) external onlyExecutor {require(amount>0&&amount<=totalEarned-totalSpent,"EXCEEDS_EARNED");if(quoteToken==address(0)){(bool ok,)=to.call{value:amount}("");require(ok,"NATIVE_TRANSFER_FAILED");}else{_safeTransfer(quoteToken,to,amount);}}
  function recordPurchase(uint256 quoteSpent,uint256 assetReceived) external onlyExecutor {require(totalSpent+quoteSpent<=totalEarned,"EXCEEDS_EARNED");totalSpent+=quoteSpent;emit PurchaseRecorded(quoteSpent,assetReceived);}
  function availableEarned() external view returns(uint256){return totalEarned-totalSpent;}
  function _safeTransfer(address token,address to,uint256 amount) private { (bool ok,bytes memory data)=token.call(abi.encodeWithSelector(0xa9059cbb,to,amount));require(ok&&(data.length==0||abi.decode(data,(bool))),"TOKEN_TRANSFER_FAILED"); }
