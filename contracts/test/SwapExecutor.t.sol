@@ -199,7 +199,7 @@ contract SwapExecutorTest {
         require(vault.totalSpent() == INPUT && vault.availableEarned() == 0, "BAD_ACCOUNTING");
         require(SwapTestRouter(ROUTER).lastInput() == address(quote), "WRONG_INPUT");
         require(SwapTestRouter(ROUTER).lastOutput() == address(target), "WRONG_OUTPUT");
-        require(SwapTestRouter(ROUTER).lastRecipient() == address(vault), "WRONG_RECIPIENT");
+        require(SwapTestRouter(ROUTER).lastRecipient() == address(adapter), "WRONG_ROUTER_RECIPIENT");
         require(SwapTestRouter(ROUTER).lastMinOut() == EXPECTED, "MIN_OUT_NOT_FORWARDED");
         require(quote.allowance(address(executor), PERMIT2) == 0, "TOKEN_ALLOWANCE_REMAINS");
         require(SwapTestPermit2(PERMIT2).allowance(address(executor), address(quote), ROUTER) == 0, "PERMIT2_ALLOWANCE_REMAINS");
@@ -236,7 +236,7 @@ contract SwapExecutorTest {
 
     function testArbitraryRecipientCannotBeSelected() public {
         executor.execute(address(vault), INPUT, EXPECTED, block.timestamp + 2 minutes);
-        require(SwapTestRouter(ROUTER).lastRecipient() == address(vault), "RECIPIENT_NOT_FIXED");
+        require(SwapTestRouter(ROUTER).lastRecipient() == address(adapter), "RECIPIENT_NOT_FIXED");
     }
 
     function testAmountAboveEarnedRejected() public {
@@ -331,7 +331,7 @@ contract SwapExecutorTest {
         target.mint(ROUTER, 10 ether);
         executor.execute(address(nativeVault), INPUT, 10 ether, block.timestamp + 2 minutes);
         require(nativeVault.totalSpent() == INPUT && target.balanceOf(address(nativeVault)) == 10 ether, "NATIVE_SWAP_FAILED");
-        require(SwapTestRouter(ROUTER).lastInput() == address(0) && SwapTestRouter(ROUTER).lastRecipient() == address(nativeVault), "NATIVE_PATH_MISMATCH");
+        require(SwapTestRouter(ROUTER).lastInput() == address(0) && SwapTestRouter(ROUTER).lastRecipient() == address(adapter), "NATIVE_PATH_MISMATCH");
     }
 
     function testRandomNativeDepositIsNotSpendable() public {
