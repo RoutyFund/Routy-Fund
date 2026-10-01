@@ -1,0 +1,1 @@
+export const protocolEvents=["RouteRegistered","Harvested","FundsReceived","PurchaseRecorded","RootPublished","Claimed","SnapshotPublished","RandomnessRecorded","WinnerFinalized"] as const;export type ProtocolEvent=(typeof protocolEvents)[number];
