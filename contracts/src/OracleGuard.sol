@@ -1,0 +1,2 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24; interface IAggregator{function latestRoundData()external view returns(uint80,int256,uint256,uint256,uint80);} contract OracleGuard{uint256 public immutable maxAge;constructor(uint256 a){require(a>0,"ZERO_AGE");maxAge=a;}function read(address f)external view returns(uint256){(,int256 p,,uint256 u,)=IAggregator(f).latestRoundData();require(p>0&&block.timestamp-u<=maxAge,"INVALID_PRICE");return uint256(p);}}
