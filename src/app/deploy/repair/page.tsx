@@ -12,6 +12,7 @@ import {
 } from "@/lib/adapter-repair";
 import { DEPLOY_BYTECODE } from "@/lib/deploy-artifacts";
 import {
+  buildRepairTransaction,
   canCheckStep,
   canSubmitStep,
   encodeDeployment,
@@ -370,12 +371,7 @@ export default function AdapterRepairPage() {
         to = ROUTY_DEPLOYMENT.swapExecutor;
       }
 
-      const transaction = {
-        from: DEPLOYER,
-        ...(to ? { to, gas: "0x124f80" as Hex } : {}),
-        data,
-        value: "0x0",
-      };
+      const transaction = buildRepairTransaction(DEPLOYER, data, to);
       setStatuses((currentStatuses) => currentStatuses.map((status, position) => position === index ? "awaiting wallet signature" : status));
       const hash = await provider.request<Hex>({
         method: "eth_sendTransaction",

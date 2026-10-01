@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildRepairTransaction,
   canCheckStep,
   canSubmitStep,
   encodeDeployment,
@@ -32,6 +33,32 @@ test("OracleGuard constructor encodes maxAge 3600", () => {
 test("dependency configuration encodes the requested 200 bps", () => {
   const data = encodeExecutorConfigureDependencies([...addresses.slice(0, 4), 200]);
   assert.equal(data.slice(-64), "c8".padStart(64, "0"));
+});
+
+test("contract creation uses an explicit null recipient for mobile wallets", () => {
+  assert.deepEqual(
+    buildRepairTransaction(addresses[0], "0x6000"),
+    {
+      from: addresses[0],
+      to: null,
+      data: "0x6000",
+      value: "0x0",
+    },
+  );
+});
+
+test("contract calls retain a complete recipient address and fixed gas limit", () => {
+  const transaction = buildRepairTransaction(addresses[0], "0x1234", addresses[1]);
+  assert.equal(transaction.to, addresses[1]);
+  assert.equal(transaction.gas, "0x124f80");
+  assert.equal(transaction.value, "0x0");
+});
+
+test("repair transactions reject odd-length hexadecimal data", () => {
+  assert.throws(
+    () => buildRepairTransaction(addresses[0], "0x123"),
+    /even-length hexadecimal bytes/,
+  );
 });
 
 test("submission is blocked until every previous step is confirmed", () => {

@@ -18,6 +18,13 @@ export const DEPLOYMENT_STEP_IDS = [
 
 export type DeploymentStatus = "pending" | "awaiting wallet signature" | "submitted" | "confirmed" | "failed";
 export type DeployableContract = "AssetRegistry" | "OracleRegistry" | "SwapExecutor" | "OracleGuard" | "SwapOracleQuoter" | "SwapRouterAdapter" | "FeeRouterFactory" | "AssetVaultFactory" | "ProtocolLauncher";
+export type WalletTransactionRequest = {
+  from: Address;
+  to: Address | null;
+  data: Hex;
+  value: "0x0";
+  gas?: Hex;
+};
 
 const addressConstructor = [{ type: "constructor", inputs: [{ name: "owner_", type: "address" }] }] as const;
 const oracleGuardConstructor = [{ type: "constructor", inputs: [{ name: "maxAge_", type: "uint256" }] }] as const;
@@ -110,6 +117,27 @@ export function encodeExecutorConfigureDependencies(
     functionName: "configureDependencies",
     args: [...args],
   });
+}
+
+export function buildRepairTransaction(
+  from: Address,
+  data: Hex,
+  to?: Address,
+): WalletTransactionRequest {
+  assertAddress(from);
+  if (to) assertAddress(to);
+  if (!/^0x(?:[0-9a-f]{2})+$/i.test(data)) {
+    throw new Error("Transaction data must be non-empty, even-length hexadecimal bytes.");
+  }
+  return {
+    from,
+    // Ethereum's transaction schema requires an explicit null recipient for contract creation.
+    // Some mobile wallets incorrectly normalize an omitted recipient into the invalid address 0x0.
+    to: to ?? null,
+    ...(to ? { gas: "0x124f80" as Hex } : {}),
+    data,
+    value: "0x0",
+  };
 }
 
 export function canSubmitStep(statuses: readonly DeploymentStatus[], index: number): boolean {
