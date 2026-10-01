@@ -89,7 +89,7 @@ export default function ProvisionPage(){
     {provisioned&&<div className="notice"><p>Vault: <code>{routeState?.vault}</code></p><p>Router: <code>{routeState?.router}</code></p><p>Quote: <code>{routeState?.quoteToken}</code></p></div>}
     {provisioned&&!creatorMatches&&!owner&&<div className="notice">This route exists. Only the SwapExecutor owner can attach its verified PoolKey.</div>}
     {provisioned&&!poolSet&&owner&&<button className="primary" disabled={Boolean(busy)} onClick={()=>send("Set verified "+selected.symbol+"/USDG PoolKey",ROUTY_DEPLOYMENT.swapExecutor,encodeFunctionData({abi:executorAbi,functionName:"setPoolKey",args:[routeState!.vault,selected.poolKey]}))}>Set verified PoolKey →</button>}
-    {poolSet&&<div className="notice">Vault + verified PoolKey are ready. SwapExecutor remains paused until the final constrained live test.</div>}
+    {poolSet&&<><div className="notice">Vault + verified PoolKey are ready. SwapExecutor remains paused until the final constrained live test.</div><a className="primary" href={"/deploy/test?token="+token}>Continue to live-test preflight →</a></>}
    </section>
   </div>
   {msg&&<p className="notice" style={{marginTop:16}}>{msg}</p>}{error&&<p className="notice danger" style={{marginTop:16}}>{error}</p>}
