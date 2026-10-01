@@ -4,6 +4,13 @@ import "../src/AssetRegistry.sol";import "../src/OracleRegistry.sol";import "../
 interface Vm{function envAddress(string calldata)external returns(address);function envUint(string calldata)external returns(uint256);function startBroadcast(uint256)external;function stopBroadcast()external;}
 contract Deploy{
  Vm constant vm=Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+ address constant PONS_FACTORY=0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e; address constant PONS_ESCROW=0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e;
  event RoutyDeployment(address registry,address oracleRegistry,address feeRouterFactory,address vaultFactory,address launcher,address oracleGuard,address swapExecutor);
- function run()external{uint256 key=vm.envUint("DEPLOYER_PRIVATE_KEY");address treasury=vm.envAddress("ROUTY_TREASURY_ADDRESS");require(treasury!=address(0),"ZERO_TREASURY");vm.startBroadcast(key);AssetRegistry registry=new AssetRegistry(treasury);OracleRegistry oracleRegistry=new OracleRegistry(treasury);FeeRouterFactory frf=new FeeRouterFactory();AssetVaultFactory avf=new AssetVaultFactory();ProtocolLauncher launcher=new ProtocolLauncher(address(registry));OracleGuard guard=new OracleGuard(1 hours);SwapExecutor swap=new SwapExecutor(treasury);emit RoutyDeployment(address(registry),address(oracleRegistry),address(frf),address(avf),address(launcher),address(guard),address(swap));vm.stopBroadcast();}
+ function run()external{uint256 key=vm.envUint("DEPLOYER_PRIVATE_KEY");address treasury=vm.envAddress("ROUTY_TREASURY_ADDRESS");require(treasury!=address(0),"ZERO_TREASURY");vm.startBroadcast(key);
+  AssetRegistry registry=new AssetRegistry(treasury);OracleRegistry oracleRegistry=new OracleRegistry(treasury);SwapExecutor swap=new SwapExecutor(treasury);OracleGuard guard=new OracleGuard(1 hours);
+  FeeRouterFactory frf=new FeeRouterFactory(address(uint160(uint256(key))));AssetVaultFactory avf=new AssetVaultFactory(address(uint160(uint256(key))));
+  ProtocolLauncher launcher=new ProtocolLauncher(address(registry),PONS_FACTORY,address(avf),address(frf),PONS_ESCROW,treasury,address(swap));
+  frf.setLauncher(address(launcher));avf.setLauncher(address(launcher));
+  emit RoutyDeployment(address(registry),address(oracleRegistry),address(frf),address(avf),address(launcher),address(guard),address(swap));vm.stopBroadcast();
+ }
 }
