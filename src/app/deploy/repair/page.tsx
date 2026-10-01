@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { formatEther, isAddress, keccak256, toHex, type Address, type Hex } from "viem";
+import { formatEther, isAddress, keccak256, type Address, type Hex } from "viem";
 import Nav from "@/components/Nav";
 import {
   addressFromStorageWord,
@@ -24,6 +24,8 @@ import {
   type EthereumProvider,
   type EthereumTransaction,
   type EthereumTransactionReceipt,
+  walletErrorMessage,
+  walletRequestWasRejected,
 } from "@/lib/ethereum-provider";
 
 const DEPLOYER = "0x866d5D863381efe9e10cCb2E44f388611F781212" as Address;
@@ -186,7 +188,7 @@ export default function AdapterRepairPage() {
       await refreshWallet();
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Wallet connection failed.");
+      setError(walletErrorMessage(cause, "Wallet connection failed."));
     }
   }
 
@@ -198,7 +200,7 @@ export default function AdapterRepairPage() {
       await refreshWallet();
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not switch to Robinhood Chain.");
+      setError(walletErrorMessage(cause, "Could not switch to Robinhood Chain."));
     }
   }
 
@@ -325,7 +327,7 @@ export default function AdapterRepairPage() {
       setStatuses(nextStatuses);
       setNotice("Saved receipts and current SwapExecutor storage were verified on-chain. No transaction was sent.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not verify repair progress.");
+      setError(walletErrorMessage(cause, "Could not verify repair progress."));
     } finally {
       setActiveStep(null);
     }
@@ -368,13 +370,16 @@ export default function AdapterRepairPage() {
         to = ROUTY_DEPLOYMENT.swapExecutor;
       }
 
-      const transaction = { from: DEPLOYER, ...(to ? { to } : {}), data, value: "0x0" };
-      const estimate = await provider.request<Hex>({ method: "eth_estimateGas", params: [transaction] });
-      const gas = toHex((BigInt(estimate) * 120n) / 100n);
+      const transaction = {
+        from: DEPLOYER,
+        ...(to ? { to, gas: "0x124f80" as Hex } : {}),
+        data,
+        value: "0x0",
+      };
       setStatuses((currentStatuses) => currentStatuses.map((status, position) => position === index ? "awaiting wallet signature" : status));
       const hash = await provider.request<Hex>({
         method: "eth_sendTransaction",
-        params: [{ ...transaction, gas }],
+        params: [transaction],
       });
       if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("Wallet did not return a valid transaction hash.");
       returnedHash = hash;
@@ -394,8 +399,11 @@ export default function AdapterRepairPage() {
       if (returnedHash) {
         setError(`Transaction ${returnedHash} was submitted but could not be fully verified yet. Do not resend it; use Resume.`);
       } else {
-        setStatuses((currentStatuses) => currentStatuses.map((status, position) => position === index ? "failed" : status));
-        setError(cause instanceof Error ? cause.message : "Transaction failed or was rejected by the wallet.");
+        setStatuses((currentStatuses) => currentStatuses.map((status, position) => position === index ? "pending" : status));
+        const details = walletErrorMessage(cause, "Bitget did not return a transaction hash.");
+        setError(walletRequestWasRejected(cause)
+          ? `Wallet approval was cancelled. No transaction hash was returned. ${details}`
+          : `The wallet did not submit the transaction. No transaction hash was returned. ${details}`);
       }
     } finally {
       setActiveStep(null);
@@ -425,7 +433,7 @@ export default function AdapterRepairPage() {
       setNotice(`${STEPS[index].title} confirmed and verified on-chain.`);
     } catch (cause) {
       setStatuses((currentStatuses) => currentStatuses.map((status, position) => position === index ? "failed" : status));
-      setError(cause instanceof Error ? cause.message : "Could not verify the transaction receipt.");
+      setError(walletErrorMessage(cause, "Could not verify the transaction receipt."));
     } finally {
       setActiveStep(null);
     }
