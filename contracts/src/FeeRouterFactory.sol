@@ -1,0 +1,2 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24; import "./FeeRouter.sol"; contract FeeRouterFactory{event RouterCreated(address indexed token,address indexed router,address vault);function create(address token,address feeSource,address vault,address treasury)external returns(address router){router=address(new FeeRouter(token,feeSource,vault,treasury));emit RouterCreated(token,router,vault);}}
