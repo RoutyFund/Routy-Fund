@@ -5,6 +5,8 @@ import "../src/AssetVault.sol";
 import "../src/OracleGuard.sol";
 import "../src/OracleRegistry.sol";
 import "../src/SwapExecutor.sol";
+import "../src/SwapOracleQuoter.sol";
+import "../src/SwapRouterAdapter.sol";
 
 interface VmSwap {
     function chainId(uint256 newChainId) external;
@@ -152,6 +154,8 @@ contract SwapExecutorTest {
     SwapTestFeed private targetFeed;
     OracleRegistry private registry;
     OracleGuard private guard;
+    SwapOracleQuoter private quoter;
+    SwapRouterAdapter private adapter;
 
     receive() external payable {}
 
@@ -172,8 +176,10 @@ contract SwapExecutorTest {
         registry.setFeed(address(quote), address(quoteFeed));
         registry.setFeed(address(target), address(targetFeed));
         guard = new OracleGuard(1 hours);
+        quoter = new SwapOracleQuoter();
+        adapter = new SwapRouterAdapter();
         executor = new SwapExecutor(address(this));
-        executor.configureDependencies(ROUTER, PERMIT2, POOL_MANAGER, address(registry), address(guard), 200);
+        executor.configureDependencies(address(registry), address(guard), address(quoter), address(adapter), 200);
         executor.setLauncher(address(this));
         vault = new AssetVault(address(target), address(this), address(executor));
         vault.bindRouter(address(this), address(quote));
@@ -355,7 +361,7 @@ contract SwapExecutorTest {
     function testDependenciesCannotBeEnabledOnWrongChain() public {
         vm.chainId(1);
         SwapExecutor fresh = new SwapExecutor(address(this));
-        (bool ok,) = address(fresh).call(abi.encodeCall(fresh.configureDependencies, (ROUTER, PERMIT2, POOL_MANAGER, address(registry), address(guard), 200)));
+        (bool ok,) = address(fresh).call(abi.encodeCall(fresh.configureDependencies, (address(registry), address(guard), address(quoter), address(adapter), 200)));
         require(!ok, "WRONG_CHAIN_CONFIGURATION_ACCEPTED");
     }
 
