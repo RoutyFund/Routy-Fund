@@ -1,0 +1,1 @@
+export const ROUTY={chainId:4663,vaultShareBps:8000,treasuryShareBps:2000,maxBps:10000};export const rewardPolicies=[{id:0,key:"weighted",label:"Weighted raffle"},{id:1,key:"equal",label:"Equal lottery"},{id:2,key:"pro-rata",label:"Pro-rata distribution"}] as const;
