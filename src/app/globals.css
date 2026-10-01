@@ -331,3 +331,8 @@ body{letter-spacing:-.005em}
 .portfolio-side{padding:20px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(160deg,#fff,#f3f7fb)}
 .portfolio-side>div{padding:16px 0;border-bottom:1px solid var(--line)}.portfolio-side>div:last-child{border-bottom:0}.portfolio-side p{margin:5px 0 0;color:var(--muted);font-size:12px}
 @media(max-width:900px){.market-directory,.analytics-grid{grid-template-columns:1fr}.portfolio-layout{grid-template-columns:1fr}}
+
+.token-layout{display:grid;grid-template-columns:1.35fr .65fr;gap:12px}
+.token-main-card,.token-side-card{padding:20px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(160deg,#fff,#f4f8fc);box-shadow:0 18px 44px rgba(32,49,66,.055)}
+.token-main-card h2{margin:10px 0 22px}.token-side-card h3{margin:10px 0}.token-side-card p{font-size:12px}
+@media(max-width:900px){.token-layout{grid-template-columns:1fr}}
