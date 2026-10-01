@@ -8,17 +8,20 @@ import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
 type Asset={tokenSymbol:string;tokenName:string;contractAddress:string};
 type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;enabled:boolean}>};
+type RouteStatus={symbol:string;configurationComplete:boolean};
 
 export default function Launch(){
  const[name,setName]=useState(""); const[symbol,setSymbol]=useState(""); const[description,setDescription]=useState("");
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
  const[asset,setAsset]=useState<string>(EXECUTABLE_ROUTES[0].target); const[policy,setPolicy]=useState("0");
- const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null);
+ const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null); const[routeStatus,setRouteStatus]=useState<RouteStatus[]>([]);
  const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState("");
- useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{})},[]);
+ useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{});fetch("/api/route-status").then(r=>r.json()).then(d=>d.ok&&setRouteStatus(d.routes||[])).catch(()=>{})},[]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
- const verifiedTarget=EXECUTABLE_ROUTES.some(r=>r.target.toLowerCase()===asset.toLowerCase());
- const valid=name.trim()&&symbol.trim()&&description.trim()&&config&&verifiedTarget;
+ const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
+ const verifiedTarget=Boolean(selectedRoute);
+ const routeConfigured=Boolean(selectedRoute&&routeStatus.find(s=>s.symbol===selectedRoute.symbol)?.configurationComplete);
+ const valid=name.trim()&&symbol.trim()&&description.trim()&&config&&verifiedTarget&&routeConfigured;
  function file(e:React.ChangeEvent<HTMLInputElement>){const f=e.target.files?.[0];if(!f)return; if(f.size>500000){setStatus("Logo must be under 500 KB.");return} const r=new FileReader();r.onload=()=>setLogo(String(r.result||""));r.readAsDataURL(f)}
  async function waitReceipt(hash:string,provider:ReturnType<typeof getInjectedProvider>){if(!provider)return null;for(let i=0;i<40;i++){const r=await provider.request<any>({method:"eth_getTransactionReceipt",params:[hash]});if(r)return r;await new Promise(x=>setTimeout(x,1500))}return null}
  async function launch(){
@@ -63,11 +66,12 @@ export default function Launch(){
     <label>Telegram<input value={telegram} onChange={e=>setTelegram(e.target.value)} placeholder="https://t.me/..."/></label>
    </section>
    <section className="form-card"><div><span className="micro">ROUTE</span><h3 style={{marginTop:8}}>Route settings</h3></div>
-    <label>Stock Token target<select value={asset} onChange={e=>setAsset(e.target.value)}>{EXECUTABLE_ROUTES.map(r=>{const canonical=assets.find(a=>a.contractAddress.toLowerCase()===r.target.toLowerCase());return <option key={r.target} value={r.target}>{r.symbol} · {canonical?.tokenName||r.name}</option>})}</select></label>
+    <label>Stock Token target<select value={asset} onChange={e=>setAsset(e.target.value)}>{EXECUTABLE_ROUTES.map(r=>{const canonical=assets.find(a=>a.contractAddress.toLowerCase()===r.target.toLowerCase());const ready=routeStatus.find(s=>s.symbol===r.symbol)?.configurationComplete;return <option key={r.target} value={r.target}>{r.symbol} · {canonical?.tokenName||r.name}{ready?" · Ready":" · Setup required"}</option>})}</select></label>
+    {selectedRoute&&!routeConfigured&&<div className="notice danger">{selectedRoute.symbol} is verified, but its AssetRegistry/oracle owner setup is not complete yet. <a href="/deploy/route"><b>Finish route setup →</b></a></div>}
     <label>Reward policy<select value={policy} onChange={e=>setPolicy(e.target.value)}><option value="0">Weighted raffle</option><option value="1">Equal lottery</option><option value="2">Pro-rata</option></select></label>
     <label>Creator tax (BPS)<input type="number" min="0" max={pons?.maxCreatorTaxBps||"1000"} value={tax} onChange={e=>setTax(e.target.value)}/></label>
     <div className="route-summary"><div><span className="data-label">Pair</span><b>USDG</b></div><div><span className="data-label">Launch fee</span><b>{pons?formatEther(BigInt(pons.launchFee))+" ETH":"Loading…"}</b></div><div><span className="data-label">Rewards</span><b>{["Weighted raffle","Equal lottery","Pro-rata"][Number(policy)]}</b></div><div><span className="data-label">Network</span><b>Robinhood Chain</b></div></div>
-    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":"Launch token"} <span>→</span></button>
+    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":routeConfigured?"Launch token":"Route setup required"} <span>→</span></button>
     <p className="muted" style={{fontSize:11,margin:0}}>Your wallet signs the Pons launch directly. Routy never receives your private key or custody of your wallet.</p>
     {status&&<div className="notice">{status}</div>}
     {launchedToken&&<a className="primary" href={"/deploy/provision?token="+launchedToken+"&asset="+asset+"&policy="+policy}>Continue to provisioning →</a>}
