@@ -35,7 +35,7 @@ export const ROUTE_CATALOG:ProductionRoute[]=[
  targetFeed:"0x4A1166a659A55625345e9515b32adECea5547C38",quoteFeed:USDG_FEED,
  poolId:"0x8517f8071ae5b831b738052f12125e8e3d6c158b78728aa44ce3b25e5104d32e",
  poolKey:{currency0:"0x322F0929c4625eD5bAd873c95208D54E1c003b2d",currency1:USDG,fee:3000,tickSpacing:60,hooks:NO_HOOK},
- source:"candidate",launchEnabled:false
+ source:"verified",launchEnabled:true
 },
 {
  symbol:"NVDA",name:"NVIDIA",
@@ -44,7 +44,7 @@ export const ROUTE_CATALOG:ProductionRoute[]=[
  targetFeed:"0x379EC4f7C378F34a1B47E4F3cbeBCbAC3E8E9F15",quoteFeed:USDG_FEED,
  poolId:"0x6444a8e0b267406a15db74ca00c4a24bdfa81ed3180f5b6d0851f8ed6f4f29c5",
  poolKey:{currency0:USDG,currency1:"0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",fee:100,tickSpacing:1,hooks:NO_HOOK},
- source:"candidate",launchEnabled:false
+ source:"verified",launchEnabled:true
 }
 ];
 
