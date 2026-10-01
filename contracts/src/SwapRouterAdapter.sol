@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 interface IAdapterERC20 {
     function balanceOf(address) external view returns (uint256);
+    function transfer(address,uint256) external returns (bool);
     function transferFrom(address,address,uint256) external returns (bool);
 }
 
@@ -48,6 +49,7 @@ contract SwapRouterAdapter {
         if (vault == address(0) || amountIn == 0 || minOut == 0) revert InvalidValue();
 
         uint256 beforeBalance;
+        uint256 targetBefore = IAdapterERC20(target).balanceOf(address(this));
         if (quote == address(0)) {
             if (msg.value != amountIn) revert InvalidValue();
         } else {
@@ -65,7 +67,7 @@ contract SwapRouterAdapter {
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(key,zeroForOne,uint128(amountIn),uint128(minOut),uint256(0),bytes(""));
         params[1] = abi.encode(quote,amountIn);
-        params[2] = abi.encode(target,vault,type(uint256).max);
+        params[2] = abi.encode(target,minOut);
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(actions,params);
         IAdapterRouter(UNIVERSAL_ROUTER).execute{value: quote == address(0) ? amountIn : 0}(
@@ -73,6 +75,11 @@ contract SwapRouterAdapter {
             inputs,
             deadline
         );
+
+        uint256 targetAfter = IAdapterERC20(target).balanceOf(address(this));
+        if (targetAfter <= targetBefore) revert InvalidValue();
+        uint256 amountOut = targetAfter - targetBefore;
+        _callToken(target,abi.encodeWithSelector(0xa9059cbb,vault,amountOut));
 
         if (quote != address(0)) {
             IAdapterPermit2(PERMIT2).approve(quote,UNIVERSAL_ROUTER,0,0);
