@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect,useState} from "react";
+import {useCallback,useEffect,useState} from "react";
 import {decodeFunctionResult,encodeFunctionData,isAddress,type Address,type Hex} from "viem";
 import Nav from "@/components/Nav";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
@@ -44,7 +44,7 @@ export default function LiveTestPage(){
  const[busy,setBusy]=useState(false);
  const[error,setError]=useState("");
 
- async function inspect(){
+ const inspect=useCallback(async()=>{
   setError("");setState(null);
   const provider=getInjectedProvider();
   if(!provider){setError("Compatible EVM wallet not found.");return}
@@ -81,10 +81,10 @@ export default function LiveTestPage(){
   }catch(cause){
    setError(cause instanceof Error?cause.message:"Could not inspect route readiness.");
   }finally{setBusy(false)}
- }
+ },[token]);
 
  useEffect(()=>{const q=new URLSearchParams(window.location.search);const t=q.get("token");if(t&&isAddress(t))setToken(t)},[]);
- useEffect(()=>{if(isAddress(token)&&new URLSearchParams(window.location.search).get("token")===token){const id=window.setTimeout(()=>inspect(),250);return()=>window.clearTimeout(id)}},[token]);
+ useEffect(()=>{if(isAddress(token)&&new URLSearchParams(window.location.search).get("token")===token){const id=window.setTimeout(()=>inspect(),250);return()=>window.clearTimeout(id)}},[token,inspect]);
  const ready=Boolean(state?.tokenValid&&state.routeMatched&&state.vaultApproved&&state.poolKeyMatched&&state.executorPaused);
 
  return <main className="shell"><Nav/><div className="wrap">
