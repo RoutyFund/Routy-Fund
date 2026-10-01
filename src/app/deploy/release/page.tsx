@@ -51,3 +51,4 @@ export default function ReleasePage(){
   {data?.readiness?.blockers?.length>0&&<div className="notice danger">Blockers: {data.readiness.blockers.join(" · ")}</div>}
   {error&&<div className="notice danger">{error}</div>}
  </div></main>
+}
