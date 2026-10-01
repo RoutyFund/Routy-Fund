@@ -1,9 +1,10 @@
 import Nav from "@/components/Nav";
 
 const proof = [
-  ["AAPL / USDG", "Verified route", "PoolKey + oracle locked"],
+  ["3 routes", "Verified markets", "AAPL · TSLA · NVDA"],
   ["80 / 20", "Routing split", "Vault / protocol treasury"],
   ["Robinhood", "Settlement network", "Chain ID 4663"],
+  ["3 policies", "Reward modes", "Weighted · Equal · Pro-rata"],
 ];
 
 export default function Home(){
@@ -36,19 +37,20 @@ export default function Home(){
           <div className="route-orbit route-orbit-b"/>
           <div className="premium-panel route-panel">
             <div className="panel-head">
-              <div><span className="micro">LIVE CONFIGURATION</span><h3>AAPL / USDG</h3></div>
+              <div><span className="micro">VERIFIED ROUTES</span><h3>AAPL · TSLA · NVDA</h3></div>
               <span className="verified-pill">Verified</span>
             </div>
             <div className="route-line">
               <div className="token-disc">R</div>
               <div className="route-track"><span/></div>
-              <div className="token-disc token-disc-light">A</div>
+              <div className="token-disc token-disc-light">3</div>
             </div>
             <div className="split-grid">
               <div><span>Asset vault</span><strong>80%</strong></div>
               <div><span>Treasury</span><strong>20%</strong></div>
             </div>
-            <div className="panel-foot"><span className="status-dot"/> Infrastructure ready · Execution paused for final live test</div>
+            <div className="market-strip"><span>AAPL</span><span>TSLA</span><span>NVDA</span></div>
+            <div className="panel-foot"><span className="status-dot"/> 3 verified PoolKeys · Execution remains paused for final live test</div>
           </div>
         </div>
       </section>
@@ -59,6 +61,16 @@ export default function Home(){
           <strong>{value}</strong>
           <p>{detail}</p>
         </article>)}
+      </section>
+
+      <section className="section quick-stats">
+        <div className="section-head"><div><span className="micro">ROUTY AT A GLANCE</span><h2>Built around visible controls.</h2></div><p className="section-copy">The public interface now surfaces the important route, execution and reward primitives instead of hiding them behind protocol jargon.</p></div>
+        <div className="quick-grid">
+          <article><span>Markets</span><strong>3</strong><p>AAPL, TSLA and NVDA verified routes.</p></article>
+          <article><span>Pair</span><strong>USDG</strong><p>Consistent quote asset across current routes.</p></article>
+          <article><span>Execution</span><strong>Guarded</strong><p>Oracle, deviation and PoolKey controls.</p></article>
+          <article><span>Custody</span><strong>Wallet</strong><p>Launches are signed directly by the creator.</p></article>
+        </div>
       </section>
 
       <section className="section premium-section">
