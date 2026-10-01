@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="wrap"><span className="kicker">Routy</span><h2>Loading onchain data…</h2></main>}
