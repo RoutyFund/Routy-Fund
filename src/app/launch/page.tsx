@@ -4,6 +4,7 @@ import Nav from "@/components/Nav";
 import {encodeFunctionData,formatEther,keccak256,toBytes} from "viem";
 import {getInjectedProvider} from "@/lib/ethereum-provider";
 import {PONS_V2,factoryLaunchAbi,factoryReadAbi} from "@/lib/pons";
+import {ROUTE_CATALOG} from "@/lib/route-catalog";
 
 type Asset={tokenSymbol:string;tokenName:string;contractAddress:string};
 type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;enabled:boolean}>};
@@ -11,12 +12,12 @@ type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;ena
 export default function Launch(){
  const[name,setName]=useState(""); const[symbol,setSymbol]=useState(""); const[description,setDescription]=useState("");
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
- const[asset,setAsset]=useState("0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9"); const[policy,setPolicy]=useState("0");
+ const[asset,setAsset]=useState(ROUTE_CATALOG[0].target); const[policy,setPolicy]=useState("0");
  const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null);
  const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false);
  useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{})},[]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
- const verifiedTarget=asset.toLowerCase()==="0xaf3d76f1834a1d425780943c99ea8a608f8a93f9";
+ const verifiedTarget=ROUTE_CATALOG.some(r=>r.target.toLowerCase()===asset.toLowerCase());
  const valid=name.trim()&&symbol.trim()&&description.trim()&&config&&verifiedTarget;
  function file(e:React.ChangeEvent<HTMLInputElement>){const f=e.target.files?.[0];if(!f)return; if(f.size>500000){setStatus("Logo must be under 500 KB.");return} const r=new FileReader();r.onload=()=>setLogo(String(r.result||""));r.readAsDataURL(f)}
  async function launch(){
@@ -54,12 +55,11 @@ export default function Launch(){
     <label>Telegram<input value={telegram} onChange={e=>setTelegram(e.target.value)} placeholder="https://t.me/..."/></label>
    </section>
    <section className="form-card"><div><span className="micro">ROUTE</span><h3 style={{marginTop:8}}>Route settings</h3></div>
-    <label>Stock Token target<select value={asset} onChange={e=>setAsset(e.target.value)}>{assets.length?assets.map(a=>{const ready=a.contractAddress.toLowerCase()==="0xaf3d76f1834a1d425780943c99ea8a608f8a93f9";return <option key={a.contractAddress} value={a.contractAddress}>{a.tokenSymbol} · {a.tokenName}{ready?" · Route ready":" · Coming soon"}</option>}):<option value="0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9">AAPL · Apple · Route ready</option>}</select></label>
-    {!verifiedTarget&&<div className="notice">This Stock Token is listed for discovery, but its oracle and PoolKey route are not verified yet. Select AAPL to launch with Routy routing today.</div>}
+    <label>Stock Token target<select value={asset} onChange={e=>setAsset(e.target.value)}>{ROUTE_CATALOG.map(r=>{const canonical=assets.find(a=>a.contractAddress.toLowerCase()===r.target.toLowerCase());return <option key={r.target} value={r.target}>{r.symbol} · {canonical?.tokenName||r.name}</option>})}</select></label>
     <label>Reward policy<select value={policy} onChange={e=>setPolicy(e.target.value)}><option value="0">Weighted raffle</option><option value="1">Equal lottery</option><option value="2">Pro-rata</option></select></label>
     <label>Creator tax (BPS)<input type="number" min="0" max={pons?.maxCreatorTaxBps||"1000"} value={tax} onChange={e=>setTax(e.target.value)}/></label>
     <div className="route-summary"><div><span className="data-label">Pair</span><b>USDG</b></div><div><span className="data-label">Launch fee</span><b>{pons?formatEther(BigInt(pons.launchFee))+" ETH":"Loading…"}</b></div><div><span className="data-label">Rewards</span><b>{["Weighted raffle","Equal lottery","Pro-rata"][Number(policy)]}</b></div><div><span className="data-label">Network</span><b>Robinhood Chain</b></div></div>
-    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":verifiedTarget?"Launch token":"Route coming soon"} <span>→</span></button>
+    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":"Launch token"} <span>→</span></button>
     <p className="muted" style={{fontSize:11,margin:0}}>Your wallet signs the Pons launch directly. Routy never receives your private key or custody of your wallet.</p>
     {status&&<div className="notice">{status}</div>}
    </section>
