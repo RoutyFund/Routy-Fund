@@ -1,5 +1,30 @@
-"use client";import Nav from "@/components/Nav";import {useEffect,useState} from "react";
-type Asset={id:string;tokenSymbol:string;tokenName:string;contractAddress?:string};type Pons={ok:boolean;launchFee?:string;maxCreatorTaxBps?:string};
-export default function Launch(){const[assets,setAssets]=useState<Asset[]>([]);const[asset,setAsset]=useState("");const[policy,setPolicy]=useState("weighted");const[pons,setPons]=useState<Pons|null>(null);useEffect(()=>{Promise.all([fetch("/api/assets").then(r=>r.json()),fetch("/api/pons").then(r=>r.json())]).then(([a,p])=>{setAssets(a.assets||[]);setPons(p)}).catch(()=>{})},[]);
-const selected=assets.find(a=>a.id===asset);const ready=Boolean(selected?.contractAddress&&pons?.ok);
-return <main className="shell"><Nav/><div className="wrap"><span className="kicker">Launch on Routy</span><h1 style={{fontSize:64}}>Create a routed token.</h1><p className="muted">Choose token identity, one immutable canonical Stock Token target, and a reward policy.</p><form className="launch-form" onSubmit={e=>{e.preventDefault();alert("Direct launch remains locked until the Routy deterministic fee-router adapter is deployed and verified.")}}><div className="form-card"><h2>Token</h2><label>Name<input required maxLength={64}/></label><label>Ticker<input required maxLength={16}/></label><label>Description<textarea required maxLength={2048}/></label><label>Logo<input type="file" accept="image/*"/></label></div><div className="form-card"><h2>Routing</h2><label>Target Stock Token<select required value={asset} onChange={e=>setAsset(e.target.value)}><option value="">Select canonical asset</option>{assets.map(a=><option key={a.id} value={a.id}>{a.tokenSymbol} — {a.tokenName}</option>)}</select></label><label>Reward policy<select value={policy} onChange={e=>setPolicy(e.target.value)}><option value="weighted">Weighted raffle</option><option value="equal">Equal lottery</option><option value="pro-rata">Pro-rata distribution</option></select></label><div className="notice">{pons?.ok?"Pons V2 economics are reachable live.":"Pons V2 live economics unavailable."} Target asset is immutable after launch.</div><button className="primary" type="submit" disabled={!ready}>{ready?"Launch token":"Protocol not ready"}</button></div></form></div></main>}
+"use client";
+
+import Nav from "@/components/Nav";
+import { FIRST_PRODUCTION_ROUTE } from "@/lib/production-route";
+
+export default function Launch() {
+  return <main className="shell"><Nav/><div className="wrap">
+    <span className="kicker">Launch on Routy</span>
+    <h1 style={{fontSize:64}}>Create a routed token.</h1>
+    <p className="muted">Production routing is intentionally limited to routes whose oracle and Uniswap V4 PoolKey have been verified. The first route is AAPL / USDG.</p>
+
+    <div className="launch-form">
+      <section className="form-card">
+        <h2>1. Launch on Pons</h2>
+        <p className="muted">Create the token through Pons V2 using USDG as its pair token. Keep the creator fee recipient on the wallet that will provision Routy.</p>
+        <div className="notice">Do not use a different pair for the first production test. Routy currently pins USDG <code>{FIRST_PRODUCTION_ROUTE.quote}</code>.</div>
+        <a className="primary" href="/deploy/provision">I already have a Pons token</a>
+      </section>
+
+      <section className="form-card">
+        <h2>2. Routy route</h2>
+        <p><b>AAPL</b> · {FIRST_PRODUCTION_ROUTE.target}</p>
+        <p><b>USDG</b> · {FIRST_PRODUCTION_ROUTE.quote}</p>
+        <p>Uniswap V4 fee: <b>{FIRST_PRODUCTION_ROUTE.poolKey.fee / 10000}%</b></p>
+        <p>Tick spacing: <b>{FIRST_PRODUCTION_ROUTE.poolKey.tickSpacing}</b></p>
+        <div className="notice">AAPL and USDG oracle prerequisites are configured on-chain. Swap execution remains paused until a real token is provisioned and a constrained test succeeds.</div>
+      </section>
+    </div>
+  </div></main>;
+}
