@@ -1,3 +1,3 @@
-import "./globals.css";import type {Metadata} from "next";
+import "./globals.css";import "./repair.css";import type {Metadata} from "next";
 export const metadata:Metadata={metadataBase:new URL(process.env.NEXT_PUBLIC_SITE_URL||"https://routy-fund.vercel.app"),title:{default:"Routy — Trade. Route. Reward.",template:"%s · Routy"},description:"Launch tokens, route creator fees into canonical Robinhood Stock Tokens, and reward holders.",openGraph:{title:"Routy — Trade. Route. Reward.",description:"Trading fees routed into real-world asset exposure on Robinhood Chain.",type:"website"},twitter:{card:"summary_large_image",title:"Routy — Trade. Route. Reward."}};
 export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body>{children}</body></html>}

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:deployment": "node --experimental-strip-types --test tests/deploy-encoding.test.mjs",
+    "test:deployment": "node --experimental-strip-types --test tests/*.test.mjs",
     "contracts:env": "node scripts/render-env.mjs"
   },
   "dependencies": {

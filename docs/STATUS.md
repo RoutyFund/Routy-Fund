@@ -1,5 +1,9 @@
 # Routy status
 
+## Active blocker
+
+- The mainnet `SwapExecutor` still points to an adapter deployed before the final output-forwarding fix. A constrained two-transaction repair is available at `/deploy/repair`; execution remains disabled and the executor must stay paused until its verified report is committed.
+
 ## Complete before credentials
 - Next.js production build and fail-closed readiness endpoints
 - canonical Robinhood asset API sync model
@@ -17,6 +21,7 @@
 - no fabricated launches/metrics in UI
 
 ## Intentionally locked
+- swap execution: requires completion of the adapter repair plus verified per-asset routes and feeds
 - direct Pons launch through Routy: requires deterministic canonical FeeRouter wiring to be verified against the exact deployed Pons predictor ABI
 - asset purchases: requires verified per-asset pools/routes and official current Chainlink proxy mapping
 - raffle payouts: requires a selected independent randomness provider

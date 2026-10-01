@@ -1,6 +1,6 @@
-import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
+import {ROUTY_DEPLOYMENT,ROUTY_RELEASE_STATE} from "@/lib/deployment";
 
-export type Readiness={chain:boolean,rpc:boolean,treasury:boolean,launcher:boolean,registry:boolean,oracleRegistry:boolean,feeRouterFactory:boolean,assetVaultFactory:boolean,oracleGuard:boolean,swapExecutor:boolean,swapOracleQuoter:boolean,swapRouterAdapter:boolean,feeEscrow:boolean,uniswapPoolManager:boolean,uniswapRouter:boolean,permit2:boolean,maxPriceDeviation:boolean,swapExecutionEnabled:boolean};
+export type Readiness={chain:boolean,rpc:boolean,treasury:boolean,launcher:boolean,registry:boolean,oracleRegistry:boolean,feeRouterFactory:boolean,assetVaultFactory:boolean,oracleGuard:boolean,swapExecutor:boolean,swapOracleQuoter:boolean,swapRouterAdapter:boolean,swapAdapterCurrent:boolean,feeEscrow:boolean,uniswapPoolManager:boolean,uniswapRouter:boolean,permit2:boolean,maxPriceDeviation:boolean,swapExecutionEnabled:boolean};
 const CHAIN_ID="4663";
 const POOL_MANAGER="0x8366a39cc670b4001a1121b8f6a443a643e40951";
 const UNIVERSAL_ROUTER="0x204faca1764b154221e35c0d20abb3c525710498";
@@ -23,6 +23,7 @@ export function serverReadiness():Readiness{
  swapExecutor:configured(process.env.ROUTY_SWAP_EXECUTOR_ADDRESS,ROUTY_DEPLOYMENT.swapExecutor),
  swapOracleQuoter:configured(process.env.ROUTY_SWAP_ORACLE_QUOTER_ADDRESS,ROUTY_DEPLOYMENT.swapOracleQuoter),
  swapRouterAdapter:configured(process.env.ROUTY_SWAP_ROUTER_ADAPTER_ADDRESS,ROUTY_DEPLOYMENT.swapRouterAdapter),
+ swapAdapterCurrent:!ROUTY_RELEASE_STATE.swapAdapterRepairRequired,
  feeEscrow:addressConfigured(process.env.PONS_FEE_ESCROW_ADDRESS),
  uniswapPoolManager:matchesAddress(process.env.UNISWAP_V4_POOL_MANAGER,POOL_MANAGER),
  uniswapRouter:matchesAddress(process.env.UNISWAP_UNIVERSAL_ROUTER,UNIVERSAL_ROUTER),

@@ -30,7 +30,7 @@ test("OracleGuard constructor encodes maxAge 3600", () => {
 });
 
 test("dependency configuration encodes the requested 200 bps", () => {
-  const data = encodeExecutorConfigureDependencies([...addresses.slice(0, 5), 200]);
+  const data = encodeExecutorConfigureDependencies([...addresses.slice(0, 4), 200]);
   assert.equal(data.slice(-64), "c8".padStart(64, "0"));
 });
 

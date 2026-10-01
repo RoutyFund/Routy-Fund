@@ -1,0 +1,60 @@
+.notice.danger {
+  background: rgba(180, 35, 24, 0.08);
+  border: 1px solid rgba(180, 35, 24, 0.28);
+  color: #8f1c13;
+}
+
+.deployment-repair-callout,
+.repair-steps,
+.repair-complete {
+  margin-top: 24px;
+}
+
+.mono-wrap {
+  overflow-wrap: anywhere;
+}
+
+.inline-action {
+  align-self: flex-start;
+  display: inline-flex;
+}
+
+.compact-head {
+  margin-bottom: 0;
+}
+
+.clean-steps {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.repair-step-row {
+  border-top: 1px solid var(--line);
+  padding: 18px 0;
+}
+
+.repair-step-copy {
+  flex: 1;
+  min-width: 260px;
+}
+
+.repair-step-copy p {
+  margin: 6px 0;
+}
+
+.repair-step-row,
+.repair-step-actions {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.repair-step-actions {
+  gap: 8px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

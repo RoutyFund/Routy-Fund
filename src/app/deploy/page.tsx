@@ -1,9 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import Nav from "@/components/Nav";
 import { useEffect, useState } from "react";
 import { formatEther, isAddress, type Address, type Hex } from "viem";
 import { DEPLOY_BYTECODE } from "@/lib/deploy-artifacts";
+import {
+  getInjectedProvider,
+  type EthereumProvider,
+  type EthereumTransactionReceipt,
+} from "@/lib/ethereum-provider";
 import {
   canCheckStep,
   canSubmitStep,
@@ -25,10 +31,6 @@ const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as Address;
 const CHAIN_ID = "0x1237";
 const EXPLORER = "https://robinhoodchain.blockscout.com";
 const STORAGE_KEY = "routy-mainnet-deployment-v1";
-
-type EthereumProvider = {
-  request: (args: { method: string; params?: unknown[] }) => Promise<any>;
-};
 
 type SavedStep = { hash: Hex; address?: Address };
 type SavedProgress = Partial<Record<(typeof DEPLOYMENT_STEP_IDS)[number], SavedStep>>;
@@ -55,10 +57,6 @@ const STEPS: StepDefinition[] = [
   { id: "swapExecutorLauncher", title: "Set SwapExecutor launcher", kind: "call", contract: "SwapExecutor", details: "setLauncher(ProtocolLauncher)" },
   { id: "swapDependencies", title: "Configure SwapExecutor dependencies", kind: "call", contract: "SwapExecutor", details: "OracleRegistry, OracleGuard, SwapOracleQuoter, SwapRouterAdapter, 200 bps" },
 ];
-
-function ethereum(): EthereumProvider | undefined {
-  return (window as Window & { ethereum?: EthereumProvider }).ethereum;
-}
 
 function validAddress(value: unknown): value is Address {
   return typeof value === "string"
@@ -190,20 +188,20 @@ export default function DeployPage() {
   const [notice, setNotice] = useState("");
 
   async function refreshWallet() {
-    const provider = ethereum();
+    const provider = getInjectedProvider();
     if (!provider) return;
-    const accounts = await provider.request({ method: "eth_accounts" });
-    const chain = await provider.request({ method: "eth_chainId" });
+    const accounts = await provider.request<string[]>({ method: "eth_accounts" });
+    const chain = await provider.request<string>({ method: "eth_chainId" });
     setAccount(accounts?.[0] ?? "");
     setChainId(chain ?? "");
     if (accounts?.[0]) {
-      const amount = await provider.request({ method: "eth_getBalance", params: [accounts[0], "latest"] });
+      const amount = await provider.request<string>({ method: "eth_getBalance", params: [accounts[0], "latest"] });
       setBalance(formatEther(BigInt(amount)));
     }
   }
 
   async function connect() {
-    const provider = ethereum();
+    const provider = getInjectedProvider();
     if (!provider) {
       setError("Wallet EVM injected tidak ditemukan.");
       return;
@@ -218,7 +216,7 @@ export default function DeployPage() {
   }
 
   async function switchChain() {
-    const provider = ethereum();
+    const provider = getInjectedProvider();
     if (!provider) return;
     try {
       await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_ID }] });
@@ -230,8 +228,8 @@ export default function DeployPage() {
 
   async function assertWallet(provider: EthereumProvider) {
     const [accounts, chain] = await Promise.all([
-      provider.request({ method: "eth_accounts" }),
-      provider.request({ method: "eth_chainId" }),
+      provider.request<string[]>({ method: "eth_accounts" }),
+      provider.request<string>({ method: "eth_chainId" }),
     ]);
     setAccount(accounts?.[0] ?? "");
     setChainId(chain ?? "");
@@ -245,7 +243,7 @@ export default function DeployPage() {
 
   async function verifyCode(provider: EthereumProvider, address: Address) {
     if (!validAddress(address)) throw new Error("Alamat nol atau tidak valid ditolak.");
-    const code = await provider.request({ method: "eth_getCode", params: [address, "latest"] });
+    const code = await provider.request<string>({ method: "eth_getCode", params: [address, "latest"] });
     if (typeof code !== "string" || code === "0x" || code.length <= 2) {
       throw new Error(`Tidak ditemukan bytecode on-chain pada ${address}.`);
     }
@@ -272,7 +270,7 @@ export default function DeployPage() {
   async function resumeProgress() {
     setError("");
     setNotice("");
-    const provider = ethereum();
+    const provider = getInjectedProvider();
     if (!provider) {
       setError("Wallet EVM injected tidak ditemukan.");
       return;
@@ -288,18 +286,23 @@ export default function DeployPage() {
         const saved = loaded[step.id];
         if (!saved) break;
         nextStatuses[index] = "submitted";
-        const receipt = await provider.request({ method: "eth_getTransactionReceipt", params: [saved.hash] });
+        const receipt = await provider.request<EthereumTransactionReceipt | null>({ method: "eth_getTransactionReceipt", params: [saved.hash] });
         if (!receipt) break;
         if (receipt.status !== "0x1" && receipt.status !== "0x01") {
           nextStatuses[index] = "failed";
           setError(`${step.title} gagal on-chain. Hanya langkah ini yang dapat dicoba ulang.`);
           break;
         }
-        const address = step.kind === "deploy" ? receipt.contractAddress : stepAddress(step.id, nextVerified);
-        if (step.kind === "deploy" && (!address || !validAddress(address))) {
-          nextStatuses[index] = "failed";
-          setError(`Receipt ${step.title} tidak memiliki contract address yang valid.`);
-          break;
+        let address: Address | undefined;
+        if (step.kind === "deploy") {
+          if (!validAddress(receipt.contractAddress)) {
+            nextStatuses[index] = "failed";
+            setError(`Receipt ${step.title} tidak memiliki contract address yang valid.`);
+            break;
+          }
+          address = receipt.contractAddress;
+        } else {
+          address = stepAddress(step.id, nextVerified);
         }
         if (address) {
           await verifyCode(provider, address);
@@ -320,7 +323,7 @@ export default function DeployPage() {
 
   async function sendStep(index: number) {
     if (!canSubmitStep(statuses, index) || (activeStep !== null && activeStep !== index)) return;
-    const provider = ethereum();
+    const provider = getInjectedProvider();
     if (!provider) {
       setError("Wallet EVM injected tidak ditemukan.");
       return;
@@ -341,10 +344,10 @@ export default function DeployPage() {
       }
       writeSavedProgress(preflightProgress);
       setStatuses((current) => current.map((status, position) => position === index ? "awaiting wallet signature" : status));
-      const hash = await provider.request({
+      const hash = await provider.request<Hex>({
         method: "eth_sendTransaction",
         params: [{ from: DEPLOYER, ...(target ? { to: target } : {}), data, value: "0x0", ...(step.contract === "SwapExecutor" ? { gas: "0x124f80" } : {}) }],
-      }) as Hex;
+      });
       if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("Wallet tidak mengembalikan transaction hash yang valid.");
       returnedHash = hash;
       const updated = { ...records, [step.id]: { hash } };
@@ -372,14 +375,14 @@ export default function DeployPage() {
     if (!canCheckStep(statuses, index)) return;
     const step = STEPS[index];
     const saved = records[step.id];
-    const provider = ethereum();
+    const provider = getInjectedProvider();
     if (!saved || !provider) return;
     setActiveStep(index);
     setError("");
     setNotice("");
     try {
       await assertWallet(provider);
-      const receipt = await provider.request({ method: "eth_getTransactionReceipt", params: [saved.hash] });
+      const receipt = await provider.request<EthereumTransactionReceipt | null>({ method: "eth_getTransactionReceipt", params: [saved.hash] });
       if (!receipt) {
         setNotice("Receipt belum tersedia. Langkah berikutnya tetap terkunci.");
         return;
@@ -389,8 +392,13 @@ export default function DeployPage() {
         setError(`${step.title} gagal on-chain. Hanya langkah ini yang dapat dicoba ulang.`);
         return;
       }
-      const address = step.kind === "deploy" ? receipt.contractAddress : stepAddress(step.id, verified);
-      if (step.kind === "deploy" && (!address || !validAddress(address))) throw new Error("Receipt tidak memiliki alamat kontrak valid.");
+      let address: Address | undefined;
+      if (step.kind === "deploy") {
+        if (!validAddress(receipt.contractAddress)) throw new Error("Receipt tidak memiliki alamat kontrak valid.");
+        address = receipt.contractAddress;
+      } else {
+        address = stepAddress(step.id, verified);
+      }
       if (address) await verifyCode(provider, address);
       const nextVerified = { ...verified };
       if (address) nextVerified[step.kind === "deploy" ? step.id : step.contract === "SwapExecutor" ? "swapExecutor" : step.id] = address;
@@ -413,10 +421,13 @@ export default function DeployPage() {
   }
 
   useEffect(() => {
-    refreshWallet().catch(() => {});
-    const loaded = readSavedProgress();
-    setRecords(loaded);
-    setStatuses(STEPS.map((step) => loaded[step.id] ? "submitted" : "pending"));
+    const timeout = window.setTimeout(() => {
+      refreshWallet().catch(() => {});
+      const loaded = readSavedProgress();
+      setRecords(loaded);
+      setStatuses(STEPS.map((step) => loaded[step.id] ? "submitted" : "pending"));
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   const authorized = account.toLowerCase() === DEPLOYER.toLowerCase();
@@ -437,6 +448,9 @@ export default function DeployPage() {
         <span className="kicker">Routy deployment console</span>
         <h1 style={{ fontSize: 56 }}>Mainnet deployment</h1>
         <p className="muted">Robinhood Chain (4663). Transactions are initiated only by your injected wallet, one explicit confirmation at a time. No private key or seed phrase is requested or stored.</p>
+        <div className="notice danger deployment-repair-callout">
+          This historical deployment used an outdated SwapRouterAdapter. Do not repeat the full deployment. <Link href="/deploy/repair"><b>Open the two-step adapter repair →</b></Link>
+        </div>
 
         <div className="launch-form">
           <section className="form-card" aria-labelledby="wallet-title">
