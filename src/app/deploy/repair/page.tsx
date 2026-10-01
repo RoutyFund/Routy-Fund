@@ -77,8 +77,16 @@ const statusLabel: Record<DeploymentStatus, string> = {
 
 function validAddress(value: unknown): value is Address {
   return typeof value === "string"
+    && /^0x[0-9a-f]{40}$/i.test(value)
     && isAddress(value, { strict: false })
     && value.toLowerCase() !== "0x0000000000000000000000000000000000000000";
+}
+
+function requestAddress(value: unknown, label: string): Address {
+  if (!validAddress(value)) {
+    throw new Error(`${label} must be a complete 20-byte EVM address.`);
+  }
+  return value;
 }
 
 function readSavedProgress(): SavedProgress {
@@ -105,9 +113,10 @@ function writeSavedProgress(progress: SavedProgress) {
 }
 
 async function storageWord(provider: EthereumProvider, slot: string): Promise<string> {
+  const executor = requestAddress(ROUTY_DEPLOYMENT.swapExecutor, "SwapExecutor");
   return provider.request<string>({
     method: "eth_getStorageAt",
-    params: [ROUTY_DEPLOYMENT.swapExecutor, slot, "latest"],
+    params: [executor, slot, "latest"],
   });
 }
 
@@ -130,7 +139,8 @@ async function readExecutorState(provider: EthereumProvider): Promise<ExecutorSt
 }
 
 async function codeAt(provider: EthereumProvider, address: Address): Promise<string> {
-  const code = await provider.request<string>({ method: "eth_getCode", params: [address, "latest"] });
+  const checkedAddress = requestAddress(address, "Contract");
+  const code = await provider.request<string>({ method: "eth_getCode", params: [checkedAddress, "latest"] });
   return code;
 }
 
