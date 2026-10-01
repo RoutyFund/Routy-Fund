@@ -47,11 +47,10 @@ const configureDependenciesAbi = [{
   name: "configureDependencies",
   stateMutability: "nonpayable",
   inputs: [
-    { name: "router_", type: "address" },
-    { name: "permit2_", type: "address" },
-    { name: "poolManager_", type: "address" },
     { name: "oracleRegistry_", type: "address" },
     { name: "oracleGuard_", type: "address" },
+    { name: "oracleQuoter_", type: "address" },
+    { name: "routerAdapter_", type: "address" },
     { name: "maxDeviationBps_", type: "uint16" },
   ],
   outputs: [],
@@ -100,10 +99,10 @@ export function encodeSetLauncher(launcher: Address): Hex {
 }
 
 export function encodeExecutorConfigureDependencies(
-  args: readonly [Address, Address, Address, Address, Address, number],
+  args: readonly [Address, Address, Address, Address, number],
 ): Hex {
-  args.slice(0, 5).forEach(assertAddress);
-  if (!Number.isInteger(args[5]) || args[5] <= 0 || args[5] > 2000) {
+  args.slice(0, 4).forEach(assertAddress);
+  if (!Number.isInteger(args[4]) || args[4] <= 0 || args[4] > 2000) {
     throw new Error("maxDeviationBps must be between 1 and 2000.");
   }
   return encodeFunctionData({
