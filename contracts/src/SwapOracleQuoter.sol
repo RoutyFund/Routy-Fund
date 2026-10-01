@@ -7,6 +7,7 @@ interface IQuoteTokenDecimals {
 
 interface IQuoteOracleRegistry {
     function feedForAsset(address asset) external view returns (address);
+    function nativeFeed() external view returns (address);
 }
 
 interface IQuoteOracleGuard {
@@ -25,7 +26,7 @@ contract SwapOracleQuoter {
         address target,
         uint256 amountIn
     ) external view returns (uint256) {
-        address quoteFeed = IQuoteOracleRegistry(registry).feedForAsset(quote);
+        address quoteFeed = quote == address(0) ? IQuoteOracleRegistry(registry).nativeFeed() : IQuoteOracleRegistry(registry).feedForAsset(quote);
         address targetFeed = IQuoteOracleRegistry(registry).feedForAsset(target);
         if (quoteFeed == address(0) || targetFeed == address(0)) revert InvalidFeed();
 
