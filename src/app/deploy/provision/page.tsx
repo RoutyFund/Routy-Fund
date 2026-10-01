@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useMemo,useState} from "react";
-import {decodeEventLog,decodeFunctionResult,encodeFunctionData,isAddress,type Address,type Hex} from "viem";
+import {decodeFunctionResult,encodeFunctionData,isAddress,type Address,type Hex} from "viem";
 import Nav from "@/components/Nav";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
@@ -40,8 +40,8 @@ export default function ProvisionPage(){
  async function readPonsLaunch(){
   const p=getInjectedProvider();if(!p||!isAddress(token)){setPonsLaunch(null);return}
   const raw=await call(p,PONS_V2.factory,encodeFunctionData({abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]}));
-  const launch=decodeFunctionResult({abi:factoryReadAbi,functionName:"getLaunchedToken",data:raw}) as any;
-  setPonsLaunch({exists:Boolean(launch.exists),creatorFeeRecipient:launch.creatorFeeRecipient as Address,pairToken:launch.pairToken as Address});
+  const launch=decodeFunctionResult({abi:factoryReadAbi,functionName:"getLaunchedToken",data:raw});
+  setPonsLaunch({exists:Boolean(launch.exists),creatorFeeRecipient:launch.creatorFeeRecipient,pairToken:launch.pairToken});
  }
  async function readRoute(){
   const p=getInjectedProvider();if(!p||!isAddress(token)){setRouteState(null);setPonsLaunch(null);return}
