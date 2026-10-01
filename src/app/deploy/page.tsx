@@ -447,9 +447,7 @@ export default function DeployPage() {
         <span className="kicker">Routy deployment console</span>
         <h1 style={{ fontSize: 56 }}>Mainnet deployment</h1>
         <p className="muted">Robinhood Chain (4663). Transactions are initiated only by your injected wallet, one explicit confirmation at a time. No private key or seed phrase is requested or stored.</p>
-        <div className="notice deployment-repair-callout">
-          Adapter repair is complete and the canonical SwapRouterAdapter is recorded. Do not repeat the full deployment or repair flow. Swap execution remains intentionally disabled until final production validation is complete.
-        </div>
+        <div className="notice deployment-repair-callout">Adapter repair is complete and the canonical SwapRouterAdapter is recorded. Do not repeat the full deployment or repair flow. Swap execution remains intentionally disabled until final production validation is complete. <a href="/deploy/release"><b>Open consolidated release status →</b></a></div>
 
         <div className="launch-form">
           <section className="form-card" aria-labelledby="wallet-title">
