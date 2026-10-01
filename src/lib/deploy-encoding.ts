@@ -5,6 +5,8 @@ export const DEPLOYMENT_STEP_IDS = [
   "oracleRegistry",
   "swapExecutor",
   "oracleGuard",
+  "swapOracleQuoter",
+  "swapRouterAdapter",
   "feeRouterFactory",
   "assetVaultFactory",
   "protocolLauncher",
@@ -15,7 +17,7 @@ export const DEPLOYMENT_STEP_IDS = [
 ] as const;
 
 export type DeploymentStatus = "pending" | "awaiting wallet signature" | "submitted" | "confirmed" | "failed";
-export type DeployableContract = "AssetRegistry" | "OracleRegistry" | "SwapExecutor" | "OracleGuard" | "FeeRouterFactory" | "AssetVaultFactory" | "ProtocolLauncher";
+export type DeployableContract = "AssetRegistry" | "OracleRegistry" | "SwapExecutor" | "OracleGuard" | "SwapOracleQuoter" | "SwapRouterAdapter" | "FeeRouterFactory" | "AssetVaultFactory" | "ProtocolLauncher";
 
 const addressConstructor = [{ type: "constructor", inputs: [{ name: "owner_", type: "address" }] }] as const;
 const oracleGuardConstructor = [{ type: "constructor", inputs: [{ name: "maxAge_", type: "uint256" }] }] as const;
@@ -74,6 +76,10 @@ export function encodeDeployment(contract: DeployableContract, bytecode: Hex, ar
       if (args.length !== 1) throw new Error(`${contract} expects one constructor address.`);
       assertAddress(args[0]);
       return encodeDeployData({ bytecode, abi: addressConstructor, args: [args[0]] });
+    case "SwapOracleQuoter":
+    case "SwapRouterAdapter":
+      if (args.length !== 0) throw new Error(`${contract} expects no constructor arguments.`);
+      return encodeDeployData({ bytecode, abi: [] });
     case "OracleGuard":
       if (args.length !== 1 || typeof args[0] !== "bigint" || args[0] <= 0n) throw new Error("OracleGuard expects a positive maxAge.");
       return encodeDeployData({ bytecode, abi: oracleGuardConstructor, args: [args[0]] });
