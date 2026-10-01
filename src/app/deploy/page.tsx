@@ -45,13 +45,15 @@ const STEPS: StepDefinition[] = [
   { id: "oracleRegistry", title: "Deploy OracleRegistry", kind: "deploy", contract: "OracleRegistry", details: "OracleRegistry(deployer)" },
   { id: "swapExecutor", title: "Deploy SwapExecutor", kind: "deploy", contract: "SwapExecutor", details: "SwapExecutor(deployer); paused by default" },
   { id: "oracleGuard", title: "Deploy OracleGuard", kind: "deploy", contract: "OracleGuard", details: "OracleGuard(3600)" },
+  { id: "swapOracleQuoter", title: "Deploy SwapOracleQuoter", kind: "deploy", contract: "SwapOracleQuoter", details: "Small oracle quoting helper" },
+  { id: "swapRouterAdapter", title: "Deploy SwapRouterAdapter", kind: "deploy", contract: "SwapRouterAdapter", details: "Small constrained Uniswap V4 adapter" },
   { id: "feeRouterFactory", title: "Deploy FeeRouterFactory", kind: "deploy", contract: "FeeRouterFactory", details: "FeeRouterFactory(deployer)" },
   { id: "assetVaultFactory", title: "Deploy AssetVaultFactory", kind: "deploy", contract: "AssetVaultFactory", details: "AssetVaultFactory(deployer)" },
   { id: "protocolLauncher", title: "Deploy ProtocolLauncher", kind: "deploy", contract: "ProtocolLauncher", details: "Registry, Pons Factory, both factories, Pons Fee Escrow, Treasury, SwapExecutor" },
   { id: "feeRouterLauncher", title: "Set FeeRouterFactory launcher", kind: "call", contract: "FeeRouterFactory", details: "setLauncher(ProtocolLauncher)" },
   { id: "assetVaultLauncher", title: "Set AssetVaultFactory launcher", kind: "call", contract: "AssetVaultFactory", details: "setLauncher(ProtocolLauncher)" },
   { id: "swapExecutorLauncher", title: "Set SwapExecutor launcher", kind: "call", contract: "SwapExecutor", details: "setLauncher(ProtocolLauncher)" },
-  { id: "swapDependencies", title: "Configure SwapExecutor dependencies", kind: "call", contract: "SwapExecutor", details: "Universal Router, Permit2, PoolManager, OracleRegistry, OracleGuard, 200 bps" },
+  { id: "swapDependencies", title: "Configure SwapExecutor dependencies", kind: "call", contract: "SwapExecutor", details: "OracleRegistry, OracleGuard, SwapOracleQuoter, SwapRouterAdapter, 200 bps" },
 ];
 
 function ethereum(): EthereumProvider | undefined {
@@ -108,6 +110,9 @@ function deploymentArguments(id: StepDefinition["id"], verified: Partial<Record<
       return [DEPLOYER] as const;
     case "oracleGuard":
       return [3600n] as const;
+    case "swapOracleQuoter":
+    case "swapRouterAdapter":
+      return [] as const;
     case "protocolLauncher":
       return [
         verified.assetRegistry,
@@ -141,7 +146,7 @@ function requiredAddresses(id: StepDefinition["id"], verified: Partial<Record<st
   if (id === "assetVaultLauncher") return [verified.protocolLauncher, verified.assetVaultFactory].filter((address): address is Address => Boolean(address));
   if (id === "swapExecutorLauncher") return [verified.protocolLauncher, verified.swapExecutor].filter((address): address is Address => Boolean(address));
   if (id === "swapDependencies") {
-    return [verified.swapExecutor, verified.oracleRegistry, verified.oracleGuard, UNIVERSAL_ROUTER, PERMIT2, POOL_MANAGER]
+    return [verified.swapExecutor, verified.oracleRegistry, verified.oracleGuard, verified.swapOracleQuoter, verified.swapRouterAdapter]
       .filter((address): address is Address => Boolean(address));
   }
   return [];
@@ -161,13 +166,12 @@ function transactionData(step: StepDefinition, verified: Partial<Record<string, 
     return encodeSetLauncher(launcher);
   }
   if (step.id === "swapDependencies") {
-    if (!verified.oracleRegistry || !verified.oracleGuard) throw new Error("Alamat oracle belum terverifikasi.");
+    if (!verified.oracleRegistry || !verified.oracleGuard || !verified.swapOracleQuoter || !verified.swapRouterAdapter) throw new Error("Alamat dependency swap belum terverifikasi.");
     return encodeExecutorConfigureDependencies([
-      UNIVERSAL_ROUTER,
-      PERMIT2,
-      POOL_MANAGER,
       verified.oracleRegistry,
       verified.oracleGuard,
+      verified.swapOracleQuoter!,
+      verified.swapRouterAdapter!,
       200,
     ]);
   }
@@ -251,7 +255,7 @@ export default function DeployPage() {
     await assertWallet(provider);
     const step = STEPS[index];
     const needed = requiredAddresses(step.id, verified);
-    const minimum = step.id === "protocolLauncher" ? 9 : step.id === "swapDependencies" ? 6 : step.kind === "call" ? 2 : 0;
+    const minimum = step.id === "protocolLauncher" ? 9 : step.id === "swapDependencies" ? 5 : step.kind === "call" ? 2 : 0;
     if (needed.length !== minimum || needed.some((address) => !validAddress(address))) {
       throw new Error("Alamat prasyarat belum lengkap atau mengandung alamat nol.");
     }
@@ -339,7 +343,7 @@ export default function DeployPage() {
       setStatuses((current) => current.map((status, position) => position === index ? "awaiting wallet signature" : status));
       const hash = await provider.request({
         method: "eth_sendTransaction",
-        params: [{ from: DEPLOYER, ...(target ? { to: target } : {}), data, value: "0x0", ...(step.contract === "SwapExecutor" ? { gas: "0x2dc6c0" } : {}) }],
+        params: [{ from: DEPLOYER, ...(target ? { to: target } : {}), data, value: "0x0", ...(step.contract === "SwapExecutor" ? { gas: "0x124f80" } : {}) }],
       }) as Hex;
       if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("Wallet tidak mengembalikan transaction hash yang valid.");
       returnedHash = hash;
