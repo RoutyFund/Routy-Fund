@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { formatEther, isAddress, keccak256, type Address, type Hex } from "viem";
+import { formatEther, isAddress, type Address, type Hex } from "viem";
 import Nav from "@/components/Nav";
 import {
   addressFromStorageWord,
@@ -10,12 +10,17 @@ import {
   EXECUTOR_STORAGE_SLOTS,
   sameAddress,
 } from "@/lib/adapter-repair";
-import { DEPLOY_BYTECODE } from "@/lib/deploy-artifacts";
+import {
+  ADAPTER_ADDRESS,
+  ADAPTER_ARTIFACT_HASH,
+  ADAPTER_DEPLOYMENT,
+  DETERMINISTIC_DEPLOYER,
+  DETERMINISTIC_DEPLOYER_CODE,
+} from "@/lib/adapter-repair-plan";
 import {
   buildRepairTransaction,
   canCheckStep,
   canSubmitStep,
-  encodeDeployment,
   encodeExecutorConfigureDependencies,
   type DeploymentStatus,
 } from "@/lib/deploy-encoding";
@@ -33,9 +38,7 @@ const DEPLOYER = "0x866d5D863381efe9e10cCb2E44f388611F781212" as Address;
 const CHAIN_ID = "0x1237";
 const EXPLORER = "https://robinhoodchain.blockscout.com";
 const MAX_DEVIATION_BPS = 200;
-const ADAPTER_BYTECODE = DEPLOY_BYTECODE.SwapRouterAdapter as Hex;
-const ARTIFACT_HASH = keccak256(ADAPTER_BYTECODE);
-const STORAGE_KEY = `routy-adapter-repair-v1:${ARTIFACT_HASH}`;
+const STORAGE_KEY = `routy-adapter-repair-v2:${ADAPTER_ARTIFACT_HASH}:${ADAPTER_ADDRESS.toLowerCase()}`;
 const STEP_IDS = ["deployAdapter", "configureExecutor"] as const;
 
 type StepId = (typeof STEP_IDS)[number];
@@ -55,7 +58,7 @@ const STEPS = [
   {
     id: "deployAdapter" as const,
     title: "Deploy corrected SwapRouterAdapter",
-    details: "Deploys only the CI-verified adapter containing the TAKE_ALL output-forwarding fix.",
+    details: "Uses Robinhood Chain's existing deterministic deployer to create only the CI-verified adapter containing the TAKE_ALL output-forwarding fix.",
   },
   {
     id: "configureExecutor" as const,
@@ -126,9 +129,21 @@ async function readExecutorState(provider: EthereumProvider): Promise<ExecutorSt
   };
 }
 
-async function verifyCode(provider: EthereumProvider, address: Address) {
+async function codeAt(provider: EthereumProvider, address: Address): Promise<string> {
   const code = await provider.request<string>({ method: "eth_getCode", params: [address, "latest"] });
+  return code;
+}
+
+async function verifyCode(provider: EthereumProvider, address: Address) {
+  const code = await codeAt(provider, address);
   if (code === "0x" || code.length <= 2) throw new Error(`No contract bytecode found at ${address}.`);
+}
+
+async function verifyDeterministicDeployer(provider: EthereumProvider) {
+  const code = await codeAt(provider, DETERMINISTIC_DEPLOYER);
+  if (code.toLowerCase() !== DETERMINISTIC_DEPLOYER_CODE.toLowerCase()) {
+    throw new Error("Robinhood Chain deterministic deployer bytecode does not match the locked repair plan.");
+  }
 }
 
 async function waitForReceipt(
@@ -254,13 +269,15 @@ export default function AdapterRepairPage() {
     }
     const next = { ...current };
     if (index === 0) {
-      if (transaction.to) throw new Error("Adapter deployment transaction unexpectedly has a target address.");
-      if (transaction.input.toLowerCase() !== ADAPTER_BYTECODE.toLowerCase()) {
-        throw new Error("Adapter deployment input does not match the CI-verified artifact.");
+      if (!transaction.to || !sameAddress(transaction.to, DETERMINISTIC_DEPLOYER)) {
+        throw new Error("Adapter deployment transaction targeted an unexpected factory.");
       }
-      if (!validAddress(receipt.contractAddress)) throw new Error("Deployment receipt has no valid contract address.");
-      await verifyCode(provider, receipt.contractAddress);
-      next.deployAdapter = { hash: saved.hash, address: receipt.contractAddress };
+      if (transaction.input.toLowerCase() !== ADAPTER_DEPLOYMENT.data.toLowerCase()) {
+        throw new Error("Adapter deployment input does not match the locked CREATE2 plan.");
+      }
+      await verifyDeterministicDeployer(provider);
+      await verifyCode(provider, ADAPTER_ADDRESS);
+      next.deployAdapter = { hash: saved.hash, address: ADAPTER_ADDRESS };
     } else {
       const address = current.deployAdapter?.address;
       if (!address) throw new Error("New adapter address is missing from saved deployment progress.");
@@ -354,9 +371,17 @@ export default function AdapterRepairPage() {
       }
 
       let data: Hex;
-      let to: Address | undefined;
+      let to: Address;
+      let gas: Hex;
       if (index === 0) {
-        data = encodeDeployment("SwapRouterAdapter", ADAPTER_BYTECODE, []);
+        await verifyDeterministicDeployer(provider);
+        const existingCode = await codeAt(provider, ADAPTER_ADDRESS);
+        if (existingCode !== "0x") {
+          throw new Error(`Predicted adapter address ${ADAPTER_ADDRESS} is already occupied. Do not resend this step.`);
+        }
+        data = ADAPTER_DEPLOYMENT.data;
+        to = DETERMINISTIC_DEPLOYER;
+        gas = "0x1e8480";
       } else {
         const address = current.deployAdapter?.address;
         if (!address) throw new Error("Deploy and confirm the corrected adapter first.");
@@ -369,9 +394,10 @@ export default function AdapterRepairPage() {
           MAX_DEVIATION_BPS,
         ]);
         to = ROUTY_DEPLOYMENT.swapExecutor;
+        gas = "0x124f80";
       }
 
-      const transaction = buildRepairTransaction(DEPLOYER, data, to);
+      const transaction = buildRepairTransaction(DEPLOYER, data, to, gas);
       setStatuses((currentStatuses) => currentStatuses.map((status, position) => position === index ? "awaiting wallet signature" : status));
       const hash = await provider.request<Hex>({
         method: "eth_sendTransaction",
@@ -439,7 +465,9 @@ export default function AdapterRepairPage() {
     if (!newAdapter || !records.deployAdapter?.hash || !records.configureExecutor?.hash) return;
     const report = {
       chainId: 4663,
-      artifactHash: ARTIFACT_HASH,
+      artifactHash: ADAPTER_ARTIFACT_HASH,
+      deterministicDeployer: DETERMINISTIC_DEPLOYER,
+      create2Salt: ADAPTER_ARTIFACT_HASH,
       swapExecutor: ROUTY_DEPLOYMENT.swapExecutor,
       previousSwapRouterAdapter: ROUTY_DEPLOYMENT.swapRouterAdapter,
       swapRouterAdapter: newAdapter,
@@ -466,7 +494,7 @@ export default function AdapterRepairPage() {
     <main className="shell">
       <Nav />
       <div className="wrap">
-        <span className="kicker">Routy protocol repair</span>
+        <span className="kicker">Routy protocol repair · Bitget-compatible v2</span>
         <h1 style={{ fontSize: 56 }}>Update the swap adapter safely.</h1>
         <p className="muted">This repair performs exactly two explicit wallet transactions. It does not redeploy the launcher, factories, registries, vault system, or SwapExecutor.</p>
 
@@ -490,7 +518,9 @@ export default function AdapterRepairPage() {
             <h2 id="repair-scope-title">Locked repair scope</h2>
             <p>SwapExecutor: <code className="mono-wrap">{ROUTY_DEPLOYMENT.swapExecutor}</code></p>
             <p>Current adapter: <code className="mono-wrap">{ROUTY_DEPLOYMENT.swapRouterAdapter}</code></p>
-            <p>Verified artifact: <code className="mono-wrap">{ARTIFACT_HASH}</code></p>
+            <p>Deterministic deployer: <code className="mono-wrap">{DETERMINISTIC_DEPLOYER}</code></p>
+            <p>Predicted adapter: <code className="mono-wrap">{ADAPTER_ADDRESS}</code></p>
+            <p>Verified artifact: <code className="mono-wrap">{ADAPTER_ARTIFACT_HASH}</code></p>
             <div className="notice">SwapExecutor must stay paused. This page contains no unpause or value-moving transaction.</div>
             <Link className="secondary inline-action" href="/deploy">View original deployment</Link>
           </section>

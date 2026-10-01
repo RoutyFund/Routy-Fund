@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildDeterministicDeployment,
   buildRepairTransaction,
   canCheckStep,
   canSubmitStep,
@@ -35,28 +36,31 @@ test("dependency configuration encodes the requested 200 bps", () => {
   assert.equal(data.slice(-64), "c8".padStart(64, "0"));
 });
 
-test("contract creation uses an explicit null recipient for mobile wallets", () => {
+test("deterministic deployment prepends a 32-byte salt and predicts the CREATE2 address", () => {
+  const deployment = buildDeterministicDeployment(
+    "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+    `0x${"11".repeat(32)}`,
+    "0x6000",
+  );
+  assert.equal(deployment.data, `0x${"11".repeat(32)}6000`);
+  assert.equal(deployment.address, "0xAF84FaC5271f2B4ed9A50e34C8574d1f7c951aBe");
+});
+
+test("repair transactions always use a complete recipient and omit zero value", () => {
   assert.deepEqual(
-    buildRepairTransaction(addresses[0], "0x6000"),
+    buildRepairTransaction(addresses[0], "0x6000", addresses[1], "0x1e8480"),
     {
       from: addresses[0],
-      to: null,
+      to: addresses[1],
+      gas: "0x1e8480",
       data: "0x6000",
-      value: "0x0",
     },
   );
 });
 
-test("contract calls retain a complete recipient address and fixed gas limit", () => {
-  const transaction = buildRepairTransaction(addresses[0], "0x1234", addresses[1]);
-  assert.equal(transaction.to, addresses[1]);
-  assert.equal(transaction.gas, "0x124f80");
-  assert.equal(transaction.value, "0x0");
-});
-
 test("repair transactions reject odd-length hexadecimal data", () => {
   assert.throws(
-    () => buildRepairTransaction(addresses[0], "0x123"),
+    () => buildRepairTransaction(addresses[0], "0x123", addresses[1], "0x124f80"),
     /even-length hexadecimal bytes/,
   );
 });

@@ -1,4 +1,12 @@
-import { encodeDeployData, encodeFunctionData, isAddress, type Address, type Hex } from "viem";
+import {
+  concatHex,
+  encodeDeployData,
+  encodeFunctionData,
+  getCreate2Address,
+  isAddress,
+  type Address,
+  type Hex,
+} from "viem";
 
 export const DEPLOYMENT_STEP_IDS = [
   "assetRegistry",
@@ -20,10 +28,13 @@ export type DeploymentStatus = "pending" | "awaiting wallet signature" | "submit
 export type DeployableContract = "AssetRegistry" | "OracleRegistry" | "SwapExecutor" | "OracleGuard" | "SwapOracleQuoter" | "SwapRouterAdapter" | "FeeRouterFactory" | "AssetVaultFactory" | "ProtocolLauncher";
 export type WalletTransactionRequest = {
   from: Address;
-  to: Address | null;
+  to: Address;
   data: Hex;
-  value: "0x0";
-  gas?: Hex;
+  gas: Hex;
+};
+export type DeterministicDeployment = {
+  address: Address;
+  data: Hex;
 };
 
 const addressConstructor = [{ type: "constructor", inputs: [{ name: "owner_", type: "address" }] }] as const;
@@ -69,8 +80,14 @@ function assertAddress(value: unknown): asserts value is Address {
   }
 }
 
+function assertHexBytes(value: unknown, label: string): asserts value is Hex {
+  if (typeof value !== "string" || !/^0x(?:[0-9a-f]{2})+$/i.test(value)) {
+    throw new Error(`${label} must be non-empty, even-length hexadecimal bytes.`);
+  }
+}
+
 export function encodeDeployment(contract: DeployableContract, bytecode: Hex, args: readonly unknown[]): Hex {
-  if (typeof bytecode !== "string" || !/^0x[0-9a-f]+$/i.test(bytecode)) {
+  if (typeof bytecode !== "string" || !/^0x(?:[0-9a-f]{2})+$/i.test(bytecode)) {
     throw new Error(`Missing deployment bytecode for ${contract}.`);
   }
   switch (contract) {
@@ -100,6 +117,22 @@ export function encodeDeployment(contract: DeployableContract, bytecode: Hex, ar
   }
 }
 
+export function buildDeterministicDeployment(
+  deployer: Address,
+  salt: Hex,
+  bytecode: Hex,
+): DeterministicDeployment {
+  assertAddress(deployer);
+  if (!/^0x[0-9a-f]{64}$/i.test(salt)) {
+    throw new Error("CREATE2 salt must be exactly 32 bytes.");
+  }
+  assertHexBytes(bytecode, "Deployment bytecode");
+  return {
+    address: getCreate2Address({ from: deployer, salt, bytecode }),
+    data: concatHex([salt, bytecode]),
+  };
+}
+
 export function encodeSetLauncher(launcher: Address): Hex {
   assertAddress(launcher);
   return encodeFunctionData({ abi: setLauncherAbi, functionName: "setLauncher", args: [launcher] });
@@ -122,21 +155,20 @@ export function encodeExecutorConfigureDependencies(
 export function buildRepairTransaction(
   from: Address,
   data: Hex,
-  to?: Address,
+  to: Address,
+  gas: Hex,
 ): WalletTransactionRequest {
   assertAddress(from);
-  if (to) assertAddress(to);
-  if (!/^0x(?:[0-9a-f]{2})+$/i.test(data)) {
-    throw new Error("Transaction data must be non-empty, even-length hexadecimal bytes.");
+  assertAddress(to);
+  assertHexBytes(data, "Transaction data");
+  if (!/^0x(?:0|[1-9a-f][0-9a-f]*)$/i.test(gas)) {
+    throw new Error("Gas limit must be a canonical hexadecimal quantity.");
   }
   return {
     from,
-    // Ethereum's transaction schema requires an explicit null recipient for contract creation.
-    // Some mobile wallets incorrectly normalize an omitted recipient into the invalid address 0x0.
-    to: to ?? null,
-    ...(to ? { gas: "0x124f80" as Hex } : {}),
+    to,
+    gas,
     data,
-    value: "0x0",
   };
 }
 
