@@ -1,9 +1,14 @@
 # Routy workers
-- harvest: permissionless fee harvesting
-- buy: guarded target-asset swaps
-- snapshot: holder Merkle snapshots
-- raffle: challenge/randomness/finalization
-- rewards: cumulative Merkle distributions
-- corporate-actions: Robinhood multiplier/status refresh
 
-Keeper keys must never be committed.
+Workers are stateless decision/execution units. Onchain contracts remain the source of truth.
+
+- asset-sync: canonical Robinhood Chain deployment/status/multiplier plan
+- harvest: permissionless Pons fee collection
+- keeper: deterministic harvest/buy gating
+- indexer: protocol event ingestion
+- snapshot: holder snapshots
+- raffle: challenge/randomness/finalization lifecycle
+- rewards: cumulative Merkle distributions
+- corporate-actions: multiplier/status refresh
+
+Production buy execution stays disabled until exact Uniswap routing and Chainlink feed addresses are verified. Keeper/deployer keys must never be committed.
