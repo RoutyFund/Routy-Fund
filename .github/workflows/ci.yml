@@ -12,6 +12,7 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
+
   contracts:
     runs-on: ubuntu-latest
     defaults:
@@ -22,3 +23,13 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
       - run: forge build
       - run: forge test
+      - name: Emit mobile deploy bytecodes
+        shell: bash
+        run: |
+          echo "ROUTY_ARTIFACTS_BEGIN"
+          for C in AssetRegistry OracleRegistry SwapExecutor OracleGuard FeeRouterFactory AssetVaultFactory ProtocolLauncher; do
+            printf "%s=" "$C"
+            forge inspect "$C" bytecode | tr -d '\n'
+            printf "\n"
+          done
+          echo "ROUTY_ARTIFACTS_END"
