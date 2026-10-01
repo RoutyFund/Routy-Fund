@@ -39,67 +39,84 @@ contract SwapExecutor {
     }
 
     address public owner;
-    address public pendingOwner;
     address public launcher;
-    address public oracleRegistry;
-    address public oracleGuard;
-    address public oracleQuoter;
-    address public routerAdapter;
-    uint16 public maxDeviationBps;
+    address oracleRegistry;
+    address oracleGuard;
+    address oracleQuoter;
+    address routerAdapter;
+    uint16 maxDeviationBps;
     bool public paused = true;
     mapping(address => bool) public approvedVault;
     mapping(address => PoolKey) public poolKeyForVault;
 
+    error NotOwner();
+    error NotLauncher();
+    error ZeroAddress();
+    error AlreadySet();
+    error WrongChain();
+    error NotPaused();
+    error BadDeviation();
+    error InvalidVault();
+    error NotConfigurable();
+    error NotActive();
+    error BadOrder();
+    error ExceedsEarned();
+    error PoolNotSet();
+    error MinOutDeviation();
+    error InsufficientOutput();
+    error PriceDeviation();
+    error ApproveFailed();
+
     event PurchaseExecuted(address indexed vault,address indexed quoteToken,address indexed targetAsset,uint256 quoteSpent,uint256 assetReceived);
-    modifier onlyOwner(){require(msg.sender==owner,"NOT_OWNER");_;}
-    modifier onlyLauncher(){require(msg.sender==launcher&&launcher!=address(0),"NOT_LAUNCHER");_;}
+    modifier onlyOwner(){if(msg.sender!=owner) revert NotOwner();_;}
+    modifier onlyLauncher(){if(msg.sender!=launcher||launcher==address(0)) revert NotLauncher();_;}
 
-    constructor(address owner_){require(owner_!=address(0),"ZERO_OWNER");owner=owner_;}
+    constructor(address owner_){if(owner_==address(0)) revert ZeroAddress();owner=owner_;}
 
-    function setLauncher(address launcher_) external onlyOwner {require(launcher==address(0)&&launcher_!=address(0),"LAUNCHER_ALREADY_SET");launcher=launcher_;}
+    function setLauncher(address launcher_) external onlyOwner {if(launcher!=address(0)) revert AlreadySet();if(launcher_==address(0)) revert ZeroAddress();launcher=launcher_;}
 
     function configureDependencies(address registry_,address guard_,address quoter_,address adapter_,uint16 deviation_) external onlyOwner {
-        require(block.chainid==4663,"WRONG_CHAIN");
-        require(paused,"NOT_PAUSED");
-        require(registry_!=address(0)&&guard_!=address(0)&&quoter_!=address(0)&&adapter_!=address(0),"ZERO_ADDRESS");
-        require(deviation_>0&&deviation_<=2000,"BAD_DEVIATION");
+        if(block.chainid!=4663) revert WrongChain();
+        if(!paused) revert NotPaused();
+        if(registry_==address(0)||guard_==address(0)||quoter_==address(0)||adapter_==address(0)) revert ZeroAddress();
+        if(deviation_==0||deviation_>2000) revert BadDeviation();
         oracleRegistry=registry_;oracleGuard=guard_;oracleQuoter=quoter_;routerAdapter=adapter_;maxDeviationBps=deviation_;
     }
 
     function registerVault(address vault) external onlyLauncher {
-        require(vault!=address(0)&&!approvedVault[vault],"INVALID_VAULT");
+        if(vault==address(0)||approvedVault[vault]) revert InvalidVault();
         approvedVault[vault]=true;
     }
 
     function setPoolKey(address vault,PoolKey calldata key) external onlyOwner {
-        require(paused&&approvedVault[vault],"NOT_CONFIGURABLE");
+        if(!paused||!approvedVault[vault]) revert NotConfigurable();
         address quote=IVaultSwap(vault).quoteToken();
         address target=IVaultSwap(vault).targetAsset();
         ISwapRouterAdapter.PoolKey memory adapterKey=ISwapRouterAdapter.PoolKey(key.currency0,key.currency1,key.fee,key.tickSpacing,key.hooks);
-        require(ISwapRouterAdapter(routerAdapter).validatePool(quote,target,adapterKey),"INVALID_POOL");
+        ISwapRouterAdapter(routerAdapter).validatePool(quote,target,adapterKey);
         poolKeyForVault[vault]=key;
     }
 
     function setPaused(bool next) external onlyOwner {paused=next;}
 
     function execute(address vault,uint256 amountIn,uint256 minOut,uint256 deadline) external onlyOwner {
-        require(!paused&&approvedVault[vault],"NOT_ACTIVE");
-        require(amountIn>0&&minOut>0&&deadline>=block.timestamp&&deadline<=block.timestamp+15 minutes,"BAD_ORDER");
+        if(paused||!approvedVault[vault]) revert NotActive();
+        if(amountIn==0||minOut==0||deadline<block.timestamp||deadline>block.timestamp+15 minutes) revert BadOrder();
         IVaultSwap v=IVaultSwap(vault);
-        require(amountIn<=v.availableEarned(),"EXCEEDS_EARNED");
+        if(amountIn>v.availableEarned()) revert ExceedsEarned();
         address quote=v.quoteToken();
         address target=v.targetAsset();
         PoolKey memory key=poolKeyForVault[vault];
-        require(key.currency0!=key.currency1,"POOL_NOT_SET");
+        if(key.currency0==key.currency1) revert PoolNotSet();
 
         uint256 expected=ISwapOracleQuoter(oracleQuoter).expectedOut(oracleRegistry,oracleGuard,quote,target,amountIn);
-        require(minOut*10_000>=expected*(10_000-maxDeviationBps),"MIN_OUT_DEVIATION");
+        if(minOut*10_000<expected*(10_000-maxDeviationBps)) revert MinOutDeviation();
 
         uint256 beforeBalance=ISwapBalance(target).balanceOf(vault);
         _routeSwap(v,vault,quote,target,key,amountIn,minOut,deadline);
         uint256 received=ISwapBalance(target).balanceOf(vault)-beforeBalance;
-        require(received>=minOut,"INSUFFICIENT_OUTPUT");
-        require(received*10_000<=expected*(10_000+maxDeviationBps),"PRICE_DEVIATION");
+        if(received<minOut) revert InsufficientOutput();
+        if(received*10_000>expected*(10_000+maxDeviationBps)) revert PriceDeviation();
         v.recordPurchase(amountIn,received);
         emit PurchaseExecuted(vault,quote,target,amountIn,received);
     }
@@ -118,7 +135,7 @@ contract SwapExecutor {
 
     function _approve(address token,address spender,uint256 amount) private {
         (bool ok,bytes memory result)=token.call(abi.encodeWithSelector(0x095ea7b3,spender,amount));
-        require(ok&&(result.length==0||abi.decode(result,(bool))),"APPROVE_FAILED");
+        if(!ok||(result.length!=0&&!abi.decode(result,(bool)))) revert ApproveFailed();
     }
 
     receive() external payable {}
