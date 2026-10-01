@@ -1,0 +1,2 @@
+import {canonicalAssets,deployment4663} from "../src/lib/robinhood";
+export async function getRegistryPlan(){const assets=await canonicalAssets();return assets.map(a=>({id:a.id,symbol:a.tokenSymbol,address:deployment4663(a),halted:Boolean(a.isTradingHalt),multiplier:a.currentMultiplier??"1"})).filter(a=>a.address)}
