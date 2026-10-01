@@ -1,0 +1,1 @@
+import {NextResponse} from "next/server";export function GET(){return NextResponse.json({ok:true,service:"routy",chainId:4663,ts:new Date().toISOString()})}
