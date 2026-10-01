@@ -15,7 +15,7 @@ export default function Launch(){
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
  const[asset,setAsset]=useState<string>(EXECUTABLE_ROUTES[0].target); const[policy,setPolicy]=useState("0");
  const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null); const[routeStatus,setRouteStatus]=useState<RouteStatus[]>([]); const[routeStatusLoaded,setRouteStatusLoaded]=useState(false);
- const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState("");
+ const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState("");
  useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{});fetch("/api/route-status").then(r=>r.json()).then(d=>{if(d.ok)setRouteStatus(d.routes||[])}).catch(()=>{}).finally(()=>setRouteStatusLoaded(true))},[]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
  const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
@@ -42,7 +42,7 @@ export default function Launch(){
    },BigInt(config!.id),pairToken]});
    setStatus("Confirm the Pons launch in your wallet.");
    const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{from:account,to:PONS_V2.factory,data,value:"0x"+BigInt(pons!.launchFee).toString(16)}]});
-   setStatus("Launch submitted: "+hash.slice(0,10)+"… Waiting for confirmation.");
+   setLaunchTx(hash);setStatus("Launch submitted: "+hash.slice(0,10)+"… Waiting for confirmation.");
    const receipt=await waitReceipt(hash,provider);
    if(!receipt){setStatus("Launch is still pending. Do not resubmit.");return}
    if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error("Pons launch failed on-chain.");
@@ -75,6 +75,8 @@ export default function Launch(){
     <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":!routeStatusLoaded?"Checking route…":routeConfigured?"Launch token":"Route setup required"} <span>→</span></button>
     <p className="muted" style={{fontSize:11,margin:0}}>Your wallet signs the Pons launch directly. Routy never receives your private key or custody of your wallet.</p>
     {status&&<div className="notice">{status}</div>}
+    {launchTx&&<a className="secondary" target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/tx/"+launchTx}>View launch transaction ↗</a>}
+    {launchedToken&&<div className="notice"><b>Token:</b> <code>{launchedToken}</code></div>}
     {launchedToken&&<a className="primary" href={"/deploy/provision?token="+launchedToken+"&asset="+asset+"&policy="+policy}>Continue to provisioning →</a>}
    </section>
   </div>
