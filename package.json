@@ -1,1 +1,26 @@
-{"name":"routy-fund","version":"0.1.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start","lint":"eslint","contracts:env":"node scripts/render-env.mjs"},"dependencies":{"next":"16.0.1","react":"19.2.0","react-dom":"19.2.0","viem":"^2.38.5"},"devDependencies":{"@types/node":"^20","@types/react":"^19","@types/react-dom":"^19","eslint":"^9","eslint-config-next":"16.0.1","typescript":"^5"}}
+{
+  "name": "routy-fund",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "contracts:env": "node scripts/render-env.mjs"
+  },
+  "dependencies": {
+    "next": "16.3.8",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "viem": "^2.38.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "typescript": "^5"
+  }
+}
