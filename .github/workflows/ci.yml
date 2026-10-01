@@ -33,3 +33,15 @@ jobs:
             printf "\n"
           done
           echo "ROUTY_ARTIFACTS_END"
+      - name: Package browser deployment artifacts
+        shell: bash
+        run: |
+          mkdir -p ../deploy-artifacts
+          for C in AssetRegistry OracleRegistry SwapExecutor OracleGuard FeeRouterFactory AssetVaultFactory ProtocolLauncher; do
+            forge inspect "$C" bytecode > "../deploy-artifacts/$C.bytecode"
+            forge inspect "$C" abi > "../deploy-artifacts/$C.abi.json"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: routy-mobile-deploy-artifacts
+          path: deploy-artifacts
