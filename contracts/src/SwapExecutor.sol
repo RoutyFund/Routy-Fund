@@ -50,7 +50,7 @@ contract SwapExecutor {
     mapping(address => bool) public approvedVault;
     mapping(address => PoolKey) public poolKeyForVault;
 
-    event PurchaseExecuted(address indexed vault,address indexed quoteToken,address indexed targetAsset,uint256 quoteSpent,uint256 assetReceived);\n
+    event PurchaseExecuted(address indexed vault,address indexed quoteToken,address indexed targetAsset,uint256 quoteSpent,uint256 assetReceived);
     modifier onlyOwner(){require(msg.sender==owner,"NOT_OWNER");_;}
     modifier onlyLauncher(){require(msg.sender==launcher&&launcher!=address(0),"NOT_LAUNCHER");_;}
 
