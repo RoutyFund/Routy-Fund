@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import Nav from "@/components/Nav";
-import {encodeFunctionData,formatEther,keccak256,toBytes} from "viem";
+import {decodeEventLog,encodeFunctionData,formatEther,keccak256,toBytes,type Hex} from "viem";
 import {getInjectedProvider} from "@/lib/ethereum-provider";
 import {PONS_V2,factoryLaunchAbi,factoryReadAbi} from "@/lib/pons";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
@@ -14,12 +14,13 @@ export default function Launch(){
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
  const[asset,setAsset]=useState<string>(EXECUTABLE_ROUTES[0].target); const[policy,setPolicy]=useState("0");
  const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null);
- const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false);
+ const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState("");
  useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{})},[]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
  const verifiedTarget=EXECUTABLE_ROUTES.some(r=>r.target.toLowerCase()===asset.toLowerCase());
  const valid=name.trim()&&symbol.trim()&&description.trim()&&config&&verifiedTarget;
  function file(e:React.ChangeEvent<HTMLInputElement>){const f=e.target.files?.[0];if(!f)return; if(f.size>500000){setStatus("Logo must be under 500 KB.");return} const r=new FileReader();r.onload=()=>setLogo(String(r.result||""));r.readAsDataURL(f)}
+ async function waitReceipt(hash:string,provider:ReturnType<typeof getInjectedProvider>){if(!provider)return null;for(let i=0;i<40;i++){const r=await provider.request<any>({method:"eth_getTransactionReceipt",params:[hash]});if(r)return r;await new Promise(x=>setTimeout(x,1500))}return null}
  async function launch(){
   if(!valid||busy)return; const provider=getInjectedProvider(); if(!provider){setStatus("Connect an EVM wallet first.");return}
   setBusy(true);setStatus("Preparing launch…");
@@ -38,7 +39,14 @@ export default function Launch(){
    },BigInt(config!.id),pairToken]});
    setStatus("Confirm the Pons launch in your wallet.");
    const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{from:account,to:PONS_V2.factory,data,value:"0x"+BigInt(pons!.launchFee).toString(16)}]});
-   setStatus("Launch submitted: "+hash.slice(0,10)+"… After confirmation, Routy can provision the selected "+(assets.find(a=>a.contractAddress.toLowerCase()===asset.toLowerCase())?.tokenSymbol||"asset")+" route.");
+   setStatus("Launch submitted: "+hash.slice(0,10)+"… Waiting for confirmation.");
+   const receipt=await waitReceipt(hash,provider);
+   if(!receipt){setStatus("Launch is still pending. Do not resubmit.");return}
+   if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error("Pons launch failed on-chain.");
+   let tokenAddress="";
+   for(const log of receipt.logs||[]){try{const decoded=decodeEventLog({abi:factoryLaunchAbi,data:log.data as Hex,topics:log.topics as any});if(decoded.eventName==="TokenLaunched"){tokenAddress=String((decoded.args as any).token||"");break}}catch{}}
+   if(tokenAddress){setLaunchedToken(tokenAddress);setStatus("Launch confirmed. Continue to Routy provisioning.");}
+   else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
   }catch(e){setStatus(e instanceof Error?e.message:"Launch cancelled or failed.");}finally{setBusy(false)}
  }
  return <main className="shell"><Nav/><div className="wrap">
@@ -62,6 +70,7 @@ export default function Launch(){
     <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":"Launch token"} <span>→</span></button>
     <p className="muted" style={{fontSize:11,margin:0}}>Your wallet signs the Pons launch directly. Routy never receives your private key or custody of your wallet.</p>
     {status&&<div className="notice">{status}</div>}
+    {launchedToken&&<a className="primary" href={"/deploy/provision?token="+launchedToken+"&asset="+asset+"&policy="+policy}>Continue to provisioning →</a>}
    </section>
   </div>
   <section className="section"><div className="section-head"><div><span className="micro">HOW IT WORKS</span><h2>One launch flow.</h2></div></div><div className="flow">
