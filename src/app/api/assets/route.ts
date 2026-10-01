@@ -1,12 +1,2 @@
-import { NextResponse } from "next/server";
-import { isCanonicalMainnetAsset, ROBINHOOD_ASSETS_URL } from "@/lib/robinhood";
-
-export const revalidate = 300;
-
-export async function GET() {
-  const response = await fetch(ROBINHOOD_ASSETS_URL, { next: { revalidate: 300 } });
-  if (!response.ok) return NextResponse.json({ assets: [], error: "Robinhood asset registry unavailable" }, { status: 502 });
-  const payload = await response.json();
-  const assets = Array.isArray(payload.assets) ? payload.assets.filter(isCanonicalMainnetAsset) : [];
-  return NextResponse.json({ assets });
-}
+import {NextResponse} from "next/server";import {canonicalAssets,deployment4663} from "@/lib/robinhood";
+export async function GET(){try{const assets=await canonicalAssets();return NextResponse.json({assets:assets.map(a=>({...a,contractAddress:deployment4663(a)})),chainId:4663,source:"robinhood"})}catch{return NextResponse.json({assets:[],chainId:4663,source:"robinhood",error:"registry_unavailable"},{status:503})}}
