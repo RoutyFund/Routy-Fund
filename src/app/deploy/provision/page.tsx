@@ -5,6 +5,7 @@ import {decodeEventLog,decodeFunctionResult,encodeFunctionData,isAddress,type Ad
 import Nav from "@/components/Nav";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
+import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 import {getInjectedProvider,type EthereumProvider,type EthereumTransactionReceipt,walletErrorMessage} from "@/lib/ethereum-provider";
 
 const CHAIN_ID="0x1237";
@@ -21,21 +22,28 @@ const executorAbi=[
 ] as const;
 
 type RouteState={creator:Address;targetAsset:Address;quoteToken:Address;vault:Address;router:Address;policy:number;createdAt:bigint};
+type PonsLaunchState={exists:boolean;creatorFeeRecipient:Address;pairToken:Address};
 
 async function call(provider:EthereumProvider,to:Address,data:Hex){return provider.request<Hex>({method:"eth_call",params:[{to,data},"latest"]})}
 async function receipt(provider:EthereumProvider,hash:Hex){for(let i=0;i<40;i++){const r=await provider.request<EthereumTransactionReceipt|null>({method:"eth_getTransactionReceipt",params:[hash]});if(r)return r;await new Promise(x=>setTimeout(x,1500))}return null}
 
 export default function ProvisionPage(){
  const[token,setToken]=useState("");const[selectedSymbol,setSelectedSymbol]=useState(EXECUTABLE_ROUTES[0].symbol);const[policy,setPolicy]=useState(0);
- const[account,setAccount]=useState("");const[chain,setChain]=useState("");const[routeState,setRouteState]=useState<RouteState|null>(null);const[poolSet,setPoolSet]=useState(false);
+ const[account,setAccount]=useState("");const[chain,setChain]=useState("");const[routeState,setRouteState]=useState<RouteState|null>(null);const[ponsLaunch,setPonsLaunch]=useState<PonsLaunchState|null>(null);const[poolSet,setPoolSet]=useState(false);
  const[busy,setBusy]=useState("");const[msg,setMsg]=useState("");const[error,setError]=useState("");
  const selected=useMemo(()=>EXECUTABLE_ROUTES.find(r=>r.symbol===selectedSymbol)||EXECUTABLE_ROUTES[0],[selectedSymbol]);
  const correctChain=chain.toLowerCase()===CHAIN_ID;const owner=account.toLowerCase()===OWNER.toLowerCase();
 
  async function wallet(){const p=getInjectedProvider();if(!p)return;const[a,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);setAccount(a?.[0]||"");setChain(c||"")}
  async function connect(){const p=getInjectedProvider();if(!p)return setError("Compatible EVM wallet not found.");try{await p.request({method:"eth_requestAccounts"});await wallet();setError("")}catch(e){setError(walletErrorMessage(e,"Wallet connection failed."))}}
+ async function readPonsLaunch(){
+  const p=getInjectedProvider();if(!p||!isAddress(token)){setPonsLaunch(null);return}
+  const raw=await call(p,PONS_V2.factory,encodeFunctionData({abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]}));
+  const launch=decodeFunctionResult({abi:factoryReadAbi,functionName:"getLaunchedToken",data:raw}) as any;
+  setPonsLaunch({exists:Boolean(launch.exists),creatorFeeRecipient:launch.creatorFeeRecipient as Address,pairToken:launch.pairToken as Address});
+ }
  async function readRoute(){
-  const p=getInjectedProvider();if(!p||!isAddress(token)){setRouteState(null);return}
+  const p=getInjectedProvider();if(!p||!isAddress(token)){setRouteState(null);setPonsLaunch(null);return}
   const raw=await call(p,ROUTY_DEPLOYMENT.protocolLauncher,encodeFunctionData({abi:launcherAbi,functionName:"routes",args:[token as Address]}));
   const d=decodeFunctionResult({abi:launcherAbi,functionName:"routes",data:raw}) as readonly [Address,Address,Address,Address,Address,number,bigint];
   const next={creator:d[0],targetAsset:d[1],quoteToken:d[2],vault:d[3],router:d[4],policy:d[5],createdAt:d[6]};setRouteState(next);
@@ -54,10 +62,14 @@ export default function ProvisionPage(){
  }
 
  useEffect(()=>{const t=setTimeout(()=>{wallet().catch(()=>{});const q=new URLSearchParams(window.location.search);const qt=q.get("token");const qa=q.get("asset");const qp=q.get("policy");if(qt&&isAddress(qt))setToken(qt);if(qa){const found=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===qa.toLowerCase()||r.symbol.toLowerCase()===qa.toLowerCase());if(found)setSelectedSymbol(found.symbol)}if(qp&&["0","1","2"].includes(qp))setPolicy(Number(qp))},0);return()=>clearTimeout(t)},[]);
- useEffect(()=>{if(isAddress(token))readRoute().catch(()=>{})},[token,selectedSymbol]);
+ useEffect(()=>{if(isAddress(token)){readPonsLaunch().catch(()=>setPonsLaunch(null));readRoute().catch(()=>{})}},[token,selectedSymbol]);
 
  const provisioned=Boolean(routeState&&routeState.vault!==ZERO);
  const creatorMatches=Boolean(account&&routeState&&routeState.creator.toLowerCase()===account.toLowerCase());
+ const ponsExists=Boolean(ponsLaunch?.exists);
+ const feeRecipientMatches=Boolean(account&&ponsLaunch?.creatorFeeRecipient&&ponsLaunch.creatorFeeRecipient.toLowerCase()===account.toLowerCase());
+ const pairMatches=Boolean(ponsLaunch?.pairToken&&ponsLaunch.pairToken.toLowerCase()===selected.quote.toLowerCase());
+ const preflightReady=ponsExists&&feeRecipientMatches&&pairMatches;
 
  return <main className="shell"><Nav/><div className="wrap">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Routy provisioning</span><h1>Finish the route.</h1><p className="lead">Provision a verified Stock Token route after a successful Pons launch, then attach the matching PoolKey.</p></div><span className="pill">Step 2</span></header>
@@ -67,8 +79,10 @@ export default function ProvisionPage(){
     <label>Stock Token target<select value={selectedSymbol} disabled={provisioned} onChange={e=>setSelectedSymbol(e.target.value)}>{EXECUTABLE_ROUTES.map(r=><option value={r.symbol} key={r.symbol}>{r.symbol} · {r.name}</option>)}</select></label>
     <label>Reward policy<select value={policy} disabled={provisioned} onChange={e=>setPolicy(Number(e.target.value))}><option value={0}>Weighted raffle</option><option value={1}>Equal lottery</option><option value={2}>Pro-rata</option></select></label>
     {!account?<button className="primary" onClick={connect}>Connect wallet</button>:<div className="notice">Connected {account.slice(0,6)}…{account.slice(-4)} · Chain {chain?parseInt(chain,16):"—"}</div>}
-    <button className="secondary" disabled={!isAddress(token)} onClick={()=>readRoute().catch(e=>setError(walletErrorMessage(e,"Could not read route.")))}>Check token</button>
-    {!provisioned&&<button className="primary" disabled={!isAddress(token)||!account||!correctChain||Boolean(busy)} onClick={()=>send("Provision Routy vault",ROUTY_DEPLOYMENT.protocolLauncher,encodeFunctionData({abi:launcherAbi,functionName:"provision",args:[token as Address,selected.target,policy]}))}>Provision {selected.symbol} route →</button>}
+    <button className="secondary" disabled={!isAddress(token)} onClick={()=>Promise.all([readPonsLaunch(),readRoute()]).catch(e=>setError(walletErrorMessage(e,"Could not verify token.")))}>Check token</button>
+    {isAddress(token)&&<div className="route-summary"><div><span className="data-label">Pons token</span><b>{ponsExists?"Verified":"Not verified"}</b></div><div><span className="data-label">Fee recipient</span><b>{feeRecipientMatches?"Matches wallet":"Check wallet"}</b></div><div><span className="data-label">Pair token</span><b>{pairMatches?"USDG verified":"Wrong pair"}</b></div><div><span className="data-label">Preflight</span><b>{preflightReady?"Ready":"Blocked"}</b></div></div>}
+    {isAddress(token)&&!preflightReady&&<div className="notice danger">Provisioning requires a real Pons V2 token, the connected wallet must be its creator fee recipient, and the Pons pair must be USDG.</div>}
+    {!provisioned&&<button className="primary" disabled={!isAddress(token)||!account||!correctChain||!preflightReady||Boolean(busy)} onClick={()=>send("Provision Routy vault",ROUTY_DEPLOYMENT.protocolLauncher,encodeFunctionData({abi:launcherAbi,functionName:"provision",args:[token as Address,selected.target,policy]}))}>Provision {selected.symbol} route →</button>}
    </section>
    <section className="form-card"><span className="micro">ROUTE STATUS</span><h3>{selected.symbol} / USDG</h3>
     <div className="route-summary"><div><span className="data-label">Market</span><b>{selected.symbol}</b></div><div><span className="data-label">Policy</span><b>{["Weighted raffle","Equal lottery","Pro-rata"][routeState?.policy??policy]}</b></div><div><span className="data-label">Vault</span><b>{provisioned?"Created":"Pending"}</b></div><div><span className="data-label">PoolKey</span><b>{poolSet?"Configured":"Pending"}</b></div></div>
