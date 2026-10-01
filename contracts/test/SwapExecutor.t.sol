@@ -115,15 +115,15 @@ contract SwapTestRouter {
         require(!shouldRevert, "MOCK_ROUTER_REVERT");
         require(commands.length == 1 && uint8(commands[0]) == 0x10 && inputs.length == 1, "BAD_COMMAND");
         (bytes memory actions, bytes[] memory params) = abi.decode(inputs[0], (bytes, bytes[]));
-        require(actions.length == 3 && actions[0] == 0x06 && actions[1] == 0x0c && actions[2] == 0x0e, "BAD_ACTIONS");
+        require(actions.length == 3 && actions[0] == 0x06 && actions[1] == 0x0c && actions[2] == 0x0f, "BAD_ACTIONS");
         require(params.length == 3, "BAD_PARAMS");
         (PoolKey memory key, bool zeroForOne, uint128 amountIn, uint128 minOut,,) = abi.decode(
             params[0], (PoolKey, bool, uint128, uint128, uint256, bytes)
         );
         (address input, uint256 settledAmount) = abi.decode(params[1], (address, uint256));
-        (address output, address recipient, uint256 takeAmount) = abi.decode(params[2], (address, address, uint256));
+        (address output, uint256 takeMinimum) = abi.decode(params[2], (address, uint256));
         require(input == (zeroForOne ? key.currency0 : key.currency1) && settledAmount == amountIn, "BAD_INPUT");
-        require(output == (zeroForOne ? key.currency1 : key.currency0) && takeAmount == type(uint256).max, "BAD_OUTPUT");
+        require(output == (zeroForOne ? key.currency1 : key.currency0) && takeMinimum == minOut, "BAD_OUTPUT");
         require(amountOut >= minOut, "ROUTER_MIN_OUT");
         if (input == address(0)) require(msg.value == amountIn, "BAD_NATIVE_INPUT");
         else {
@@ -132,9 +132,9 @@ contract SwapTestRouter {
         }
         lastInput = input;
         lastOutput = output;
-        lastRecipient = recipient;
+        lastRecipient = msg.sender;
         lastMinOut = minOut;
-        require(SwapTestToken(output).transfer(recipient, amountOut), "OUTPUT_TRANSFER_FAILED");
+        require(SwapTestToken(output).transfer(msg.sender, amountOut), "OUTPUT_TRANSFER_FAILED");
     }
 }
 
