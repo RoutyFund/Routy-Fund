@@ -1,0 +1,1 @@
+import type {MetadataRoute} from "next";export default function sitemap():MetadataRoute.Sitemap{const base=process.env.NEXT_PUBLIC_SITE_URL||"https://routy-fund.vercel.app";return ["","/explore","/launch","/assets","/activity","/portfolio","/rewards","/analytics"].map(path=>({url:base+path,lastModified:new Date()}))}
