@@ -1,0 +1,1 @@
+"use client";export default function Error({reset}:{reset:()=>void}){return <main className="wrap"><span className="kicker">Routy</span><h2>Something went wrong.</h2><p className="muted">No transaction was submitted by this screen.</p><button className="primary" onClick={reset}>Try again</button></main>}
