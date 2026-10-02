@@ -14,11 +14,13 @@ export function keeperAccount(){
  return privateKeyToAccount(value as Hex);
 }
 export async function rewardAutomationStatus(){
- const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+ const rpc=process.env.RPC_URL?.trim();
+ if(!rpc)throw new Error("RPC_URL_MISSING");
  const client=createPublicClient({chain,transport:http(rpc)});
+ const controller=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4) as `0x${string}`;
  const [owner,keeper]=await Promise.all([
-  client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationControllerV4,abi,functionName:"owner"}),
-  client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationControllerV4,abi,functionName:"keeper"}),
+  client.readContract({address:controller,abi,functionName:"owner"}),
+  client.readContract({address:controller,abi,functionName:"keeper"}),
  ]);
  const account=keeperAccount();
  return {
