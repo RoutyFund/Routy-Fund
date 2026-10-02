@@ -97,19 +97,19 @@ const STEPS: Step[] = [
     id: "routerFactoryV2",
     title: "Deploy FeeRouterFactory V2",
     kind: "deploy",
-    details: "Factory baru diperlukan karena factory V1 sudah terkunci ke launcher V1.",
+    details: "A new factory is required because the V1 factory is already locked to the V1 launcher.",
   },
   {
     id: "swapExecutorV2",
     title: "Deploy SwapExecutor V2",
     kind: "deploy",
-    details: "Executor baru dimulai paused dan tidak dapat mengeksekusi swap sebelum aktivasi terpisah.",
+    details: "The new executor starts paused and cannot execute swaps until it is activated separately.",
   },
   {
     id: "protocolLauncherV2",
     title: "Deploy ProtocolLauncherV2",
     kind: "deploy",
-    details: "Launcher baru mengorkestrasi distributor, vault, fee router, dan registrasi vault V2.",
+    details: "The new launcher orchestrates the distributor, vault, fee router, and V2 vault registration.",
   },
   {
     id: "rewardFactoryLauncher",
@@ -133,13 +133,13 @@ const STEPS: Step[] = [
     id: "executorLauncher",
     title: "Bind SwapExecutor V2",
     kind: "call",
-    details: "Set launcher satu kali agar vault V2 dapat diregistrasikan.",
+    details: "Set the launcher once so V2 vaults can be registered.",
   },
   {
     id: "executorDependencies",
     title: "Configure SwapExecutor V2 dependencies",
     kind: "call",
-    details: "Reuse registry, oracle guard/quoter, dan canonical adapter yang sudah terverifikasi. Executor tetap paused.",
+    details: "Reuse the verified registry, oracle guard/quoter, and canonical adapter. The executor remains paused.",
   },
 ];
 
@@ -216,7 +216,7 @@ export default function RewardV2Deploy() {
   async function connect() {
     const provider = getInjectedProvider();
     if (!provider) {
-      setErr("Wallet EVM tidak ditemukan.");
+      setErr("EVM wallet not found.");
       return;
     }
     await provider.request({ method: "eth_requestAccounts" });
@@ -235,7 +235,7 @@ export default function RewardV2Deploy() {
 
   async function assertWallet() {
     const provider = getInjectedProvider();
-    if (!provider) throw new Error("Wallet EVM tidak ditemukan.");
+    if (!provider) throw new Error("EVM wallet not found.");
     const [accounts, chainId] = await Promise.all([
       provider.request<string[]>({ method: "eth_accounts" }),
       provider.request<string>({ method: "eth_chainId" }),
@@ -243,21 +243,21 @@ export default function RewardV2Deploy() {
     setAccount(accounts?.[0] || "");
     setChain(chainId || "");
     if (accounts?.[0]?.toLowerCase() !== OWNER.toLowerCase()) {
-      throw new Error("Gunakan wallet owner Routy.");
+      throw new Error("Use the Routy owner wallet.");
     }
     if (chainId?.toLowerCase() !== CHAIN_ID) {
-      throw new Error("Gunakan Robinhood Chain (4663).");
+      throw new Error("Use Robinhood Chain (4663).");
     }
     return provider;
   }
 
   async function verifyCode(provider: EthereumProvider, address: Address) {
-    if (!valid(address)) throw new Error("Alamat kontrak tidak valid.");
+    if (!valid(address)) throw new Error("The contract address is invalid.");
     const code = await provider.request<string>({
       method: "eth_getCode",
       params: [address, "latest"],
     });
-    if (!code || code === "0x") throw new Error(`Bytecode tidak ditemukan pada ${address}.`);
+    if (!code || code === "0x") throw new Error(`No bytecode was found at ${address}.`);
   }
 
   function targetFor(step: Step): Address | undefined {
@@ -279,7 +279,7 @@ export default function RewardV2Deploy() {
     }
     if (step.id === "protocolLauncherV2") {
       if (!addresses.routerFactoryV2 || !addresses.swapExecutorV2) {
-        throw new Error("Factory router dan executor V2 belum terverifikasi.");
+        throw new Error("The V2 router factory and executor have not been verified yet.");
       }
       const bytecode = DEPLOY_BYTECODE.ProtocolLauncherV2 as Hex;
       return encodeDeployData({
@@ -303,7 +303,7 @@ export default function RewardV2Deploy() {
       step.id === "routerFactoryLauncher" ||
       step.id === "executorLauncher"
     ) {
-      if (!addresses.protocolLauncherV2) throw new Error("ProtocolLauncherV2 belum terverifikasi.");
+      if (!addresses.protocolLauncherV2) throw new Error("ProtocolLauncherV2 has not been verified yet.");
       return encodeFunctionData({
         abi: setLauncherAbi,
         functionName: "setLauncher",
@@ -323,7 +323,7 @@ export default function RewardV2Deploy() {
         ],
       });
     }
-    throw new Error("Step tidak dikenal.");
+    throw new Error("Unknown step.");
   }
 
   function previousConfirmed(index: number) {
@@ -338,8 +338,8 @@ export default function RewardV2Deploy() {
     setErrorStep("");
     setMsg("");
     try {
-      if (!previousConfirmed(index)) throw new Error("Selesaikan dan verify langkah sebelumnya terlebih dahulu.");
-      if (saved[step.id]?.hash) throw new Error("Step ini sudah memiliki transaction hash. Verify dulu; jangan kirim ulang.");
+      if (!previousConfirmed(index)) throw new Error("Complete and verify the previous step first.");
+      if (saved[step.id]?.hash) throw new Error("This step already has a transaction hash. Verify it first; do not resubmit.");
 
       const provider = await assertWallet();
 
@@ -347,13 +347,13 @@ export default function RewardV2Deploy() {
       await verifyCode(provider, addresses.vaultFactoryV2);
 
       if (step.id === "protocolLauncherV2") {
-        if (!addresses.routerFactoryV2 || !addresses.swapExecutorV2) throw new Error("Dependency V2 belum lengkap.");
+        if (!addresses.routerFactoryV2 || !addresses.swapExecutorV2) throw new Error("V2 dependencies are incomplete.");
         await verifyCode(provider, addresses.routerFactoryV2);
         await verifyCode(provider, addresses.swapExecutorV2);
       }
 
       const target = targetFor(step);
-      if (step.kind === "call" && !target) throw new Error("Alamat target belum tersedia.");
+      if (step.kind === "call" && !target) throw new Error("The target address is not available yet.");
       if (target) await verifyCode(provider, target);
 
       const data = buildData(step);
@@ -374,22 +374,22 @@ export default function RewardV2Deploy() {
         gas = (`0x${padded.toString(16)}`) as Hex;
       } catch (estimateCause) {
         const detail = estimateCause instanceof Error ? estimateCause.message : "unknown estimate error";
-        throw new Error(`Gas estimation gagal sebelum wallet popup: ${detail}`);
+        throw new Error(`Gas estimation failed before the wallet prompt: ${detail}`);
       }
 
       const hash = await provider.request<Hex>({
         method: "eth_sendTransaction",
         params: [{ ...tx, gas }],
       });
-      if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("Wallet tidak mengembalikan transaction hash valid.");
+      if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("The wallet did not return a valid transaction hash.");
 
       const next = { ...saved, [step.id]: { hash } };
       writeSaved(next);
       setSaved(next);
-      setMsg("Transaksi dikirim. Tunggu konfirmasi lalu tekan Verify.");
+      setMsg("Transaction submitted. Wait for confirmation, then press Verify.");
     } catch (cause) {
       setErrorStep(step.id);
-      setErr(cause instanceof Error ? cause.message : "Transaksi gagal.");
+      setErr(cause instanceof Error ? cause.message : "Transaction failed.");
     } finally {
       setBusy("");
       refresh().catch(() => {});
@@ -403,22 +403,22 @@ export default function RewardV2Deploy() {
     try {
       const provider = await assertWallet();
       const record = saved[step.id];
-      if (!record?.hash) throw new Error("Belum ada transaction hash.");
+      if (!record?.hash) throw new Error("No transaction hash is available yet.");
 
       const receipt = await provider.request<EthereumTransactionReceipt | null>({
         method: "eth_getTransactionReceipt",
         params: [record.hash],
       });
-      if (!receipt) throw new Error("Receipt belum tersedia.");
-      if (!isSuccess(receipt)) throw new Error("Transaksi gagal on-chain.");
+      if (!receipt) throw new Error("The receipt is not available yet.");
+      if (!isSuccess(receipt)) throw new Error("The transaction failed on-chain.");
 
       let address: Address | undefined;
       if (step.kind === "deploy") {
-        if (!valid(receipt.contractAddress)) throw new Error("Receipt tidak memiliki contract address valid.");
+        if (!valid(receipt.contractAddress)) throw new Error("The receipt does not contain a valid contract address.");
         address = receipt.contractAddress;
       } else {
         address = targetFor(step);
-        if (!address) throw new Error("Target kontrak tidak tersedia.");
+        if (!address) throw new Error("The contract target is not available.");
       }
 
       await verifyCode(provider, address);
@@ -426,9 +426,9 @@ export default function RewardV2Deploy() {
       const next = { ...saved, [step.id]: { hash: record.hash, address } };
       writeSaved(next);
       setSaved(next);
-      setMsg(`${step.title} terverifikasi on-chain.`);
+      setMsg(`${step.title} verified on-chain.`);
     } catch (cause) {
-      setErr(cause instanceof Error ? cause.message : "Verifikasi gagal.");
+      setErr(cause instanceof Error ? cause.message : "Verification failed.");
     } finally {
       setBusy("");
     }
@@ -461,9 +461,9 @@ export default function RewardV2Deploy() {
         writeSaved(next);
         setSaved({ ...next });
       }
-      setMsg("Progress V2 dipulihkan dan receipt yang tersedia sudah diverifikasi.");
+      setMsg("V2 progress was restored and available receipts were verified.");
     } catch (cause) {
-      setErr(cause instanceof Error ? cause.message : "Gagal memulihkan progress.");
+      setErr(cause instanceof Error ? cause.message : "Failed to restore progress.");
     } finally {
       setBusy("");
     }
@@ -481,9 +481,9 @@ export default function RewardV2Deploy() {
           <div className="eyebrow">REWARD V2 / CONTINUATION</div>
           <h1>Complete Reward V2 infrastructure</h1>
           <p>
-            Factory reward dan vault V2 sudah deployed. Wizard ini melengkapi router factory,
+            The V2 reward and vault factories are already deployed. This wizard completes the router factory,
             executor, launcher, dan binding yang diperlukan. SwapExecutor V2 tetap paused setelah
-            seluruh langkah selesai.
+            all steps are complete.
           </p>
         </section>
 
@@ -491,7 +491,7 @@ export default function RewardV2Deploy() {
           <h2>Existing verified V2 factories</h2>
           <p>RewardDistributorFactory V2: <code>{addresses.rewardFactoryV2}</code></p>
           <p>AssetVaultV2Factory: <code>{addresses.vaultFactoryV2}</code></p>
-          <p className="muted">Kontrak V1 tidak diubah dan deployment lama tetap berjalan seperti sebelumnya.</p>
+          <p className="muted">V1 contracts are unchanged and the previous deployment continues to run as before.</p>
         </section>
 
         <section className="panel">
@@ -504,9 +504,9 @@ export default function RewardV2Deploy() {
           ) : !correctChain ? (
             <button className="primary" onClick={switchChain}>Switch to Robinhood Chain</button>
           ) : !authorized ? (
-            <p className="error">Wallet aktif bukan owner Routy.</p>
+            <p className="error">The active wallet is not the Routy owner.</p>
           ) : (
-            <p className="success">Wallet dan chain benar.</p>
+            <p className="success">Wallet and chain verified.</p>
           )}
           <button className="secondary" disabled={!!busy} onClick={resume}>
             {busy === "resume" ? "Checking…" : "Resume / verify progress"}
@@ -547,7 +547,7 @@ export default function RewardV2Deploy() {
                   <button
                     className="primary"
                     disabled={!!busy || !ready || !authorized || !correctChain}
-                    title={!ready ? "Verify step sebelumnya dulu" : !authorized ? "Gunakan wallet owner Routy" : !correctChain ? "Gunakan Robinhood Chain" : ""}
+                    title={!ready ? "Verify the previous step first" : !authorized ? "Gunakan wallet owner Routy" : !correctChain ? "Gunakan Robinhood Chain" : ""}
                     onClick={() => submit(step, index)}
                   >
                     {busy === step.id
@@ -558,7 +558,7 @@ export default function RewardV2Deploy() {
                           ? `Deploy ${step.title.replace("Deploy ", "")}`
                           : "Submit transaction"}
                   </button>
-                  {!ready && <p className="muted">Step ini terbuka otomatis setelah step sebelumnya berstatus Verified.</p>}
+                  {!ready && <p className="muted">This step unlocks automatically after the previous step is Verified.</p>}
                 </>
               )}
               {errorStep === step.id && err && (
@@ -573,9 +573,9 @@ export default function RewardV2Deploy() {
         <section className="panel">
           <h2>Activation lock</h2>
           <p>
-            Wizard ini tidak memanggil <code>setPaused(false)</code>. Setelah semua langkah hijau,
-            V2 sudah tersambung tetapi belum dapat mengeksekusi swap. PoolKey, oracle feed, route test,
-            dan pemeriksaan keamanan tetap harus selesai sebelum aktivasi produksi.
+            This wizard does not call <code>setPaused(false)</code>. After all steps are green,
+            V2 is connected but still cannot execute swaps. PoolKey, oracle feed, and route tests
+            and security checks must still be completed before production activation.
           </p>
           {allDone && <p className="success">Reward V2 infrastructure terhubung. Swap masih paused.</p>}
         </section>

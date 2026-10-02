@@ -121,7 +121,7 @@ function deploymentArguments(id: StepDefinition["id"], verified: Partial<Record<
         verified.swapExecutor,
       ] as const;
     default:
-      throw new Error("Langkah ini bukan deployment.");
+      throw new Error("This step is not a deployment.");
   }
 }
 
@@ -153,17 +153,17 @@ function transactionData(step: StepDefinition, verified: Partial<Record<string, 
   if (step.kind === "deploy") {
     const bytecode = DEPLOY_BYTECODE[step.contract as keyof typeof DEPLOY_BYTECODE];
     if (typeof bytecode !== "string" || !bytecode.startsWith("0x") || bytecode.length <= 2) {
-      throw new Error(`Bytecode ${step.contract} tidak tersedia.`);
+      throw new Error(`Bytecode ${step.contract} is unavailable.`);
     }
     return encodeDeployment(step.contract as DeployableContract, bytecode as Hex, deploymentArguments(step.id, verified));
   }
   if (step.id === "feeRouterLauncher" || step.id === "assetVaultLauncher" || step.id === "swapExecutorLauncher") {
     const launcher = verified.protocolLauncher;
-    if (!launcher) throw new Error("Alamat ProtocolLauncher belum terverifikasi.");
+    if (!launcher) throw new Error("The ProtocolLauncher address has not been verified yet.");
     return encodeSetLauncher(launcher);
   }
   if (step.id === "swapDependencies") {
-    if (!verified.oracleRegistry || !verified.oracleGuard || !verified.swapOracleQuoter || !verified.swapRouterAdapter) throw new Error("Alamat dependency swap belum terverifikasi.");
+    if (!verified.oracleRegistry || !verified.oracleGuard || !verified.swapOracleQuoter || !verified.swapRouterAdapter) throw new Error("Swap dependency addresses have not been verified yet.");
     return encodeExecutorConfigureDependencies([
       verified.oracleRegistry,
       verified.oracleGuard,
@@ -172,7 +172,7 @@ function transactionData(step: StepDefinition, verified: Partial<Record<string, 
       200,
     ]);
   }
-  throw new Error("Encoding transaksi tidak dikenal.");
+  throw new Error("Unknown transaction encoding.");
 }
 
 export default function DeployPage() {
@@ -202,7 +202,7 @@ export default function DeployPage() {
   async function connect() {
     const provider = getInjectedProvider();
     if (!provider) {
-      setError("Wallet EVM injected tidak ditemukan.");
+      setError("Injected EVM wallet not found.");
       return;
     }
     try {
@@ -210,7 +210,7 @@ export default function DeployPage() {
       await refreshWallet();
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Koneksi wallet gagal.");
+      setError(cause instanceof Error ? cause.message : "Wallet connection failed.");
     }
   }
 
@@ -221,7 +221,7 @@ export default function DeployPage() {
       await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_ID }] });
       await refreshWallet();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Gagal beralih ke Robinhood Chain.");
+      setError(cause instanceof Error ? cause.message : "Failed to switch to Robinhood Chain.");
     }
   }
 
@@ -233,18 +233,18 @@ export default function DeployPage() {
     setAccount(accounts?.[0] ?? "");
     setChainId(chain ?? "");
     if (accounts?.[0]?.toLowerCase() !== DEPLOYER.toLowerCase()) {
-      throw new Error(`Wallet aktif harus tepat ${DEPLOYER}.`);
+      throw new Error(`The active wallet must be exactly ${DEPLOYER}.`);
     }
     if (chain?.toLowerCase() !== CHAIN_ID) {
-      throw new Error("Wallet harus berada di Robinhood Chain (4663).");
+      throw new Error("The wallet must be on Robinhood Chain (4663).");
     }
   }
 
   async function verifyCode(provider: EthereumProvider, address: Address) {
-    if (!validAddress(address)) throw new Error("Alamat nol atau tidak valid ditolak.");
+    if (!validAddress(address)) throw new Error("Zero or invalid addresses are not allowed.");
     const code = await provider.request<string>({ method: "eth_getCode", params: [address, "latest"] });
     if (typeof code !== "string" || code === "0x" || code.length <= 2) {
-      throw new Error(`Tidak ditemukan bytecode on-chain pada ${address}.`);
+      throw new Error(`No on-chain bytecode was found at ${address}.`);
     }
   }
 
@@ -254,7 +254,7 @@ export default function DeployPage() {
     const needed = requiredAddresses(step.id, verified);
     const minimum = step.id === "protocolLauncher" ? 9 : step.id === "swapDependencies" ? 5 : step.kind === "call" ? 2 : 0;
     if (needed.length !== minimum || needed.some((address) => !validAddress(address))) {
-      throw new Error("Alamat prasyarat belum lengkap atau mengandung alamat nol.");
+      throw new Error("Prerequisite addresses are incomplete or contain a zero address.");
     }
     for (const address of needed) {
       if (step.id === "protocolLauncher" && address.toLowerCase() === TREASURY.toLowerCase()) continue;
@@ -262,7 +262,7 @@ export default function DeployPage() {
     }
     if (step.kind === "deploy") {
       const bytecode = DEPLOY_BYTECODE[step.contract as keyof typeof DEPLOY_BYTECODE];
-      if (typeof bytecode !== "string" || bytecode.length <= 2) throw new Error(`Bytecode ${step.contract} tidak tersedia.`);
+      if (typeof bytecode !== "string" || bytecode.length <= 2) throw new Error(`Bytecode ${step.contract} is unavailable.`);
     }
   }
 
@@ -271,7 +271,7 @@ export default function DeployPage() {
     setNotice("");
     const provider = getInjectedProvider();
     if (!provider) {
-      setError("Wallet EVM injected tidak ditemukan.");
+      setError("Injected EVM wallet not found.");
       return;
     }
     try {
@@ -289,14 +289,14 @@ export default function DeployPage() {
         if (!receipt) break;
         if (receipt.status !== "0x1" && receipt.status !== "0x01") {
           nextStatuses[index] = "failed";
-          setError(`${step.title} gagal on-chain. Hanya langkah ini yang dapat dicoba ulang.`);
+          setError(`${step.title} failed on-chain. Only this step may be retried.`);
           break;
         }
         let address: Address | undefined;
         if (step.kind === "deploy") {
           if (!validAddress(receipt.contractAddress)) {
             nextStatuses[index] = "failed";
-            setError(`Receipt ${step.title} tidak memiliki contract address yang valid.`);
+            setError(`Receipt ${step.title} does not contain a valid contract address.`);
             break;
           }
           address = receipt.contractAddress;
@@ -314,9 +314,9 @@ export default function DeployPage() {
       setRecords(loaded);
       setVerified(nextVerified);
       setStatuses(nextStatuses);
-      setNotice("Progress diverifikasi dari receipt dan eth_getCode. Tidak ada transaksi yang dikirim.");
+      setNotice("Progress was verified from receipts and eth_getCode. No transactions were sent.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Gagal memulihkan progress deployment.");
+      setError(cause instanceof Error ? cause.message : "Failed to restore deployment progress.");
     }
   }
 
@@ -324,7 +324,7 @@ export default function DeployPage() {
     if (!canSubmitStep(statuses, index) || (activeStep !== null && activeStep !== index)) return;
     const provider = getInjectedProvider();
     if (!provider) {
-      setError("Wallet EVM injected tidak ditemukan.");
+      setError("Injected EVM wallet not found.");
       return;
     }
     setActiveStep(index);
@@ -336,10 +336,10 @@ export default function DeployPage() {
       const step = STEPS[index];
       const data = transactionData(step, verified);
       const target = step.kind === "call" ? stepAddress(step.id, verified) : undefined;
-      if (target && !validAddress(target)) throw new Error("Alamat tujuan transaksi tidak valid.");
+      if (target && !validAddress(target)) throw new Error("The transaction destination address is invalid.");
       const preflightProgress = readSavedProgress();
       if (preflightProgress[step.id]?.hash && statuses[index] !== "failed") {
-        throw new Error("Langkah ini sudah memiliki transaction hash. Resume dan periksa receipt sebelum mencoba lagi.");
+        throw new Error("This step already has a transaction hash. Resume and check the receipt before retrying.");
       }
       writeSavedProgress(preflightProgress);
       setStatuses((current) => current.map((status, position) => position === index ? "awaiting wallet signature" : status));
@@ -347,22 +347,22 @@ export default function DeployPage() {
         method: "eth_sendTransaction",
         params: [{ from: DEPLOYER, ...(target ? { to: target } : {}), data, value: "0x0", ...(step.contract === "SwapExecutor" ? { gas: "0x124f80" } : {}) }],
       });
-      if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("Wallet tidak mengembalikan transaction hash yang valid.");
+      if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("The wallet did not return a valid transaction hash.");
       returnedHash = hash;
       const updated = { ...records, [step.id]: { hash } };
       writeSavedProgress(updated);
       setRecords(updated);
       setStatuses((current) => current.map((status, position) => position === index ? "submitted" : status));
-      setNotice("Transaksi dikirim oleh wallet. Periksa receipt sebelum melanjutkan.");
+      setNotice("The transaction was submitted by the wallet. Check the receipt before continuing.");
     } catch (cause) {
       if (returnedHash) {
         const updated = { ...readSavedProgress(), [STEPS[index].id]: { hash: returnedHash } };
         setRecords(updated);
         setStatuses((current) => current.map((status, position) => position === index ? "submitted" : status));
-        setError(`Wallet mengembalikan hash ${returnedHash}, tetapi penyimpanan lokal gagal. Jangan kirim ulang; periksa receipt pada langkah ini.`);
+        setError(`The wallet returned hash ${returnedHash}, but local persistence failed. Do not resubmit; check the receipt for this step.`);
       } else {
         setStatuses((current) => current.map((status, position) => position === index ? "failed" : status));
-        setError(cause instanceof Error ? cause.message : "Transaksi gagal atau ditolak wallet.");
+        setError(cause instanceof Error ? cause.message : "The transaction failed or was rejected by the wallet.");
       }
     } finally {
       setActiveStep(null);
@@ -383,17 +383,17 @@ export default function DeployPage() {
       await assertWallet(provider);
       const receipt = await provider.request<EthereumTransactionReceipt | null>({ method: "eth_getTransactionReceipt", params: [saved.hash] });
       if (!receipt) {
-        setNotice("Receipt belum tersedia. Langkah berikutnya tetap terkunci.");
+        setNotice("The receipt is not available yet. The next step remains locked.");
         return;
       }
       if (receipt.status !== "0x1" && receipt.status !== "0x01") {
         setStatuses((current) => current.map((status, position) => position === index ? "failed" : status));
-        setError(`${step.title} gagal on-chain. Hanya langkah ini yang dapat dicoba ulang.`);
+        setError(`${step.title} failed on-chain. Only this step may be retried.`);
         return;
       }
       let address: Address | undefined;
       if (step.kind === "deploy") {
-        if (!validAddress(receipt.contractAddress)) throw new Error("Receipt tidak memiliki alamat kontrak valid.");
+        if (!validAddress(receipt.contractAddress)) throw new Error("The receipt does not contain a valid contract address.");
         address = receipt.contractAddress;
       } else {
         address = stepAddress(step.id, verified);
@@ -406,9 +406,9 @@ export default function DeployPage() {
       setRecords(updated);
       setVerified(nextVerified);
       setStatuses((current) => current.map((status, position) => position === index ? "confirmed" : status));
-      setNotice(`${step.title} terkonfirmasi; kode kontrak telah diverifikasi.`);
+      setNotice(`${step.title} confirmed; contract bytecode has been verified.`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Receipt atau kode kontrak belum dapat diverifikasi.");
+      setError(cause instanceof Error ? cause.message : "The receipt or contract bytecode could not be verified yet.");
     } finally {
       setActiveStep(null);
     }
@@ -416,7 +416,7 @@ export default function DeployPage() {
 
   async function copyAddress(address: Address) {
     await navigator.clipboard.writeText(address);
-    setNotice("Alamat kontrak disalin.");
+    setNotice("Contract address copied.");
   }
 
   useEffect(() => {
@@ -456,7 +456,7 @@ export default function DeployPage() {
             <p>Connected: <b>{account || "Not connected"}</b></p>
             <p>Network: <b>{chainId ? `${parseInt(chainId, 16)}${correctChain ? " (Robinhood Chain)" : " (wrong chain)"}` : "Not connected"}</b></p>
             <p>Gas balance: <b>{balance} ETH</b></p>
-            {!account ? <button className="primary" onClick={connect}>Connect wallet</button> : !correctChain ? <button className="primary" onClick={switchChain}>Switch to Robinhood Chain</button> : !authorized ? <div className="notice">Wallet tidak berwenang. Deployment dikunci.</div> : <div className="notice">Wallet deployer dan chain cocok.</div>}
+            {!account ? <button className="primary" onClick={connect}>Connect wallet</button> : !correctChain ? <button className="primary" onClick={switchChain}>Switch to Robinhood Chain</button> : !authorized ? <div className="notice">Unauthorized wallet. Deployment is locked.</div> : <div className="notice">Deployer wallet and chain verified.</div>}
           </section>
 
           <section className="form-card" aria-labelledby="config-title">
