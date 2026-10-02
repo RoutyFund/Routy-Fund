@@ -26,7 +26,6 @@ export type Readiness={
 };
 
 const CHAIN_ID="4663";
-const DEFAULT_RPC_URL="https://rpc.mainnet.chain.robinhood.com";
 
 function addressConfigured(value:string|undefined){
  return Boolean(value&&/^0x[0-9a-fA-F]{40}$/.test(value)&&!/^0x0{40}$/i.test(value));
@@ -40,7 +39,7 @@ function configured(value:string|undefined,fallback:string){
 
 export function serverReadiness():Readiness{
  const deviation=Number(process.env.MAX_PRICE_DEVIATION_BPS||"200");
- const rpcUrl=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim()||DEFAULT_RPC_URL;
+ const rpcUrl=process.env.RPC_URL?.trim();
  return{
   chain:(process.env.NEXT_PUBLIC_CHAIN_ID||CHAIN_ID)===CHAIN_ID,
   rpc:Boolean(rpcUrl),
