@@ -24,7 +24,7 @@ export const factoryLaunchAbi=[
 {name:"socials",type:"tuple",components:[{name:"twitter",type:"string"},{name:"telegram",type:"string"},{name:"discord",type:"string"},{name:"website",type:"string"},{name:"farcaster",type:"string"}]},
 {name:"creatorFeeRecipient",type:"address"},{name:"creatorTaxBps",type:"uint16"},{name:"buybackEnabled",type:"bool"},{name:"expectedEconomics",type:"bytes32"},{name:"salt",type:"bytes32"}
 ]},
-{name:"launchConfigId",type:"uint256"},{name:"pairToken",type:"address"}
+{name:"launchConfigId",type:"uint256"},{name:"pairToken",type:"address"},{name:"snipeTaxExemptions",type:"address[]"}
 ],outputs:[{name:"token",type:"address"},{name:"curve",type:"address"}]},
 {type:"event",name:"TokenLaunched",anonymous:false,inputs:[
 {name:"token",type:"address",indexed:true},{name:"curve",type:"address",indexed:true},{name:"deployer",type:"address",indexed:true},

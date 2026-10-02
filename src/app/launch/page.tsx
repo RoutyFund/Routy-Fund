@@ -32,17 +32,59 @@ export default function Launch(){
    const accounts=await provider.request<string[]>({method:"eth_requestAccounts"});const account=accounts?.[0];if(!account)throw new Error("Wallet not connected");
    await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1237"}]});
    const pairToken="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as const;
+
+   const feeData=encodeFunctionData({abi:factoryReadAbi,functionName:"launchFee"});
+   const maxTaxData=encodeFunctionData({abi:factoryReadAbi,functionName:"maxCreatorTaxBps"});
+   const approvedData=encodeFunctionData({abi:factoryReadAbi,functionName:"approvedPairTokens",args:[pairToken]});
    const econData=encodeFunctionData({abi:factoryReadAbi,functionName:"previewLaunchEconomics",args:[BigInt(config!.id),pairToken]});
-   const economics=await provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:econData},"latest"]});
+
+   const [feeRaw,maxTaxRaw,approvedRaw,economics]=await Promise.all([
+    provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:feeData},"latest"]}),
+    provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:maxTaxData},"latest"]}),
+    provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:approvedData},"latest"]}),
+    provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:econData},"latest"]}),
+   ]);
+
+   const freshLaunchFee=BigInt(feeRaw);
+   const freshMaxTax=Number(BigInt(maxTaxRaw));
+   const pairApproved=BigInt(approvedRaw)!==0n;
+   if(!pairApproved)throw new Error("USDG is not currently approved by the Pons V2 factory.");
+
    const salt=keccak256(toBytes(account+":"+Date.now().toString()));
-   const creatorTax=Math.max(0,Math.min(Number(tax||0),Number(pons?.maxCreatorTaxBps||1000)));
+   const creatorTax=Math.max(0,Math.min(Number(tax||0),freshMaxTax));
    const data=encodeFunctionData({abi:factoryLaunchAbi,functionName:"launchToken",args:[{
     name:name.trim(),symbol:symbol.trim(),logo,description:description.trim(),
     socials:{twitter:x.trim(),telegram:telegram.trim(),discord:"",website:website.trim(),farcaster:""},
     creatorFeeRecipient:account as `0x${string}`,creatorTaxBps:creatorTax,buybackEnabled:true,expectedEconomics:economics as `0x${string}`,salt
-   },BigInt(config!.id),pairToken]});
-   setStatus("Confirm the Pons launch in your wallet.");
-   const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{from:account,to:PONS_V2.factory,data,value:"0x"+BigInt(pons!.launchFee).toString(16)}]});
+   },BigInt(config!.id),pairToken,[]]});
+
+   const tx={from:account,to:PONS_V2.factory,data,value:"0x"+freshLaunchFee.toString(16)};
+   setStatus("Running Pons preflight…");
+   try{
+    const estimated=await provider.request<string>({method:"eth_estimateGas",params:[tx]});
+    const padded="0x"+((BigInt(estimated)*125n/100n).toString(16));
+    setStatus("Preflight passed. Confirm the Pons launch in your wallet.");
+    const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{...tx,gas:padded}]});
+    setLaunchTx(hash);setStatus("Launch submitted: "+hash.slice(0,10)+"… Waiting for confirmation.");
+    const receipt=await waitReceipt(hash,provider);
+    if(!receipt){setStatus("Launch is still pending. Do not resubmit.");return}
+    if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error("Pons launch failed on-chain.");
+    let tokenAddress="";
+    for(const log of receipt.logs||[]){try{
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wallet log topics are untyped EIP-1193 data.
+     const decoded=decodeEventLog({abi:factoryLaunchAbi,data:log.data as Hex,topics:log.topics as any});
+     if(decoded.eventName==="TokenLaunched"){
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem event args are narrowed at runtime by eventName.
+      tokenAddress=String((decoded.args as any).token||"");break
+     }
+    }catch{}}
+    if(tokenAddress){setLaunchedToken(tokenAddress);setStatus("Launch confirmed. Continue to Routy provisioning.");}
+    else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
+    return;
+   }catch(preflightError){
+    const detail=preflightError instanceof Error?preflightError.message:String(preflightError);
+    throw new Error("Pons preflight failed before wallet submission: "+detail);
+   }
    setLaunchTx(hash);setStatus("Launch submitted: "+hash.slice(0,10)+"… Waiting for confirmation.");
    const receipt=await waitReceipt(hash,provider);
    if(!receipt){setStatus("Launch is still pending. Do not resubmit.");return}
