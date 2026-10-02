@@ -17,7 +17,8 @@ export async function GET(req:NextRequest){
   const client=createPublicClient({chain,transport:http(rpc)});
   const launch=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]});
   if(!launch.exists)return NextResponse.json({ok:false,error:"NOT_PONS_TOKEN"},{status:404});
-  const route=await client.readContract({address:ROUTY_DEPLOYMENT.protocolLauncherV4,abi:launcherAbi,functionName:"routes",args:[token as Address]});
+  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
+  const route=await client.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token as Address]});
   const [creator,,,vault,router,distributor,policy,createdAt]=route;
   if(vault==="0x0000000000000000000000000000000000000000")return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
   const block=await client.getBlock({blockTag:"latest"});
@@ -27,7 +28,7 @@ export async function GET(req:NextRequest){
   const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:snapshotBlock});
   const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
   const fromBlock=launchBlock??(snapshotBlock>500_000n?snapshotBlock-500_000n:0n);
-  const holders=await snapshotTokenHolders({token,fromBlock,toBlock:snapshotBlock,excluded:[creator,vault,router,distributor,PONS_V2.factory,PONS_V2.feeEscrow],rpcUrl:rpc});
+  const holders=await snapshotTokenHolders({token,fromBlock,toBlock:snapshotBlock,excluded:[creator,vault,router,distributor,launch.curve,launch.deployer,PONS_V2.factory,PONS_V2.feeEscrow,PONS_V2.memeHook,PONS_V2.buybackVault,PONS_V2.locker,PONS_V2.launchAndBuy,PONS_V2.launchDeployer,PONS_V2.graduationExecutor,PONS_V2.graduationGuard,PONS_V2.poolManager],rpcUrl:rpc});
   const total=holders.reduce((n,h)=>n+h.balance,0n);
   return NextResponse.json({ok:true,token,policy:Number(policy),createdAt:Number(createdAt),snapshotBlock:snapshotBlock.toString(),snapshotFromBlock:fromBlock.toString(),holderCount:holders.length,totalEligibleBalance:total.toString(),holders:holders.map(h=>({address:h.address,balance:h.balance.toString()}))});
  }catch(error){
