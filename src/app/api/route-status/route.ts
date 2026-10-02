@@ -9,7 +9,8 @@ const oracleAbi=[{type:"function",name:"feedForAsset",stateMutability:"view",inp
 
 export async function GET(){
  try{
-  const client=createPublicClient({chain,transport:http()});
+  const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const client=createPublicClient({chain,transport:http(rpc)});
   const rows=[];
   for(const route of ROUTE_CATALOG){
    const [approvedRaw,targetFeedRaw,quoteFeedRaw]=await Promise.all([
