@@ -56,7 +56,8 @@ async function handle(req:NextRequest){
  if(!authorized(req))return NextResponse.json({ok:false,error:"UNAUTHORIZED"},{status:401});
  if(process.env.ROUTY_AUTO_SETUP_ENABLED!=="true")return NextResponse.json({ok:false,error:"AUTOMATION_DISABLED"},{status:409});
  try{
-  const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const rpc=process.env.RPC_URL?.trim();
+  if(!rpc)throw new Error("RPC_URL_MISSING");
   const rawKey=process.env.ROUTY_AUTOMATION_PRIVATE_KEY?.trim();
   const launcher=process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4;
   const executor=process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4;
