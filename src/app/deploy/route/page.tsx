@@ -21,6 +21,7 @@ const oracleAbi=[
 ] as const;
 
 type RouteCheck={readyForOwnerConfiguration?:boolean;routes?:Array<{symbol:string;poolKeyMatches?:boolean}>};
+type RouteStatusRow={symbol:string;launchEnabled?:boolean;approved?:boolean;targetFeedConfigured?:boolean;quoteFeedConfigured?:boolean;configurationComplete?:boolean};
 type State={assetApproved:boolean;targetFeed:Address;quoteFeed:Address};
 
 async function ethCall(provider:EthereumProvider,to:Address,data:Hex){
@@ -34,7 +35,7 @@ async function waitForReceipt(provider:EthereumProvider,hash:Hex){
 export default function ProductionRouteSetupPage(){
  const[selectedSymbol,setSelectedSymbol]=useState(ROUTE_CATALOG[0].symbol);
  const route=ROUTE_CATALOG.find(r=>r.symbol===selectedSymbol)||ROUTE_CATALOG[0];
- const[account,setAccount]=useState("");const[chainId,setChainId]=useState("");const[routeCheck,setRouteCheck]=useState<RouteCheck|null>(null);
+ const[account,setAccount]=useState("");const[chainId,setChainId]=useState("");const[routeCheck,setRouteCheck]=useState<RouteCheck|null>(null);const[allStatus,setAllStatus]=useState<RouteStatusRow[]>([]);
  const[state,setState]=useState<State>({assetApproved:false,targetFeed:ZERO,quoteFeed:ZERO});
  const[busy,setBusy]=useState("");const[notice,setNotice]=useState("");const[error,setError]=useState("");
 
@@ -63,14 +64,15 @@ export default function ProductionRouteSetupPage(){
  async function switchChain(){const p=getInjectedProvider();if(!p)return;try{await p.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID}]});await refreshWallet();setError("")}catch(c){setError(walletErrorMessage(c,"Could not switch to Robinhood Chain."))}}
  async function send(label:string,to:Address,data:Hex){const p=getInjectedProvider();if(!p)return setError("Wallet provider not found.");if(!authorized||!correctChain||!poolVerified)return setError("Owner wallet, Robinhood Chain, and verified PoolKey are required.");
   setBusy(label);setError("");setNotice("");
-  try{const hash=await p.request<Hex>({method:"eth_sendTransaction",params:[{from:OWNER,to,data,value:"0x0"}]});setNotice(label+" submitted. Waiting for confirmation…");const receipt=await waitForReceipt(p,hash);if(!receipt)return setNotice(label+" is still pending. Do not resend.");if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error(label+" failed on-chain.");await refreshState();setNotice(label+" confirmed and verified on-chain.")}catch(c){setError(walletErrorMessage(c,label+" failed."))}finally{setBusy("")}
+  try{const hash=await p.request<Hex>({method:"eth_sendTransaction",params:[{from:OWNER,to,data,value:"0x0"}]});setNotice(label+" submitted. Waiting for confirmation…");const receipt=await waitForReceipt(p,hash);if(!receipt)return setNotice(label+" is still pending. Do not resend.");if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error(label+" failed on-chain.");await refreshState();const status=await fetch("/api/route-status",{cache:"no-store"}).then(r=>r.json()).catch(()=>null);if(status?.routes)setAllStatus(status.routes);setNotice(label+" confirmed and verified on-chain.")}catch(c){setError(walletErrorMessage(c,label+" failed."))}finally{setBusy("")}
  }
 
- useEffect(()=>{const t=window.setTimeout(()=>{refreshWallet().catch(()=>{});fetch("/api/route-readiness").then(r=>r.json()).then(setRouteCheck).catch(()=>setRouteCheck(null));refreshState().catch(()=>{})},0);return()=>window.clearTimeout(t)},[selectedSymbol]);
+ useEffect(()=>{const t=window.setTimeout(()=>{refreshWallet().catch(()=>{});fetch("/api/route-readiness").then(r=>r.json()).then(setRouteCheck).catch(()=>setRouteCheck(null));fetch("/api/route-status",{cache:"no-store"}).then(r=>r.json()).then(d=>setAllStatus(d.routes||[])).catch(()=>setAllStatus([]));refreshState().catch(()=>{})},0);return()=>window.clearTimeout(t)},[selectedSymbol]);
 
  return <main className="shell"><Nav/><div className="wrap console-page">
   <span className="kicker">Routy production route</span><h1 style={{fontSize:56}}>Prepare verified routes safely.</h1>
   <p className="muted">Configure AssetRegistry and oracle prerequisites for verified routes. SwapExecutor remains paused.</p>
+  <section className="section"><div className="section-head"><div><span className="micro">ROUTE CONFIGURATION</span><h2>11 verified PoolKeys · owner setup status.</h2></div><p className="section-copy">Green routes are ready. Pending routes still need AssetRegistry approval and their target Chainlink feed. USDG feed is already configured.</p></div><div className="route-setup-matrix">{ROUTE_CATALOG.map(r=>{const s=allStatus.find(x=>x.symbol===r.symbol);return <button key={r.symbol} type="button" className={r.symbol===selectedSymbol?"route-setup-cell active":"route-setup-cell"} onClick={()=>setSelectedSymbol(r.symbol)}><span>{r.symbol}</span><b className={s?.configurationComplete?"terminal-ok":"terminal-registry"}>{s?.configurationComplete?"● READY":"○ SETUP"}</b><small>{r.launchEnabled?"LIVE":"VERIFIED"}</small></button>})}</div></section>
   <div className="launch-form">
    <section className="form-card"><h2>Wallet</h2><p>Required owner: <code>{OWNER}</code></p><p>Connected: <b>{account||"Not connected"}</b></p><p>Network: <b>{chainId?Number.parseInt(chainId,16):"Not connected"}</b></p>
     {!account?<button className="primary" onClick={connect}>Connect wallet</button>:!correctChain?<button className="primary" onClick={switchChain}>Switch to Robinhood Chain</button>:!authorized?<div className="notice danger">Wrong wallet.</div>:<div className="notice">Owner wallet and chain verified.</div>}
