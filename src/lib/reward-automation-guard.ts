@@ -9,7 +9,7 @@ const abi=[
 ] as const;
 
 export function keeperAccount(){
- const value=process.env.KEEPER_PRIVATE_KEY?.trim();
+ const value=(process.env.ROUTY_AUTOMATION_PRIVATE_KEY||process.env.KEEPER_PRIVATE_KEY)?.trim();
  if(!value||!/^0x[0-9a-fA-F]{64}$/.test(value)) return null;
  return privateKeyToAccount(value as Hex);
 }
@@ -17,7 +17,7 @@ export async function rewardAutomationStatus(){
  const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
  const client=createPublicClient({chain,transport:http(rpc)});
  const [owner,keeper]=await Promise.all([
-  client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationController,abi,functionName:"owner"}),
+  client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationControllerV4,abi,functionName:"owner"}),
   client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationController,abi,functionName:"keeper"}),
  ]);
  const account=keeperAccount();
