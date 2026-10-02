@@ -62,7 +62,7 @@ async function handle(req:NextRequest){
   if(!route||job.reward_policy<0||job.reward_policy>2){console.error("[auto-setup] INVALID_QUEUED_JOB",{routeFound:Boolean(route),policyValid:job.reward_policy>=0&&job.reward_policy<=2});throw new Error("INVALID_QUEUED_JOB");}
   console.info("[auto-setup] JOB_VALID");
 
-  await patchJob(job.id,{status:"processing",attempts:(job.attempts||0)+1,last_error:null});
+  await patchJob(job.id,{status:"provisioning",attempts:(job.attempts||0)+1,last_error:null});
   const account=privateKeyToAccount(rawKey as Hex);
   const publicClient=createPublicClient({chain,transport:http(rpc)});
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
