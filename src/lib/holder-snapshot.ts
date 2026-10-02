@@ -13,7 +13,9 @@ export async function snapshotTokenHolders(input:{
  rpcUrl?:string;
 }):Promise<HolderRow[]>{
  if(!isAddress(input.token))throw new Error("INVALID_TOKEN");
- const client=createPublicClient({chain,transport:http(input.rpcUrl?.trim()||chain.rpcUrls.default.http[0])});
+ const rpc=input.rpcUrl?.trim();
+ if(!rpc)throw new Error("RPC_URL_MISSING");
+ const client=createPublicClient({chain,transport:http(rpc)});
  const chainLatest=await client.getBlockNumber();
  const latest=input.toBlock!==undefined&&input.toBlock<chainLatest?input.toBlock:chainLatest;
  if(input.fromBlock>latest)return [];
