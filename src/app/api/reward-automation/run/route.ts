@@ -67,14 +67,19 @@ async function swapEarned(publicClient:PublicClient,walletClient:Wallet,account:
   publicClient.readContract({address:executor,abi:executorAbi,functionName:"paused"})
  ]);
  if(executorPaused)return "EXECUTOR_PAUSED";
- const minSwap=BigInt(process.env.ROUTY_MIN_SWAP_UNITS||"1");
- const cap=BigInt(process.env.ROUTY_MAX_SWAP_UNITS||"0");
+ const minSwapRaw=process.env.ROUTY_MIN_SWAP_UNITS||"1";
+ const capRaw=process.env.ROUTY_MAX_SWAP_UNITS||"0";
+ if(!/^\d+$/.test(minSwapRaw)||!/^\d+$/.test(capRaw))throw new Error("INVALID_SWAP_LIMIT_ENV");
+ const minSwap=BigInt(minSwapRaw);
+ const cap=BigInt(capRaw);
  const amountIn=cap>0n&&available>cap?cap:available;
  if(amountIn<minSwap||amountIn===0n)return "NOTHING_TO_SWAP";
  const expected=await publicClient.readContract({address:ROUTY_DEPLOYMENT.swapOracleQuoter as Address,abi:quoterAbi,functionName:"expectedOut",args:[ROUTY_DEPLOYMENT.oracleRegistry as Address,ROUTY_DEPLOYMENT.oracleGuard as Address,quote,target,amountIn]});
  // Slippage must stay inside the executor's own deviation bound (MAX_PRICE_DEVIATION_BPS).
- const deviation=Math.min(Number(process.env.MAX_PRICE_DEVIATION_BPS||"200"),2000);
- const slippage=Math.min(Number(process.env.MAX_SLIPPAGE_BPS||"100"),deviation);
+ const deviationRaw=Number(process.env.MAX_PRICE_DEVIATION_BPS||"200");
+ const slippageRaw=Number(process.env.MAX_SLIPPAGE_BPS||"100");
+ const deviation=Number.isFinite(deviationRaw)?Math.max(0,Math.min(Math.floor(deviationRaw),2000)):200;
+ const slippage=Number.isFinite(slippageRaw)?Math.max(0,Math.min(Math.floor(slippageRaw),deviation)):Math.min(100,deviation);
  const minOut=expected*BigInt(10_000-slippage)/10_000n;
  if(minOut===0n)return "ORACLE_QUOTE_ZERO";
  const deadline=BigInt(Math.floor(Date.now()/1000)+10*60);
@@ -101,11 +106,12 @@ async function handle(req:NextRequest){
   const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
   const publicClient=createPublicClient({chain,transport:http(rpc)}) as PublicClient;
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
-  const controller=ROUTY_DEPLOYMENT.rewardAutomationControllerV4 as Address;
+  const controller=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4) as Address;
   const swapEnabled=process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true";
 
   const single=req.nextUrl.searchParams.get("token");
-  const tokens=single&&isAddress(single)?[single as Address]:await readyTokens();
+  if(single&&!isAddress(single))return NextResponse.json({ok:false,error:"INVALID_TOKEN"},{status:400});
+  const tokens=single?[single as Address]:await readyTokens();
   const results:TokenResult[]=[];
 
   for(const token of tokens){
@@ -115,7 +121,7 @@ async function handle(req:NextRequest){
     const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
     const route=await publicClient.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token]});
     const [,,,vault,router,distributor]=route;
-    if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);continue}
+    if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);if(!single)await touchReadyToken(token);continue}
 
     // 1. Harvest creator fees (permissionless).
     try{
@@ -134,13 +140,14 @@ async function handle(req:NextRequest){
     }else out.swap="disabled";
 
     // 3. Distribute whatever the distributor holds, using the allocation endpoint as the single source of truth.
-    const paused=await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"paused"}).catch(()=>false);
-    if(paused){out.distribution="DISTRIBUTOR_PAUSED";results.push(out);continue}
+    const paused=await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"paused"}).catch(()=>null);
+    if(paused===null){out.distribution="DISTRIBUTOR_STATUS_UNAVAILABLE";results.push(out);if(!single)await touchReadyToken(token);continue}
+    if(paused){out.distribution="DISTRIBUTOR_PAUSED";results.push(out);if(!single)await touchReadyToken(token);continue}
     const allocationUrl=new URL("/api/rewards/allocation",req.url);allocationUrl.searchParams.set("token",token);
     const allocationRes=await fetch(allocationUrl,{cache:"no-store"});
     const allocation=await allocationRes.json();
-    if(!allocationRes.ok||!allocation.ok){out.distribution="ALLOCATION_UNAVAILABLE";out.error=String(allocation?.error||allocationRes.status);results.push(out);continue}
-    if(!allocation.batches?.length){out.distribution=allocation.reason||"NO_REWARDS";results.push(out);continue}
+    if(!allocationRes.ok||!allocation.ok){out.distribution="ALLOCATION_UNAVAILABLE";out.error=String(allocation?.error||allocationRes.status);results.push(out);if(!single)await touchReadyToken(token);continue}
+    if(!allocation.batches?.length){out.distribution=allocation.reason||"NO_REWARDS";results.push(out);if(!single)await touchReadyToken(token);continue}
 
     let recipients=0;
     for(const batch of allocation.batches as {accounts:Address[];cumulativeAmounts:string[]}[]){
