@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import Nav from "@/components/Nav";
-import {decodeEventLog,encodeFunctionData,formatEther,keccak256,toBytes,type Hex} from "viem";
+import {decodeErrorResult,decodeEventLog,encodeFunctionData,formatEther,keccak256,toBytes,type Hex} from "viem";
 import {getInjectedProvider} from "@/lib/ethereum-provider";
 import {PONS_V2,factoryLaunchAbi,factoryReadAbi} from "@/lib/pons";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
