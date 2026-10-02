@@ -50,6 +50,7 @@ async function handle(req:NextRequest){
   if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller)){console.error("[auto-setup] ADDRESS_CHECK_FAILED");throw new Error("V4_ADDRESSES_INVALID");}
   console.info("[auto-setup] ADDRESS_CHECK_OK");
 
+  console.info("[auto-setup] SUPABASE_KEY_CONFIGURED",Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()));
   const q=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=eq.queued&order=created_at.asc&limit=1",{headers:{...dbHeaders(),Accept:"application/json"},cache:"no-store"});
   if(!q.ok){console.error("[auto-setup] QUEUE_READ_FAILED",q.status);throw new Error("QUEUE_READ_FAILED");}
   console.info("[auto-setup] QUEUE_READ_OK");
