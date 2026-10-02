@@ -8,8 +8,6 @@ export const dynamic="force-dynamic";
 export const maxDuration=60;
 
 const SUPABASE_URL="https://hcwtwtvovdzfuugnjqyz.supabase.co";
-const TIME_BUDGET_MS=45_000;
-const MAX_JOBS_PER_RUN=5;
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 const launcherAbi=[
  {type:"function",name:"provision",stateMutability:"nonpayable",inputs:[{name:"token",type:"address"},{name:"asset",type:"address"},{name:"policy",type:"uint8"}],outputs:[{name:"vault",type:"address"},{name:"router",type:"address"},{name:"distributor",type:"address"}]},
@@ -35,6 +33,17 @@ async function patchJob(id:string,patch:Record<string,unknown>){
  const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{...dbHeaders(),Prefer:"return=minimal"},body:JSON.stringify({...patch,updated_at:new Date().toISOString()}),cache:"no-store"});
  if(!r.ok){const detail=(await r.text()).slice(0,500);console.error("[auto-setup] QUEUE_UPDATE_FAILED",r.status,detail);throw new Error(`QUEUE_UPDATE_FAILED_${r.status}`);}
 }
+async function claimJob(job:Job){
+ const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?id=eq."+encodeURIComponent(job.id)+"&status=eq.queued",{
+  method:"PATCH",
+  headers:{...dbHeaders(),Prefer:"return=representation"},
+  body:JSON.stringify({status:"provisioning",attempts:(job.attempts||0)+1,last_error:null,updated_at:new Date().toISOString()}),
+  cache:"no-store"
+ });
+ if(!r.ok)throw new Error("QUEUE_CLAIM_FAILED_"+r.status);
+ const rows=await r.json() as Job[];
+ return rows.length===1;
+}
 function authorized(req:NextRequest){
  const secret=process.env.CRON_SECRET?.trim();
  if(!secret)return false;
@@ -56,21 +65,18 @@ async function handle(req:NextRequest){
   console.info("[auto-setup] ADDRESS_CHECK_OK");
 
   console.info("[auto-setup] SUPABASE_KEY_CONFIGURED",Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()));
-  const q=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=eq.queued&order=created_at.asc&limit="+MAX_JOBS_PER_RUN,{headers:{...dbHeaders(),Accept:"application/json"},cache:"no-store"});
+  const q=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=eq.queued&order=created_at.asc&limit=1",{headers:{...dbHeaders(),Accept:"application/json"},cache:"no-store"});
   if(!q.ok){console.error("[auto-setup] QUEUE_READ_FAILED",q.status);throw new Error("QUEUE_READ_FAILED");}
   console.info("[auto-setup] QUEUE_READ_OK");
   const jobs=await q.json() as Job[];
   console.info("[auto-setup] QUEUE_JOB_COUNT",jobs.length);
   if(!jobs.length)return NextResponse.json({ok:true,processed:false,reason:"EMPTY_QUEUE"});
   const job=jobs[0];
-  // Keep provisioning conservative: one onchain route at a time. Fetching a small
-  // batch here exposes backlog size without allowing overlapping owner operations.
-  console.info("[auto-setup] QUEUE_BATCH_SIZE",jobs.length);
   const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===job.target_asset.toLowerCase());
   if(!route||job.reward_policy<0||job.reward_policy>2){console.error("[auto-setup] INVALID_QUEUED_JOB",{routeFound:Boolean(route),policyValid:job.reward_policy>=0&&job.reward_policy<=2});throw new Error("INVALID_QUEUED_JOB");}
   console.info("[auto-setup] JOB_VALID");
 
-  await patchJob(job.id,{status:"provisioning",attempts:(job.attempts||0)+1,last_error:null});
+  if(!(await claimJob(job)))return NextResponse.json({ok:true,processed:false,reason:"JOB_ALREADY_CLAIMED"});
   const account=privateKeyToAccount(rawKey as Hex);
   const publicClient=createPublicClient({chain,transport:http(rpc)});
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
