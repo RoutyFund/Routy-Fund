@@ -1,7 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,encodePacked,http,isAddress,keccak256,type Address} from "viem";
 import {snapshotTokenHolders} from "@/lib/holder-snapshot";
-import {PONS_V2,factoryReadAbi} from "@/lib/pons";
+import {PONS_V2,factoryReadAbi,factoryLaunchAbi} from "@/lib/pons";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 
 export const dynamic="force-dynamic";
@@ -55,7 +55,9 @@ export async function GET(req:NextRequest){
   if(vault===ZERO||distributor===ZERO)return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
 
   const latest=await client.getBlock({blockTag:"latest"});
-  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:{type:"event",name:"TokenLaunched",inputs:[{indexed:true,name:"token",type:"address"},{indexed:true,name:"deployer",type:"address"},{indexed:true,name:"creatorFeeRecipient",type:"address"}]},args:{token:token as Address},fromBlock:0n,toBlock:"latest"}).catch(()=>[]);
+  const launchEvent=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched");
+  if(!launchEvent)throw new Error("PONS_LAUNCH_EVENT_ABI_MISSING");
+  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:"latest"}).catch(()=>[]);
   const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
   const fromBlock=launchBlock??(latest.number>500_000n?latest.number-500_000n:0n);
   const holders=await snapshotTokenHolders({
@@ -72,9 +74,13 @@ export async function GET(req:NextRequest){
   ]);
   if(fundedBalance===0n)return NextResponse.json({ok:true,token,policy:Number(policy),fundedBalance:"0",allocations:[],batches:[],reason:"NO_FUNDED_REWARDS"});
 
-  const blockHash=latest.hash;
-  if(!blockHash)throw new Error("LATEST_BLOCK_HASH_MISSING");
-  const seedHex=keccak256(encodePacked(["address","address","bytes32","uint256","uint256"],[token as Address,distributor,blockHash,fundedBalance,batchNonce]));
+  const anchorBlock=await client.getBlock({blockNumber:latest.number});
+  const anchorHash=anchorBlock.hash;
+  if(!anchorHash)throw new Error("SNAPSHOT_BLOCK_HASH_MISSING");
+  // The seed is anchored to the reported snapshot block and current distributor nonce.
+  // A retry after a successful batch changes batchNonce; a retry before execution keeps
+  // the same chain snapshot until a newer allocation is intentionally requested.
+  const seedHex=keccak256(encodePacked(["address","address","bytes32","uint256","uint256"],[token as Address,distributor,anchorHash,fundedBalance,batchNonce]));
   const seed=BigInt(seedHex);
 
   let allocations:Allocation[];
