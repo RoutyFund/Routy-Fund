@@ -124,7 +124,17 @@ export default function Launch(){
       tokenAddress=String((decoded.args as any).token||"");break
      }
     }catch{}}
-    if(tokenAddress){setLaunchedToken(tokenAddress);setStatus(autoSetupEnabled?"Launch confirmed. Routy route setup is queued automatically.":"Launch confirmed. Routy automatic setup is not enabled yet; continue with provisioning.");}
+    if(tokenAddress){
+     setLaunchedToken(tokenAddress);
+     if(autoSetupEnabled){
+      setStatus("Launch confirmed. Adding Routy route setup to the automation queue…");
+      try{
+       const queued=await fetch("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tokenAddress,creator:account,targetAsset:asset,policy:Number(policy),launchTx:hash})});
+       const q=await queued.json();
+       setStatus(queued.ok&&q.ok?"Launch confirmed. Routy route setup is queued automatically.":"Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.");
+      }catch{setStatus("Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.")}
+     }else setStatus("Launch confirmed. Routy automatic setup is not enabled yet; continue with provisioning.");
+    }
     else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
     return;
    }catch(preflightError){
