@@ -97,11 +97,15 @@ export default function Launch(){
    if(!launchAllowed)throw new Error("Pons preflight: canLaunch(account) returned false.");
 
    const salt=keccak256(toBytes(account+":"+Date.now().toString()));
+   const routerResponse=await fetch("/api/fee-router/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({creator:account,salt})});
+   const routerPrediction=await routerResponse.json() as {ok?:boolean;router?:string;error?:string};
+   if(!routerResponse.ok||!routerPrediction.ok||!routerPrediction.router)throw new Error("Routy V5 fee routing is not ready: "+(routerPrediction.error||"router prediction failed"));
+   const feeRouter=routerPrediction.router as `0x${string}`;
    const creatorTax=Math.max(0,Math.min(Number(tax||0),freshMaxTax));
    const data=encodeFunctionData({abi:factoryLaunchAbi,functionName:"launchToken",args:[{
     name:name.trim(),symbol:symbol.trim(),logo,description:description.trim(),
     socials:{twitter:x.trim(),telegram:telegram.trim(),discord:"",website:website.trim(),farcaster:""},
-    creatorFeeRecipient:account as `0x${string}`,creatorTaxBps:creatorTax,buybackEnabled:true,expectedEconomics:economics as `0x${string}`,salt
+    creatorFeeRecipient:feeRouter,creatorTaxBps:creatorTax,buybackEnabled:true,expectedEconomics:economics as `0x${string}`,salt
    },BigInt(config!.id),pairToken]});
 
    const tx={from:account,to:PONS_V2.factory,data,value:"0x"+freshLaunchFee.toString(16)};
@@ -129,7 +133,7 @@ export default function Launch(){
      if(autoSetupEnabled){
       setStatus("Launch confirmed. Adding Routy route setup to the automation queue…");
       try{
-       const queued=await fetch("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tokenAddress,creator:account,targetAsset:asset,policy:Number(policy),launchTx:hash})});
+       const queued=await fetch("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tokenAddress,creator:account,targetAsset:asset,policy:Number(policy),launchTx:hash,setupNonce:salt,feeRouter})});
        const q=await queued.json();
        setStatus(queued.ok&&q.ok?(q.alreadyReady?"Launch confirmed. Routy route is already ready.":"Launch confirmed. Routy route setup is queued automatically."):"Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.");
       }catch{setStatus("Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.")}
