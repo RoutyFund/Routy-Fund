@@ -39,15 +39,30 @@ export default function Nav() {
 
   const links=[["/explore","Explore"],["/assets","Assets"],["/rewards","Rewards"],["/analytics","Analytics"],["/activity","Activity"],["/portfolio","Portfolio"]];
 
-  return <nav className="nav">
-    <Link className="brand" href="/"><span className="logo">R</span><span>routy.</span></Link>
-    <div className={"navlinks "+(open?"navlinks-open":"")}>
-      {links.map(([href,label])=><Link key={href} href={href} onClick={()=>setOpen(false)}>{label}</Link>)}
+  return <header className="terminal-header">
+    <div className="terminal-statusbar">
+      <div className="terminal-status-left">
+        <span className="terminal-led"/>
+        <span>ROUTY TERMINAL</span>
+        <span className="terminal-sep">/</span>
+        <span>RH CHAIN 4663</span>
+      </div>
+      <div className="terminal-status-right">
+        <span>3 VERIFIED ROUTES</span>
+        <span className="terminal-sep">/</span>
+        <span>NON-CUSTODIAL</span>
+      </div>
     </div>
-    <div className="nav-actions">
-      <Link className="secondary" href="/launch">Launch</Link>
-      <button className="menu" aria-label="Toggle navigation" onClick={()=>setOpen(v=>!v)}>Menu</button>
-      <button className="wallet" onClick={connect}>{account ? account.slice(0,6)+"…"+account.slice(-4) : "Connect"}</button>
-    </div>
-  </nav>;
+    <nav className="nav">
+      <Link className="brand" href="/"><span className="logo">R</span><span>routy.</span><small>operator terminal</small></Link>
+      <div className={"navlinks "+(open?"navlinks-open":"")}>
+        {links.map(([href,label])=><Link key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
+      </div>
+      <div className="nav-actions">
+        <Link className="secondary terminal-launch" href="/launch">+ Launch</Link>
+        <button className="menu" aria-label="Toggle navigation" onClick={()=>setOpen(v=>!v)}>{open?"Close":"Menu"}</button>
+        <button className="wallet" onClick={connect}>{account ? account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
+      </div>
+    </nav>
+  </header>;
 }
