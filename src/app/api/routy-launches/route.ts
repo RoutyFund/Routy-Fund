@@ -26,7 +26,7 @@ export async function GET(){
   const chunk=10000n;
   for(let start=fromBlock;start<=latest;start+=chunk){
    const end=start+chunk-1n>latest?latest:start+chunk-1n;
-   const part=await client.getLogs({address:ROUTY_DEPLOYMENT.protocolLauncherV2,event:routeEvent,fromBlock:start,toBlock:end});
+   const part=await client.getLogs({address:ROUTY_DEPLOYMENT.protocolLauncherV3,event:routeEvent,fromBlock:start,toBlock:end});
    logs.push(...part);
   }
   const launches=await Promise.all(logs.reverse().map(async log=>{

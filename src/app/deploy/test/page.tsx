@@ -51,7 +51,7 @@ export default function LiveTestPage(){
   if(!isAddress(token)){setError("Enter a valid provisioned token address.");return}
   setBusy(true);
   try{
-   const routeRaw=await call(provider,ROUTY_DEPLOYMENT.protocolLauncherV2,encodeFunctionData({abi:launcherAbi,functionName:"routes",args:[token as Address]}));
+   const routeRaw=await call(provider,ROUTY_DEPLOYMENT.protocolLauncherV3,encodeFunctionData({abi:launcherAbi,functionName:"routes",args:[token as Address]}));
    const route=decodeFunctionResult({abi:launcherAbi,functionName:"routes",data:routeRaw}) as readonly [Address,Address,Address,Address,Address,Address,number,bigint];
    const matched=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===route[1].toLowerCase());
    if(route[3]===ZERO||!matched){
@@ -59,9 +59,9 @@ export default function LiveTestPage(){
     return;
    }
    const [pausedRaw,approvedRaw,keyRaw,earnedRaw]=await Promise.all([
-    call(provider,ROUTY_DEPLOYMENT.swapExecutorV2,encodeFunctionData({abi:executorAbi,functionName:"paused"})),
-    call(provider,ROUTY_DEPLOYMENT.swapExecutorV2,encodeFunctionData({abi:executorAbi,functionName:"approvedVault",args:[route[3]]})),
-    call(provider,ROUTY_DEPLOYMENT.swapExecutorV2,encodeFunctionData({abi:executorAbi,functionName:"poolKeyForVault",args:[route[3]]})),
+    call(provider,ROUTY_DEPLOYMENT.swapExecutorV3,encodeFunctionData({abi:executorAbi,functionName:"paused"})),
+    call(provider,ROUTY_DEPLOYMENT.swapExecutorV3,encodeFunctionData({abi:executorAbi,functionName:"approvedVault",args:[route[3]]})),
+    call(provider,ROUTY_DEPLOYMENT.swapExecutorV3,encodeFunctionData({abi:executorAbi,functionName:"poolKeyForVault",args:[route[3]]})),
     call(provider,route[3],encodeFunctionData({abi:vaultAbi,functionName:"availableEarned"})),
    ]);
    const paused=decodeFunctionResult({abi:executorAbi,functionName:"paused",data:pausedRaw});
