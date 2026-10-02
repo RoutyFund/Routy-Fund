@@ -36,7 +36,7 @@ export default function Home(){
        <p><time>[OK]</time><span>AssetRegistry</span><b>{EXECUTABLE_ROUTES.length} assets approved</b></p>
        <p><time>[OK]</time><span>OracleRegistry</span><b>feeds configured</b></p>
        <p><time>[OK]</time><span>PoolKey verification</span><b>{EXECUTABLE_ROUTES.length} / {EXECUTABLE_ROUTES.length} matched</b></p>
-       <p><time>[V4]</time><span>SwapExecutor</span><b>route automation enabled</b></p>
+       <p><time>[V4]</time><span>SwapExecutor</span><b>guarded route execution</b></p>
       </div>
      </div>
      <div className="terminal-window">
