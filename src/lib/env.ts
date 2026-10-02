@@ -1,6 +1,8 @@
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 
-const launcherV4=()=>process.env.ROUTY_LAUNCHER_V4_ADDRESS||ROUTY_DEPLOYMENT.protocolLauncherV4;
+const launcherV4=()=>process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4;
+const executorV4=()=>process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4;
+const rewardControllerV4=()=>process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4;
 
 export function publicProtocolReady(){
  return Boolean(
