@@ -1,12 +1,9 @@
 import {createPublicClient,http,isAddress,type Address} from "viem";
 
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://rpc.mainnet.chain.robinhood.com"]}}} as const;
-const TRANSFER_TOPIC="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as Hex;
 const ZERO="0x0000000000000000000000000000000000000000";
 
 export type HolderRow={address:Address;balance:bigint};
-
-function topicAddress(topic:Hex){return ("0x"+topic.slice(26)) as Address}
 
 export async function snapshotTokenHolders(input:{
  token:string;
