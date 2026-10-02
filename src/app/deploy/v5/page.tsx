@@ -5,12 +5,13 @@ import {type Hex} from "viem";
 import Nav from "@/components/Nav";
 import {DEPLOY_BYTECODE} from "@/lib/deploy-artifacts";
 import {V5_CONFIG as CONFIG} from "@/lib/v5-deployment-config";
+import {V5_LEGACY_BYTECODE} from "@/lib/v5-legacy-artifacts";
 import {
   getInjectedProvider, walletErrorMessage,
   type EthereumProvider, type EthereumRequest,
 } from "@/lib/ethereum-provider";
 import {
-  V5_STEPS, buildV5Transaction, parseV5Progress, readV5Receipt, receiptFailure, v5GasLimit,
+  V5_STEPS, V5_WALLET_GAS_LIMIT, buildV5Transaction, parseV5Progress, readV5Receipt, receiptFailure, v5GasLimit,
   v5StepReady, type V5ReceiptCheck, type V5Progress, type V5StepId,
 } from "@/lib/v5-deployment";
 
@@ -56,7 +57,19 @@ async function checkReceipt(provider: EthereumProvider, id: V5StepId, progress: 
     });
     if (response.ok) return await response.json() as V5ReceiptCheck;
   } catch { /* A wallet read can still work when the server RPC is unavailable. */ }
-  return readV5Receipt(walletReadProvider(provider), id, progress, CONFIG, DEPLOY_BYTECODE);
+  return readV5Receipt(walletReadProvider(provider), id, progress, CONFIG, DEPLOY_BYTECODE, V5_LEGACY_BYTECODE);
+}
+async function gasEstimate(provider: EthereumProvider, id: V5StepId, transaction: ReturnType<typeof buildV5Transaction>): Promise<Hex> {
+  if (id === "routerFactory" || id === "executor") {
+    try {
+      const response = await fetch("/api/deploy/v5/receipt?step=" + id, {cache: "no-store", signal: AbortSignal.timeout(10000)});
+      if (response.ok) {
+        const result = await response.json();
+        if (typeof result.estimatedGas === "string" && /^\d+$/.test(result.estimatedGas)) return ("0x" + BigInt(result.estimatedGas).toString(16)) as Hex;
+      }
+    } catch { /* Keep the wallet estimate available when the server cannot estimate. */ }
+  }
+  return walletReadProvider(provider).request<Hex>({method: "eth_estimateGas", params: [transaction]});
 }
 
 export default function V5DeploymentPage() {
@@ -136,7 +149,7 @@ export default function V5DeploymentPage() {
       save(progress); // Check that durable browser storage works before requesting a signature.
       const provider = await guardedProvider();
       const transaction = buildV5Transaction(id, progress, CONFIG, DEPLOY_BYTECODE);
-      const estimate = await provider.request<Hex>({method: "eth_estimateGas", params: [transaction]});
+      const estimate = await gasEstimate(provider, id, transaction);
       const gas = v5GasLimit(estimate, !transaction.to);
       setGasLimits(current => ({...current, [id]: BigInt(gas).toString()}));
       const hash = await provider.request<Hex>({method: "eth_sendTransaction", params: [{...transaction, gas}]});
@@ -208,7 +221,7 @@ export default function V5DeploymentPage() {
       setReceipts(current => ({...current, [id]: receipt}));
       if (receipt.status !== "reverted") throw new Error("Only a confirmed reverted transaction can be retried. Keep the saved hash until its receipt is confirmed.");
       const next = {...progress}; delete next[id]; persist(next);
-      setVerified(current => ({...current, [id]: false})); setMessage("Failed transaction cleared. Earlier deployments are saved. Submit this step again and check Gas limit in the wallet before signing.");
+      setVerified(current => ({...current, [id]: false})); setMessage("Failed transaction cleared. Earlier deployments are saved. Submit this step again using the updated bytecode within Bitget’s gas limit.");
     });
   }
 
@@ -248,13 +261,13 @@ export default function V5DeploymentPage() {
         const record = progress[step.id];
         const ready = v5StepReady(step.id, verified);
         const receipt = receipts[step.id];
-        const gasLimit = gasLimits[step.id] || (record?.requestedGas ? BigInt(record.requestedGas).toString() : "3000000");
+        const gasLimit = gasLimits[step.id] || V5_WALLET_GAS_LIMIT.toString();
         return <div className="form-card" key={step.id} style={{marginBottom: 8}}>
           <span className="micro">STEP {index + 1}</span><h3>{step.title}</h3>
           {record?.address && <code style={{overflowWrap: "anywhere"}}>{record.address}</code>}
           {record?.hash && <p className="muted">Transaction: <code style={{overflowWrap: "anywhere"}}>{record.hash}</code></p>}
           {receipt && <p role="status">Receipt: <strong>{receipt.status.toUpperCase()}</strong>{receipt.gasUsed && receipt.gasLimit && <> · Gas used {Number(receipt.gasUsed).toLocaleString("en-US")} / {Number(receipt.gasLimit).toLocaleString("en-US")}</>}</p>}
-          {step.contract && !verified[step.id] && <p className="muted">{record?.requestedGas ? "Requested" : "Minimum"} gas limit: <strong>{Number(gasLimit).toLocaleString("en-US")}</strong>. Check the wallet’s Gas limit before signing; some wallets change it.</p>}
+          {step.contract && !verified[step.id] && <p className="muted">Deployment gas limit: <strong>{Number(gasLimit).toLocaleString("en-US")}</strong>.{step.id === "routerFactory" ? " The updated factory has smaller bytecode for Bitget. Check any saved receipt before retrying." : " This step stays within Bitget’s transaction limit."}</p>}
           {noticeStep === step.id && message && <div className="notice" role="status">{message}</div>}
           {noticeStep === step.id && error && <div className="notice danger" role="alert">{error}</div>}
           {record?.hash && <a className="secondary" href={"https://robinhoodchain.blockscout.com/tx/" + record.hash} target="_blank" rel="noreferrer">View transaction ↗</a>}

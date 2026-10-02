@@ -32,18 +32,27 @@ contract FeeRouterV5 {
     event Bound(address indexed token,address indexed quoteToken,address indexed vault);
     event Harvested(address indexed quoteToken,uint256 claimed,uint256 vaultAmount,uint256 treasuryAmount);
 
-    modifier onlyFactory(){require(msg.sender==factory,"NOT_FACTORY");_;}
-    modifier nonReentrant(){require(!locked,"REENTRANT");locked=true;_;locked=false;}
+    error NotFactory();
+    error Reentrant();
+    error ZeroAddress();
+    error InvalidBind();
+    error NotBound();
+    error NoNewFees();
+    error VaultTransferFailed();
+    error TreasuryTransferFailed();
+
+    modifier onlyFactory(){if(msg.sender!=factory) revert NotFactory();_;}
+    modifier nonReentrant(){if(locked) revert Reentrant();locked=true;_;locked=false;}
 
     constructor(address factory_,address escrow_,address treasury_){
-        require(factory_!=address(0)&&escrow_!=address(0)&&treasury_!=address(0),"ZERO_ADDRESS");
+        if(factory_==address(0)||escrow_==address(0)||treasury_==address(0)) revert ZeroAddress();
         factory=factory_;
         feeEscrow=IPonsV2FeeEscrow(escrow_);
         treasury=treasury_;
     }
 
     function bind(address token_,address quote_,address vault_) external onlyFactory {
-        require(!bound&&token_!=address(0)&&vault_!=address(0),"INVALID_BIND");
+        if(bound||token_==address(0)||vault_==address(0)) revert InvalidBind();
         launchedToken=token_;
         quoteToken=quote_;
         assetVault=vault_;
@@ -54,31 +63,31 @@ contract FeeRouterV5 {
     receive() external payable {}
 
     function harvest() external nonReentrant returns(uint256 claimed){
-        require(bound,"NOT_BOUND");
-        if(quoteToken==address(0)){
+        if(!bound) revert NotBound();
+        address quote=quoteToken;
+        if(quote==address(0)){
             uint256 beforeBal=address(this).balance;
             feeEscrow.claim();
             claimed=address(this).balance-beforeBal;
-            require(claimed>0,"NO_NEW_FEES");
-            uint256 vaultAmount=claimed*VAULT_BPS/BPS;
-            uint256 treasuryAmount=claimed-vaultAmount;
-            (bool okV,)=assetVault.call{value:vaultAmount}("");
-            require(okV,"VAULT_TRANSFER_FAILED");
-            (bool okT,)=treasury.call{value:treasuryAmount}("");
-            require(okT,"TREASURY_TRANSFER_FAILED");
-            emit Harvested(address(0),claimed,vaultAmount,treasuryAmount);
         }else{
-            IERC20FeeRouterV5 token=IERC20FeeRouterV5(quoteToken);
-            uint256 beforeBal=token.balanceOf(address(this));
-            feeEscrow.claimToken(quoteToken);
-            claimed=token.balanceOf(address(this))-beforeBal;
-            require(claimed>0,"NO_NEW_FEES");
-            uint256 vaultAmount=claimed*VAULT_BPS/BPS;
-            uint256 treasuryAmount=claimed-vaultAmount;
-            require(token.transfer(assetVault,vaultAmount),"VAULT_TRANSFER_FAILED");
-            IAssetVaultAccountingV5(assetVault).recordTokenEarned(vaultAmount);
-            require(token.transfer(treasury,treasuryAmount),"TREASURY_TRANSFER_FAILED");
-            emit Harvested(quoteToken,claimed,vaultAmount,treasuryAmount);
+            uint256 beforeBal=IERC20FeeRouterV5(quote).balanceOf(address(this));
+            feeEscrow.claimToken(quote);
+            claimed=IERC20FeeRouterV5(quote).balanceOf(address(this))-beforeBal;
         }
+        if(claimed==0) revert NoNewFees();
+        uint256 vaultAmount=claimed*VAULT_BPS/BPS;
+        uint256 treasuryAmount=claimed-vaultAmount;
+        if(quote==address(0)){
+            (bool okV,)=assetVault.call{value:vaultAmount}("");
+            if(!okV) revert VaultTransferFailed();
+            (bool okT,)=treasury.call{value:treasuryAmount}("");
+            if(!okT) revert TreasuryTransferFailed();
+        }else{
+            IERC20FeeRouterV5 token=IERC20FeeRouterV5(quote);
+            if(!token.transfer(assetVault,vaultAmount)) revert VaultTransferFailed();
+            IAssetVaultAccountingV5(assetVault).recordTokenEarned(vaultAmount);
+            if(!token.transfer(treasury,treasuryAmount)) revert TreasuryTransferFailed();
+        }
+        emit Harvested(quote,claimed,vaultAmount,treasuryAmount);
     }
 }

@@ -84,19 +84,22 @@ export function buildV5Transaction(
       : encodeFunctionData({abi: launcherAbi, functionName: "setLauncher", args: [address("launcher")]}),
   };
 }
-export function assertV5Transaction(expected: V5Transaction, actual: {from: string; to?: string | null; input: string}) {
+export function assertV5Transaction(expected: V5Transaction, actual: {from: string; to?: string | null; input: string}, compatibleData: readonly Hex[] = []) {
   if (actual.from?.toLowerCase() !== expected.from.toLowerCase()
     || (actual.to || "").toLowerCase() !== (expected.to || "").toLowerCase()
-    || actual.input?.toLowerCase() !== expected.data.toLowerCase()) {
+    || (actual.input?.toLowerCase() !== expected.data.toLowerCase() && !compatibleData.some(data => data.toLowerCase() === actual.input?.toLowerCase()))) {
     throw new Error("Transaction does not match this deployment step. Check wallet, recipient and transaction data.");
   }
 }
 
+export const V5_WALLET_GAS_LIMIT = 1_200_000n;
 export function v5GasLimit(estimate: Hex, deployment: boolean): Hex {
   const gas = BigInt(estimate);
   if (gas <= 0n) throw new Error("Invalid gas estimate.");
-  const buffered = deployment ? gas * 250n / 100n : gas * 150n / 100n;
-  return ("0x" + (deployment && buffered < 3_000_000n ? 3_000_000n : buffered).toString(16)) as Hex;
+  if (gas > V5_WALLET_GAS_LIMIT) throw new Error("Gas estimate exceeds Bitget’s 1,200,000 limit. This transaction was not submitted.");
+  const buffered = gas * 150n / 100n;
+  const limit = deployment || buffered > V5_WALLET_GAS_LIMIT ? V5_WALLET_GAS_LIMIT : buffered;
+  return ("0x" + limit.toString(16)) as Hex;
 }
 
 export type V5ReceiptCheck = {
@@ -109,7 +112,7 @@ const quantity = (value?: string) => value && /^0x[0-9a-fA-F]+$/.test(value) ? B
 
 export async function readV5Receipt(
   provider: EthereumProvider, id: V5StepId, progress: V5Progress,
-  config: V5Configuration, bytecodes: Record<string, string>,
+  config: V5Configuration, bytecodes: Record<string, string>, compatibleBytecodes: Record<string, string> = {},
 ): Promise<V5ReceiptCheck> {
   const record = progress[id];
   if (!record) throw new Error("No transaction hash saved.");
@@ -118,7 +121,10 @@ export async function readV5Receipt(
   const transaction = await provider.request<EthereumTransaction | null>({method: "eth_getTransactionByHash", params: [record.hash]});
   if (!transaction) throw new Error("Transaction could not be read. Check its receipt again.");
   const expected = buildV5Transaction(id, progress, config, bytecodes);
-  assertV5Transaction(expected, transaction);
+  // Retain exact checks for the factory version already submitted before its gas optimization.
+  const compatibleData = id === "routerFactory" && compatibleBytecodes.FeeRouterFactoryV5
+    ? [buildV5Transaction(id, progress, config, {...bytecodes, ...compatibleBytecodes}).data] : [];
+  assertV5Transaction(expected, transaction, compatibleData);
   const gasUsed = quantity(receipt.gasUsed);
   const gasLimit = quantity(transaction.gas);
   const requested = quantity(record.requestedGas);
@@ -150,5 +156,5 @@ export function receiptFailure(check: V5ReceiptCheck): string {
   const gas = check.exhaustedGas
     ? ` Gas used ${Number(check.gasUsed).toLocaleString("en-US")} / ${Number(check.gasLimit).toLocaleString("en-US")} (100%); the gas limit may be too low.` : "";
   const wallet = check.walletReducedGas ? " The wallet sent a lower gas limit than Routy requested." : "";
-  return "Transaction failed on-chain and cannot be verified." + gas + wallet + " Use Retry reverted transaction, then review Gas limit in the wallet before signing.";
+  return "Transaction failed on-chain and cannot be verified." + gas + wallet + " Use Retry reverted transaction to submit the updated step. Earlier successful deployments are kept.";
 }
