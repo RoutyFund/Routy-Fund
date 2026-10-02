@@ -1,11 +1,13 @@
 import {NextResponse} from "next/server";
-import {currentDeployment} from "@/lib/active-deployment";
+import {requireCurrentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,http,parseAbiItem,type Address} from "viem";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:[process.env.RPC_URL||process.env.NEXT_PUBLIC_RPC_URL||"https://rpc.mainnet.chain.robinhood.com"]}}} as const;
-const routeEvent=parseAbiItem("event RouteProvisionedV4(address indexed token,address indexed creator,address indexed targetAsset,address vault,address router,address distributor,address quoteToken,uint8 policy,address provisionedBy)");
+const routeEventV4=parseAbiItem("event RouteProvisionedV4(address indexed token,address indexed creator,address indexed targetAsset,address vault,address router,address distributor,address quoteToken,uint8 policy,address provisionedBy)");
+const routeEventV5=parseAbiItem("event RouteProvisionedV5(address indexed token,address indexed creator,address indexed targetAsset,address vault,address router,address distributor,address quoteToken,uint8 policy,address provisionedBy)");
+export const dynamic="force-dynamic";
 const erc20Abi=[
  {type:"function",name:"name",stateMutability:"view",inputs:[],outputs:[{type:"string"}]},
  {type:"function",name:"symbol",stateMutability:"view",inputs:[],outputs:[{type:"string"}]},
@@ -16,7 +18,9 @@ export async function GET(){
   const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim();
   if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING",launches:[]},{status:503});
   const client=createPublicClient({chain,transport:http(rpc)});
-  const launcher=currentDeployment().launcher as Address;
+  const deployment=requireCurrentDeployment();
+  const launcher=deployment.launcher as Address;
+  const routeEvent=deployment.version==="V5"?routeEventV5:routeEventV4;
   const latest=await client.getBlockNumber();
   const configuredRaw=process.env.ROUTY_EVENT_START_BLOCK?.trim();
   let configured:bigint|null=null;
@@ -64,7 +68,7 @@ export async function GET(){
     transactionHash:log.transactionHash,
    };
   }));
-  return NextResponse.json({ok:true,chainId:4663,launcher,count:launches.length,historyComplete,scannedFrom:Number(fromBlock),scannedTo:Number(latest),launches});
+  return NextResponse.json({ok:true,chainId:4663,generation:deployment.version.toLowerCase(),launcher,count:launches.length,historyComplete,scannedFrom:Number(fromBlock),scannedTo:Number(latest),launches});
  }catch(error){
   return NextResponse.json({ok:false,error:"ROUTY_LAUNCHES_UNAVAILABLE",detail:error instanceof Error?error.message:"unknown",launches:[]},{status:503});
  }

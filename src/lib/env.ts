@@ -1,22 +1,19 @@
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
-
-const launcherV4=()=>process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4;
-const executorV4=()=>process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4;
-const rewardControllerV4=()=>process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4;
-
-export function publicProtocolReady(){
- return Boolean(
-  launcherV4()&&
-  (process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS||ROUTY_DEPLOYMENT.assetRegistry)
- )
+import {currentDeployment} from "@/lib/active-deployment";
+import {deploymentAddress} from "@/lib/deployment-selection";
+export function publicProtocolReady() {
+  return currentDeployment().configured && Boolean(deploymentAddress(
+    process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS || ROUTY_DEPLOYMENT.assetRegistry,
+  ));
 }
-
-export function protocolReadiness(){
- return {
-  generation:"v4",
-  launcher:Boolean(launcherV4()),
-  registry:Boolean(process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS||ROUTY_DEPLOYMENT.assetRegistry),
-  executor:Boolean(executorV4()),
-  rewardController:Boolean(rewardControllerV4())
- }
+export function protocolReadiness() {
+  const deployment = currentDeployment();
+  return {
+    generation: deployment.version.toLowerCase(),
+    launcher: Boolean(deployment.launcher),
+    registry: Boolean(deploymentAddress(process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS || ROUTY_DEPLOYMENT.assetRegistry)),
+    executor: Boolean(deployment.executor),
+    rewardController: Boolean(deployment.controller),
+    feeRouterFactory: Boolean(deployment.routerFactory),
+  };
 }

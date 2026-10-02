@@ -1,4 +1,5 @@
 import {ROUTY_DEPLOYMENT,ROUTY_RELEASE_STATE} from "@/lib/deployment";
+import {currentDeployment} from "@/lib/active-deployment";
 import {PONS_V2} from "@/lib/pons";
 import {UNISWAP_ROBINHOOD} from "@/lib/uniswap";
 
@@ -7,6 +8,7 @@ export type Readiness={
  rpc:boolean;
  treasury:boolean;
  launcher:boolean;
+ rewardController:boolean;
  registry:boolean;
  oracleRegistry:boolean;
  rewardDistributorFactory:boolean;
@@ -38,20 +40,23 @@ function configured(value:string|undefined,fallback:string){
 }
 
 export function serverReadiness():Readiness{
+ const deployment=currentDeployment();
+ const v5=deployment.version==="V5";
  const deviation=Number(process.env.MAX_PRICE_DEVIATION_BPS||"200");
  const rpcUrl=process.env.RPC_URL?.trim();
  return{
   chain:(process.env.NEXT_PUBLIC_CHAIN_ID||CHAIN_ID)===CHAIN_ID,
   rpc:Boolean(rpcUrl),
   treasury:configured(process.env.ROUTY_TREASURY_ADDRESS,ROUTY_DEPLOYMENT.treasury),
-  launcher:configured(process.env.ROUTY_LAUNCHER_V4_ADDRESS,ROUTY_DEPLOYMENT.protocolLauncherV4),
+  launcher:addressConfigured(deployment.launcher),
+  rewardController:addressConfigured(deployment.controller),
   registry:configured(process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS,ROUTY_DEPLOYMENT.assetRegistry),
   oracleRegistry:configured(process.env.ROUTY_ORACLE_REGISTRY_ADDRESS,ROUTY_DEPLOYMENT.oracleRegistry),
-  rewardDistributorFactory:configured(process.env.ROUTY_REWARD_DISTRIBUTOR_FACTORY_V4_ADDRESS,ROUTY_DEPLOYMENT.rewardDistributorFactoryV4),
-  feeRouterFactory:configured(process.env.ROUTY_FEE_ROUTER_FACTORY_V4_ADDRESS,ROUTY_DEPLOYMENT.feeRouterFactoryV4),
-  assetVaultFactory:configured(process.env.ROUTY_ASSET_VAULT_FACTORY_V4_ADDRESS,ROUTY_DEPLOYMENT.assetVaultFactoryV4),
+  rewardDistributorFactory:v5?configured(process.env.ROUTY_REWARD_DISTRIBUTOR_FACTORY_V5_ADDRESS,""):configured(process.env.ROUTY_REWARD_DISTRIBUTOR_FACTORY_V4_ADDRESS,ROUTY_DEPLOYMENT.rewardDistributorFactoryV4),
+  feeRouterFactory:addressConfigured(deployment.routerFactory),
+  assetVaultFactory:v5?configured(process.env.ROUTY_ASSET_VAULT_FACTORY_V5_ADDRESS,""):configured(process.env.ROUTY_ASSET_VAULT_FACTORY_V4_ADDRESS,ROUTY_DEPLOYMENT.assetVaultFactoryV4),
   oracleGuard:configured(process.env.ROUTY_ORACLE_GUARD_ADDRESS,ROUTY_DEPLOYMENT.oracleGuard),
-  swapExecutor:configured(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS,ROUTY_DEPLOYMENT.swapExecutorV4),
+  swapExecutor:addressConfigured(deployment.executor),
   swapOracleQuoter:configured(process.env.ROUTY_SWAP_ORACLE_QUOTER_ADDRESS,ROUTY_DEPLOYMENT.swapOracleQuoter),
   swapRouterAdapter:configured(process.env.ROUTY_SWAP_ROUTER_ADAPTER_ADDRESS,ROUTY_DEPLOYMENT.swapRouterAdapter),
   swapAdapterCurrent:!ROUTY_RELEASE_STATE.swapAdapterRepairRequired,

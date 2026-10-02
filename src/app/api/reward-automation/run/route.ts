@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
-import {currentDeployment} from "@/lib/active-deployment";
+import {requireCurrentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,createWalletClient,http,isAddress,type Address,type PublicClient} from "viem";
 import {rewardAutomationStatus,keeperAccount} from "@/lib/reward-automation-guard";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
@@ -60,7 +60,7 @@ function reason(error:unknown){
 
 // Executes SwapExecutor.execute for what the vault has earned, bounded by the oracle price and slippage.
 async function swapEarned(publicClient:PublicClient,walletClient:Wallet,account:Keeper,vault:Address){
- const executor=currentDeployment().executor as Address;
+ const executor=requireCurrentDeployment().executor as Address;
  const [available,quote,target,executorPaused]=await Promise.all([
   publicClient.readContract({address:vault,abi:vaultAbi,functionName:"availableEarned"}),
   publicClient.readContract({address:vault,abi:vaultAbi,functionName:"quoteToken"}),
@@ -96,7 +96,9 @@ async function handle(req:NextRequest){
  if(!secret)return NextResponse.json({ok:false,error:"CRON_SECRET_MISSING"},{status:503});
  if(req.headers.get("authorization")!==`Bearer ${secret}`)return NextResponse.json({ok:false,error:"UNAUTHORIZED"},{status:401});
 
- const status=await rewardAutomationStatus();
+ let status:Awaited<ReturnType<typeof rewardAutomationStatus>>;
+ try{status=await rewardAutomationStatus()}
+ catch(error){return NextResponse.json({ok:false,error:"AUTOMATION_CONFIGURATION_UNAVAILABLE",message:reason(error)},{status:503})}
  if(!status.automationEnabled)return NextResponse.json({ok:false,error:"AUTOMATION_DISABLED",status},{status:409});
  if(!status.keeperMatches)return NextResponse.json({ok:false,error:"KEEPER_ADDRESS_MISMATCH",status},{status:409});
  const account=keeperAccount();
@@ -108,7 +110,7 @@ async function handle(req:NextRequest){
   if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
   const publicClient=createPublicClient({chain,transport:http(rpc)}) as PublicClient;
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
-  const controller=currentDeployment().controller as Address;
+  const controller=requireCurrentDeployment().controller as Address;
   const swapEnabled=process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true";
 
   const single=req.nextUrl.searchParams.get("token");
@@ -120,7 +122,7 @@ async function handle(req:NextRequest){
    if(Date.now()-started>TIME_BUDGET_MS)break;
    const out:TokenResult={token,harvest:"skipped",distribution:"skipped"};
    try{
-    const launcher=currentDeployment().launcher as Address;
+    const launcher=requireCurrentDeployment().launcher as Address;
     const route=await publicClient.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token]});
     const [,,,vault,router,distributor]=route;
     if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);if(!single)await touchReadyToken(token);continue}

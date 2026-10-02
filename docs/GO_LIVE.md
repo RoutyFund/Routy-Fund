@@ -1,30 +1,27 @@
-# Go-live runbook
+# Routy activation runbook
 
-Everything before the credentials stage is designed to be committed and reproducible.
+## V5 wallet deployment
 
-## User-supplied production inputs
-1. RPC_URL / NEXT_PUBLIC_RPC_URL
-2. ROUTY_TREASURY_ADDRESS (prefer Safe/multisig)
-3. DEPLOYER_PRIVATE_KEY for one-time deployment, funded with enough ETH for gas
+1. Open `/deploy/v5` from the Routy deployment wallet (`0x866d5D863381efe9e10cCb2E44f388611F781212`). Connect and switch to Robinhood Chain, chain ID 4663.
+2. Approve each of the eleven transactions: reward controller, reward factory, vault factory, fee router factory, swap executor, launcher, four launcher bindings, then executor dependencies. Owner and operator use the current deployment wallet, so a redundant transfer to itself is omitted.
+3. Submitted hashes are saved before receipt polling. Reopening the page requires **Check saved receipts** before later steps unlock. Copy the deployment backup before changing browsers.
+4. Copy the complete Vercel env block after receipt verification. Add the four required runtime keys together:
 
-## Deployment
-```bash
-cd contracts
-forge test
-forge script script/Deploy.s.sol:Deploy --rpc-url "$RPC_URL" --broadcast
-cd ..
-npm run contracts:env
+```dotenv
+ROUTY_REWARD_CONTROLLER_V5_ADDRESS=<verified controller>
+ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS=<verified fee router factory>
+ROUTY_SWAP_EXECUTOR_V5_ADDRESS=<verified executor>
+ROUTY_LAUNCHER_V5_ADDRESS=<verified launcher>
 ```
 
-Copy generated .env.contracts values into Vercel production environment variables. Never commit DEPLOYER_PRIVATE_KEY or KEEPER_PRIVATE_KEY.
+Also add `ROUTY_REWARD_DISTRIBUTOR_FACTORY_V5_ADDRESS` and `ROUTY_ASSET_VAULT_FACTORY_V5_ADDRESS` from the same output for the factory readiness checks. Redeploy Vercel after changing env.
 
-## Post-deployment
-- if the deployment used the pre-fix adapter, complete `/deploy/repair` first and commit the verified replacement address
-- populate AssetRegistry from canonical Robinhood chain-4663 deployments
-- populate OracleRegistry only from official current Chainlink feed proxies
-- verify contract source
-- configure keeper key separately
-- run end-to-end low-value test
-- only then enable production asset purchase/rewards
+## Runtime configuration
 
-SwapExecutor is intentionally fail-closed. It must remain paused through the adapter repair, pool/feed configuration, independent review, and low-value end-to-end validation.
+Existing server configuration must include `RPC_URL`, `ROUTY_AUTOMATION_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` and `ROUTY_AUTO_SETUP_ENABLED=true`. Never put secret keys in public env variables, deployment backups or GitHub. The deploy console uses wallet signatures and does not request a private key.
+
+`/api/auto-setup/config` reports the selected generation and public addresses. `launchReady` requires V5 direct fee routing and automatic setup. `/api/config`, `/api/health`, setup monitoring, launch event indexing and reward APIs follow that deployment. Any incomplete V5 configuration blocks execution.
+
+## Release checks
+
+Open `/deploy/release` to check registry/feed setup, PoolKey hashes and reward keeper alignment. Keep `ROUTY_SWAP_EXECUTION_ENABLED` at its current setting until deliberately activated. A real launch test is omitted in this continuation as requested; successful build and configuration checks do not prove an executed fee harvest, swap or payout.
