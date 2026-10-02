@@ -8,6 +8,8 @@ export const dynamic="force-dynamic";
 export const maxDuration=60;
 
 const SUPABASE_URL="https://hcwtwtvovdzfuugnjqyz.supabase.co";
+const TIME_BUDGET_MS=45_000;
+const MAX_JOBS_PER_RUN=5;
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 const launcherAbi=[
  {type:"function",name:"provision",stateMutability:"nonpayable",inputs:[{name:"token",type:"address"},{name:"asset",type:"address"},{name:"policy",type:"uint8"}],outputs:[{name:"vault",type:"address"},{name:"router",type:"address"},{name:"distributor",type:"address"}]},
@@ -54,13 +56,16 @@ async function handle(req:NextRequest){
   console.info("[auto-setup] ADDRESS_CHECK_OK");
 
   console.info("[auto-setup] SUPABASE_KEY_CONFIGURED",Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()));
-  const q=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=eq.queued&order=created_at.asc&limit=1",{headers:{...dbHeaders(),Accept:"application/json"},cache:"no-store"});
+  const q=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=eq.queued&order=created_at.asc&limit="+MAX_JOBS_PER_RUN,{headers:{...dbHeaders(),Accept:"application/json"},cache:"no-store"});
   if(!q.ok){console.error("[auto-setup] QUEUE_READ_FAILED",q.status);throw new Error("QUEUE_READ_FAILED");}
   console.info("[auto-setup] QUEUE_READ_OK");
   const jobs=await q.json() as Job[];
   console.info("[auto-setup] QUEUE_JOB_COUNT",jobs.length);
   if(!jobs.length)return NextResponse.json({ok:true,processed:false,reason:"EMPTY_QUEUE"});
   const job=jobs[0];
+  // Keep provisioning conservative: one onchain route at a time. Fetching a small
+  // batch here exposes backlog size without allowing overlapping owner operations.
+  console.info("[auto-setup] QUEUE_BATCH_SIZE",jobs.length);
   const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===job.target_asset.toLowerCase());
   if(!route||job.reward_policy<0||job.reward_policy>2){console.error("[auto-setup] INVALID_QUEUED_JOB",{routeFound:Boolean(route),policyValid:job.reward_policy>=0&&job.reward_policy<=2});throw new Error("INVALID_QUEUED_JOB");}
   console.info("[auto-setup] JOB_VALID");
