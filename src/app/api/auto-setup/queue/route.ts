@@ -17,7 +17,7 @@ export async function POST(req:NextRequest){
  try{
   const body=await req.json() as {token?:string;creator?:string;targetAsset?:string;policy?:number;launchTx?:string};
   if(!body.token||!isAddress(body.token)||!body.creator||!isAddress(body.creator)||!body.targetAsset||!isAddress(body.targetAsset))return NextResponse.json({ok:false,error:"INVALID_REQUEST"},{status:400});
-  if(!Number.isInteger(body.policy)||body.policy!<0||body.policy!>2)return NextResponse.json({ok:false,error:"INVALID_POLICY"},{status:400});
+  if(!Number.isInteger(body.policy)||body.policy===undefined||body.policy<0||body.policy>2)return NextResponse.json({ok:false,error:"INVALID_POLICY"},{status:400});
   const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===body.targetAsset!.toLowerCase());
   if(!route)return NextResponse.json({ok:false,error:"UNVERIFIED_ROUTE"},{status:400});
 
