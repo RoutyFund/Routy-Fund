@@ -1,4 +1,4 @@
 export type RobinhoodDeployment={chainId:number;contractAddress:string};
-export type RobinhoodAsset={id:string;tokenSymbol:string;tokenName:string;currentMultiplier?:string;isTradingHalt?:boolean;deployments?:RobinhoodDeployment[]};
+export type RobinhoodAsset={id:string;tokenSymbol:string;tokenName:string;currentMultiplier?:string;logoUrl?:string;isTradingHalt?:boolean;deployments?:RobinhoodDeployment[]};
 export async function canonicalAssets():Promise<RobinhoodAsset[]>{const r=await fetch("https://api.robinhood.com/rhj/assets",{next:{revalidate:300}});if(!r.ok)throw new Error("ROBINHOOD_ASSETS_UNAVAILABLE");const d=await r.json();return(d.assets??[]).filter((a:RobinhoodAsset)=>a.deployments?.some(x=>x.chainId===4663))}
 export function deployment4663(a:RobinhoodAsset){return a.deployments?.find(x=>x.chainId===4663)?.contractAddress}
