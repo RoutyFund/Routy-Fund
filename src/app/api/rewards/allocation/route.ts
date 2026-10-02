@@ -60,7 +60,7 @@ export async function GET(req:NextRequest){
   const latest=await client.getBlock({blockNumber:snapshotBlock});
   const launchEvent=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched");
   if(!launchEvent)throw new Error("PONS_LAUNCH_EVENT_ABI_MISSING");
-  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:"latest"}).catch(()=>[]);
+  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:snapshotBlock}).catch(()=>[]);
   const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
   const fromBlock=launchBlock??(latest.number>500_000n?latest.number-500_000n:0n);
   const holders=await snapshotTokenHolders({
