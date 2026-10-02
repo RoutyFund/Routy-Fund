@@ -9,6 +9,7 @@ import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 type Asset={tokenSymbol:string;tokenName:string;contractAddress:string};
 type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;enabled:boolean}>};
 type RouteStatus={symbol:string;configurationComplete:boolean};
+type AutoSetup={stage:string;provisioned:boolean;poolKeyConfigured:boolean;rewardsActive:boolean;ready:boolean;symbol?:string|null};
 
 function extractHexData(value:unknown):Hex|undefined{
  if(typeof value==="string"&&/^0x[0-9a-fA-F]+$/.test(value))return value as Hex;
@@ -50,8 +51,9 @@ export default function Launch(){
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
  const[asset,setAsset]=useState<string>(EXECUTABLE_ROUTES[0].target); const[policy,setPolicy]=useState("0");
  const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null); const[routeStatus,setRouteStatus]=useState<RouteStatus[]>([]); const[routeStatusLoaded,setRouteStatusLoaded]=useState(false);
- const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState("");
+ const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState(""); const[autoSetup,setAutoSetup]=useState<AutoSetup|null>(null);
  useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{});fetch("/api/route-status").then(r=>r.json()).then(d=>{if(d.ok)setRouteStatus(d.routes||[])}).catch(()=>{}).finally(()=>setRouteStatusLoaded(true))},[]);
+ useEffect(()=>{if(!launchedToken)return;let stopped=false;async function poll(){try{const r=await fetch("/api/auto-setup/status?token="+launchedToken,{cache:"no-store"});const d=await r.json();if(!stopped&&d.ok)setAutoSetup(d)}catch{}}poll();const id=window.setInterval(poll,5000);return()=>{stopped=true;window.clearInterval(id)}},[launchedToken]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
  const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
  const verifiedTarget=Boolean(selectedRoute);
@@ -157,7 +159,8 @@ export default function Launch(){
     {status&&<div className="notice">{status}</div>}
     {launchTx&&<a className="secondary" target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/tx/"+launchTx}>View launch transaction ↗</a>}
     {launchedToken&&<div className="notice"><b>Token:</b> <code>{launchedToken}</code></div>}
-    {launchedToken&&<div className="notice"><b>Routy setup:</b> Queued automatically. No additional creator transaction is required by the final automation flow.</div>}
+    {launchedToken&&<div className="notice"><b>Routy setup:</b> {autoSetup?.ready?"Ready":autoSetup?.stage==="rewards"?"Activating rewards…":autoSetup?.stage==="poolkey"?"Attaching verified PoolKey…":autoSetup?.stage==="provisioning"?"Provisioning route…":"Queued automatically…"}</div>}
+    {launchedToken&&autoSetup&&<div className="route-summary"><div><span className="data-label">Provision</span><b>{autoSetup.provisioned?"Ready":"Pending"}</b></div><div><span className="data-label">PoolKey</span><b>{autoSetup.poolKeyConfigured?"Ready":"Pending"}</b></div><div><span className="data-label">Rewards</span><b>{autoSetup.rewardsActive?"Active":"Pending"}</b></div><div><span className="data-label">Route</span><b>{autoSetup.ready?"Ready":autoSetup.symbol||"Setting up"}</b></div></div>}
    </section>
   </div>
   <section className="section"><div className="section-head"><div><span className="micro">HOW IT WORKS</span><h2>One launch flow.</h2></div></div><div className="flow">
