@@ -85,21 +85,7 @@ export default function Launch(){
     const detail=preflightError instanceof Error?preflightError.message:String(preflightError);
     throw new Error("Pons preflight failed before wallet submission: "+detail);
    }
-   setLaunchTx(hash);setStatus("Launch submitted: "+hash.slice(0,10)+"… Waiting for confirmation.");
-   const receipt=await waitReceipt(hash,provider);
-   if(!receipt){setStatus("Launch is still pending. Do not resubmit.");return}
-   if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error("Pons launch failed on-chain.");
-   let tokenAddress="";
-   for(const log of receipt.logs||[]){try{
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wallet log topics are untyped EIP-1193 data.
-    const decoded=decodeEventLog({abi:factoryLaunchAbi,data:log.data as Hex,topics:log.topics as any});
-    if(decoded.eventName==="TokenLaunched"){
-     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem event args are narrowed at runtime by eventName.
-     tokenAddress=String((decoded.args as any).token||"");break
-    }
-   }catch{}}
-   if(tokenAddress){setLaunchedToken(tokenAddress);setStatus("Launch confirmed. Continue to Routy provisioning.");}
-   else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
+
   }catch(e){setStatus(e instanceof Error?e.message:"Launch cancelled or failed.");}finally{setBusy(false)}
  }
  return <main className="shell"><Nav/><div className="wrap console-page">
