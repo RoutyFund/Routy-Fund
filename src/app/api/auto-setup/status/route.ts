@@ -40,7 +40,9 @@ export async function GET(request:NextRequest){
   const pons=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]});
   if(!pons.exists)return NextResponse.json({ok:true,stage:"not-launched",launched:false,provisioned:false,poolKeyConfigured:false,rewardsActive:false,ready:false});
 
-  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;\n  const executor=(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4) as Address;\n  const route=await client.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token as Address]});
+  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
+  const executor=(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4) as Address;
+  const route=await client.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token as Address]});
   const [creator,targetAsset,quoteToken,vault,router,distributor,policy]=route;
   const provisioned=vault!==ZERO&&router!==ZERO&&distributor!==ZERO;
   if(!provisioned){
