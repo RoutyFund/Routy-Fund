@@ -13,15 +13,15 @@ const ZERO="0x0000000000000000000000000000000000000000" as Address;
 const OWNER="0x866d5D863381efe9e10cCb2E44f388611F781212" as Address;
 
 const launcherAbi=[
- {type:"function",name:"provision",stateMutability:"nonpayable",inputs:[{name:"token",type:"address"},{name:"asset",type:"address"},{name:"policy",type:"uint8"}],outputs:[{name:"vault",type:"address"},{name:"router",type:"address"}]},
- {type:"function",name:"routes",stateMutability:"view",inputs:[{name:"token",type:"address"}],outputs:[{name:"creator",type:"address"},{name:"targetAsset",type:"address"},{name:"quoteToken",type:"address"},{name:"vault",type:"address"},{name:"router",type:"address"},{name:"policy",type:"uint8"},{name:"createdAt",type:"uint64"}]},
+ {type:"function",name:"provision",stateMutability:"nonpayable",inputs:[{name:"token",type:"address"},{name:"asset",type:"address"},{name:"policy",type:"uint8"}],outputs:[{name:"vault",type:"address"},{name:"router",type:"address"},{name:"distributor",type:"address"}]},
+ {type:"function",name:"routes",stateMutability:"view",inputs:[{name:"token",type:"address"}],outputs:[{name:"creator",type:"address"},{name:"targetAsset",type:"address"},{name:"quoteToken",type:"address"},{name:"vault",type:"address"},{name:"router",type:"address"},{name:"distributor",type:"address"},{name:"policy",type:"uint8"},{name:"createdAt",type:"uint64"}]},
 ] as const;
 const executorAbi=[
  {type:"function",name:"setPoolKey",stateMutability:"nonpayable",inputs:[{name:"vault",type:"address"},{name:"key",type:"tuple",components:[{name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}]}],outputs:[]},
  {type:"function",name:"poolKeyForVault",stateMutability:"view",inputs:[{name:"vault",type:"address"}],outputs:[{name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}]},
 ] as const;
 
-type RouteState={creator:Address;targetAsset:Address;quoteToken:Address;vault:Address;router:Address;policy:number;createdAt:bigint};
+type RouteState={creator:Address;targetAsset:Address;quoteToken:Address;vault:Address;router:Address;distributor:Address;policy:number;createdAt:bigint};
 type PonsLaunchState={exists:boolean;creatorFeeRecipient:Address;pairToken:Address};
 
 async function call(provider:EthereumProvider,to:Address,data:Hex){return provider.request<Hex>({method:"eth_call",params:[{to,data},"latest"]})}
@@ -46,12 +46,12 @@ export default function ProvisionPage(){
  }
  async function readRoute(){
   const p=getInjectedProvider();if(!p||!isAddress(token)){setRouteState(null);setPonsLaunch(null);return}
-  const raw=await call(p,ROUTY_DEPLOYMENT.protocolLauncher,encodeFunctionData({abi:launcherAbi,functionName:"routes",args:[token as Address]}));
+  const raw=await call(p,ROUTY_DEPLOYMENT.protocolLauncherV2,encodeFunctionData({abi:launcherAbi,functionName:"routes",args:[token as Address]}));
   const d=decodeFunctionResult({abi:launcherAbi,functionName:"routes",data:raw}) as readonly [Address,Address,Address,Address,Address,number,bigint];
   const next={creator:d[0],targetAsset:d[1],quoteToken:d[2],vault:d[3],router:d[4],policy:d[5],createdAt:d[6]};setRouteState(next);
   if(next.targetAsset!==ZERO){const matched=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===next.targetAsset.toLowerCase());if(matched)setSelectedSymbol(matched.symbol)}
   if(next.vault!==ZERO){
-   const pk=await call(p,ROUTY_DEPLOYMENT.swapExecutor,encodeFunctionData({abi:executorAbi,functionName:"poolKeyForVault",args:[next.vault]}));
+   const pk=await call(p,ROUTY_DEPLOYMENT.swapExecutorV2,encodeFunctionData({abi:executorAbi,functionName:"poolKeyForVault",args:[next.vault]}));
    const k=decodeFunctionResult({abi:executorAbi,functionName:"poolKeyForVault",data:pk}) as readonly [Address,Address,number,number,Address];
    const cfg=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===next.targetAsset.toLowerCase())||selected;
    setPoolSet(k[0].toLowerCase()===cfg.poolKey.currency0.toLowerCase()&&k[1].toLowerCase()===cfg.poolKey.currency1.toLowerCase()&&Number(k[2])===cfg.poolKey.fee&&Number(k[3])===cfg.poolKey.tickSpacing&&k[4].toLowerCase()===cfg.poolKey.hooks.toLowerCase());
@@ -84,13 +84,13 @@ export default function ProvisionPage(){
     <button className="secondary" disabled={!isAddress(token)} onClick={()=>Promise.all([readPonsLaunch(),readRoute()]).catch(e=>setError(walletErrorMessage(e,"Could not verify token.")))}>Check token</button>
     {isAddress(token)&&<div className="route-summary"><div><span className="data-label">Pons token</span><b>{ponsExists?"Verified":"Not verified"}</b></div><div><span className="data-label">Fee recipient</span><b>{feeRecipientMatches?"Matches wallet":"Check wallet"}</b></div><div><span className="data-label">Pair token</span><b>{pairMatches?"USDG verified":"Wrong pair"}</b></div><div><span className="data-label">Preflight</span><b>{preflightReady?"Ready":"Blocked"}</b></div></div>}
     {isAddress(token)&&!preflightReady&&<div className="notice danger">Provisioning requires a real Pons V2 token, the connected wallet must be its creator fee recipient, and the Pons pair must be USDG.</div>}
-    {!provisioned&&<button className="primary" disabled={!isAddress(token)||!account||!correctChain||!preflightReady||Boolean(busy)} onClick={()=>send("Provision Routy vault",ROUTY_DEPLOYMENT.protocolLauncher,encodeFunctionData({abi:launcherAbi,functionName:"provision",args:[token as Address,selected.target,policy]}))}>Provision {selected.symbol} route →</button>}
+    {!provisioned&&<button className="primary" disabled={!isAddress(token)||!account||!correctChain||!preflightReady||Boolean(busy)} onClick={()=>send("Provision Routy vault",ROUTY_DEPLOYMENT.protocolLauncherV2,encodeFunctionData({abi:launcherAbi,functionName:"provision",args:[token as Address,selected.target,policy]}))}>Provision {selected.symbol} route →</button>}
    </section>
    <section className="form-card"><span className="micro">ROUTE STATUS</span><h3>{selected.symbol} / USDG</h3>
     <div className="route-summary"><div><span className="data-label">Market</span><b>{selected.symbol}</b></div><div><span className="data-label">Policy</span><b>{["Weighted raffle","Equal lottery","Pro-rata"][routeState?.policy??policy]}</b></div><div><span className="data-label">Vault</span><b>{provisioned?"Created":"Pending"}</b></div><div><span className="data-label">PoolKey</span><b>{poolSet?"Configured":"Pending"}</b></div></div>
-    {provisioned&&<div className="notice"><p>Vault: <a target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/address/"+routeState?.vault}><code>{routeState?.vault}</code> ↗</a></p><p>Router: <a target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/address/"+routeState?.router}><code>{routeState?.router}</code> ↗</a></p><p>Quote: <code>{routeState?.quoteToken}</code></p></div>}
+    {provisioned&&<div className="notice"><p>Vault: <a target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/address/"+routeState?.vault}><code>{routeState?.vault}</code> ↗</a></p><p>Router: <a target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/address/"+routeState?.router}><code>{routeState?.router}</code> ↗</a></p><p>Distributor: <a target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/address/"+routeState?.distributor}><code>{routeState?.distributor}</code> ↗</a></p><p>Quote: <code>{routeState?.quoteToken}</code></p></div>}
     {provisioned&&!creatorMatches&&!owner&&<div className="notice">This route exists. Only the SwapExecutor owner can attach its verified PoolKey.</div>}
-    {provisioned&&!poolSet&&owner&&<button className="primary" disabled={Boolean(busy)} onClick={()=>send("Set verified "+selected.symbol+"/USDG PoolKey",ROUTY_DEPLOYMENT.swapExecutor,encodeFunctionData({abi:executorAbi,functionName:"setPoolKey",args:[routeState!.vault,selected.poolKey]}))}>Set verified PoolKey →</button>}
+    {provisioned&&!poolSet&&owner&&<button className="primary" disabled={Boolean(busy)} onClick={()=>send("Set verified "+selected.symbol+"/USDG PoolKey",ROUTY_DEPLOYMENT.swapExecutorV2,encodeFunctionData({abi:executorAbi,functionName:"setPoolKey",args:[routeState!.vault,selected.poolKey]}))}>Set verified PoolKey →</button>}
     {poolSet&&<><div className="notice">Vault + verified PoolKey are ready. SwapExecutor remains paused until the final constrained live test.</div><a className="primary" href={"/deploy/test?token="+token}>Continue to live-test preflight →</a></>}
    </section>
   </div>
