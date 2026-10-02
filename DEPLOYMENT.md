@@ -33,3 +33,19 @@ Do not repeat the full protocol deployment or adapter repair.
 11. Confirm jurisdiction and eligibility handling for Stock Token rewards.
 
 Until steps 5-8 are completed for the assets that will actually be enabled, keep SwapExecutor paused and keep `ROUTY_SWAP_EXECUTION_ENABLED=false`.
+
+
+## Verified Reward V2 continuation deployment
+
+Reward V2 infrastructure was completed on Robinhood Chain (4663) through the guarded deployment wizard.
+
+- RewardDistributorFactory V2: `0xd70896aabca6dbc3f8677434fa37bde61711674b`
+- AssetVaultV2Factory: `0xc5c71c405b9fc0e357a9ebc66ce12200bfa5ca97`
+- FeeRouterFactory V2: `0xc5b2f4de0a04f5dec2c77571a056913beab3664c`
+- SwapExecutor V2: `0xe7c921f1ff15a139a0178d44bc4844efab8da89a`
+- ProtocolLauncherV2: `0x2beaf6e1b543ef1c257cf481c2a0f39b6732d4fa`
+- Factory/executor launcher bindings: complete
+- SwapExecutor V2 dependencies: configured
+- SwapExecutor V2 activation state: paused
+
+Do not call `setPaused(false)` until PoolKey/oracle/route testing and security gates are complete.
