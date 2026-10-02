@@ -38,10 +38,19 @@ function dbHeaders():Record<string,string>{
  return key.startsWith("sb_")?{apikey:key,Accept:"application/json"}:{apikey:key,Authorization:"Bearer "+key,Accept:"application/json"};
 }
 async function readyTokens():Promise<Address[]>{
- const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?select=token_address&status=eq.ready&order=created_at.asc&limit="+MAX_TOKENS_PER_RUN,{headers:dbHeaders(),cache:"no-store"});
+ const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?select=token_address&status=eq.ready&order=updated_at.asc,created_at.asc&limit="+MAX_TOKENS_PER_RUN,{headers:dbHeaders(),cache:"no-store"});
  if(!r.ok)throw new Error("QUEUE_READ_FAILED (HTTP "+r.status+"): "+(await r.text().catch(()=>"")).slice(0,300));
  const rows=await r.json() as {token_address:string}[];
  return rows.map(x=>x.token_address).filter(a=>isAddress(a)) as Address[];
+}
+async function touchReadyToken(token:Address){
+ const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?token_address=eq."+encodeURIComponent(token),{
+  method:"PATCH",
+  headers:{...dbHeaders(),"Content-Type":"application/json",Prefer:"return=minimal"},
+  body:JSON.stringify({updated_at:new Date().toISOString()}),
+  cache:"no-store"
+ });
+ if(!r.ok)console.error("[reward-automation] ROTATION_TOUCH_FAILED",token,r.status);
 }
 function reason(error:unknown){
  const e=error as {shortMessage?:string;message?:string};
@@ -149,6 +158,7 @@ async function handle(req:NextRequest){
     out.error=reason(error);
    }
    results.push(out);
+   if(!single)await touchReadyToken(token);
   }
   return NextResponse.json({ok:true,keeper:account.address,processed:results.length,results});
  }catch(error){
