@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server";import {createPublicClient,http} from "viem";import {PONS_V2,factoryReadAbi} from "@/lib/pons";
-const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:[process.env.RPC_URL||process.env.NEXT_PUBLIC_RPC_URL||"https://rpc.mainnet.chain.robinhood.com"]}}} as const;
+export const dynamic="force-dynamic";\nconst chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:[process.env.RPC_URL||process.env.NEXT_PUBLIC_RPC_URL||"https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 export async function GET(){try{
  const c=createPublicClient({chain,transport:http()});
  const [launchFee,maxCreatorTaxBps,count]=await Promise.all([
