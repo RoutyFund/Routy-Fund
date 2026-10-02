@@ -33,7 +33,7 @@ export async function POST(req:NextRequest){
    target_asset:route.target.toLowerCase(),
    target_symbol:route.symbol,
    reward_policy:body.policy,
-   launch_tx:body.launchTx||null,
+   launch_tx_hash:body.launchTx||null,
    status:"queued"
   };
   const db=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?on_conflict=token_address",{method:"POST",headers:dbHeaders(),body:JSON.stringify(payload),cache:"no-store"});
