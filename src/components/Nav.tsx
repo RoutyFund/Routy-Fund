@@ -43,7 +43,7 @@ export default function Nav() {
     <div className="terminal-statusbar">
       <div className="terminal-status-left">
         <span className="terminal-led"/>
-        <span>ROUTY TERMINAL</span>
+        <span>ROUTY FUND</span>
         <span className="terminal-sep">/</span>
         <span>RH CHAIN 4663</span>
       </div>
@@ -54,7 +54,7 @@ export default function Nav() {
       </div>
     </div>
     <nav className="nav">
-      <Link className="brand" href="/"><span className="logo">R</span><span>routy.</span><small>operator terminal</small></Link>
+      <Link className="brand" href="/"><span className="logo">R</span><span>routy.</span><small>fund console</small></Link>
       <div className={"navlinks "+(open?"navlinks-open":"")}>
         {links.map(([href,label])=><Link key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
       </div>
