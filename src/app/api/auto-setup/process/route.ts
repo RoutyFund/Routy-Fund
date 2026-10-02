@@ -16,9 +16,11 @@ const launcherAbi=[
 const executorAbi=[
  {type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]},
  {type:"function",name:"setPaused",stateMutability:"nonpayable",inputs:[{name:"next",type:"bool"}],outputs:[]},
- {type:"function",name:"setPoolKey",stateMutability:"nonpayable",inputs:[{name:"vault",type:"address"},{name:"key",type:"tuple",components:[{name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}]}],outputs:[]}
+ {type:"function",name:"setPoolKey",stateMutability:"nonpayable",inputs:[{name:"vault",type:"address"},{name:"key",type:"tuple",components:[{name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}]}],outputs:[]},
+ {type:"function",name:"poolKeyForVault",stateMutability:"view",inputs:[{name:"vault",type:"address"}],outputs:[{name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}]}
 ] as const;
 const controllerAbi=[{type:"function",name:"setDistributorPaused",stateMutability:"nonpayable",inputs:[{name:"distributor",type:"address"},{name:"next",type:"bool"}],outputs:[]}] as const;
+const distributorAbi=[{type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]}] as const;
 
 type Job={id:string;token_address:string;creator_address:string;target_asset:string;target_symbol:string;reward_policy:number;status:string;attempts:number};
 function dbHeaders(){
@@ -81,25 +83,33 @@ async function handle(req:NextRequest){
    if(vault===zero||router===zero||distributor===zero)throw new Error("PROVISION_STATE_INCOMPLETE");
    await patchJob(job.id,{status:"poolkey",provisioned:true,vault_address:vault,router_address:router,distributor_address:distributor,last_error:null});
 
-   const wasPaused=await publicClient.readContract({address:executor as Address,abi:executorAbi,functionName:"paused"});
-   if(!wasPaused){
-    const pauseHash=await walletClient.writeContract({address:executor as Address,abi:executorAbi,functionName:"setPaused",args:[true],account});
-    const pauseReceipt=await publicClient.waitForTransactionReceipt({hash:pauseHash});
-    if(pauseReceipt.status!=="success")throw new Error("EXECUTOR_PAUSE_FAILED");
+   const configuredKey=await publicClient.readContract({address:executor as Address,abi:executorAbi,functionName:"poolKeyForVault",args:[vault]});
+   const poolConfigured=configuredKey[0].toLowerCase()!==configuredKey[1].toLowerCase();
+   if(!poolConfigured){
+    const wasPaused=await publicClient.readContract({address:executor as Address,abi:executorAbi,functionName:"paused"});
+    if(!wasPaused){
+     const pauseHash=await walletClient.writeContract({address:executor as Address,abi:executorAbi,functionName:"setPaused",args:[true],account});
+     const pauseReceipt=await publicClient.waitForTransactionReceipt({hash:pauseHash});
+     if(pauseReceipt.status!=="success")throw new Error("EXECUTOR_PAUSE_FAILED");
+    }
+    const poolHash=await walletClient.writeContract({address:executor as Address,abi:executorAbi,functionName:"setPoolKey",args:[vault,route.poolKey],account});
+    const poolReceipt=await publicClient.waitForTransactionReceipt({hash:poolHash});
+    if(poolReceipt.status!=="success")throw new Error("POOLKEY_FAILED");
+   }
+   const executorPaused=await publicClient.readContract({address:executor as Address,abi:executorAbi,functionName:"paused"});
+   if(executorPaused){
+    const resumeHash=await walletClient.writeContract({address:executor as Address,abi:executorAbi,functionName:"setPaused",args:[false],account});
+    const resumeReceipt=await publicClient.waitForTransactionReceipt({hash:resumeHash});
+    if(resumeReceipt.status!=="success")throw new Error("EXECUTOR_RESUME_FAILED");
    }
 
-   const poolHash=await walletClient.writeContract({address:executor as Address,abi:executorAbi,functionName:"setPoolKey",args:[vault,route.poolKey],account});
-   const poolReceipt=await publicClient.waitForTransactionReceipt({hash:poolHash});
-   if(poolReceipt.status!=="success")throw new Error("POOLKEY_FAILED");
-
-   const resumeHash=await walletClient.writeContract({address:executor as Address,abi:executorAbi,functionName:"setPaused",args:[false],account});
-   const resumeReceipt=await publicClient.waitForTransactionReceipt({hash:resumeHash});
-   if(resumeReceipt.status!=="success")throw new Error("EXECUTOR_RESUME_FAILED");
-
    await patchJob(job.id,{status:"rewards",pool_key_configured:true,last_error:null});
-   const rewardHash=await walletClient.writeContract({address:controller as Address,abi:controllerAbi,functionName:"setDistributorPaused",args:[distributor,false],account});
-   const rewardReceipt=await publicClient.waitForTransactionReceipt({hash:rewardHash});
-   if(rewardReceipt.status!=="success")throw new Error("REWARD_ACTIVATION_FAILED");
+   const rewardsPaused=await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"paused"});
+   if(rewardsPaused){
+    const rewardHash=await walletClient.writeContract({address:controller as Address,abi:controllerAbi,functionName:"setDistributorPaused",args:[distributor,false],account});
+    const rewardReceipt=await publicClient.waitForTransactionReceipt({hash:rewardHash});
+    if(rewardReceipt.status!=="success")throw new Error("REWARD_ACTIVATION_FAILED");
+   }
 
    await patchJob(job.id,{status:"ready",provisioned:true,pool_key_configured:true,rewards_active:true,vault_address:vault,router_address:router,distributor_address:distributor,last_error:null});
    return NextResponse.json({ok:true,processed:true,token:job.token_address,status:"ready"});
