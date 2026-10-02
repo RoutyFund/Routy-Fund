@@ -55,7 +55,9 @@ export async function GET(req:NextRequest){
   if(vault===ZERO||distributor===ZERO)return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
 
   const latest=await client.getBlock({blockTag:"latest"});
-  const fromBlock=latest.number>500_000n?latest.number-500_000n:0n;
+  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:{type:"event",name:"TokenLaunched",inputs:[{indexed:true,name:"token",type:"address"},{indexed:true,name:"deployer",type:"address"},{indexed:true,name:"creatorFeeRecipient",type:"address"}]},args:{token:token as Address},fromBlock:0n,toBlock:"latest"}).catch(()=>[]);
+  const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
+  const fromBlock=launchBlock??(latest.number>500_000n?latest.number-500_000n:0n);
   const holders=await snapshotTokenHolders({
    token,
    fromBlock,
@@ -101,6 +103,7 @@ export async function GET(req:NextRequest){
    fundedBalance:fundedBalance.toString(),
    holderCount:holders.length,
    snapshotBlock:latest.number.toString(),
+   snapshotFromBlock:fromBlock.toString(),
    selectionSeed:seedHex,
    allocations:rows.map(x=>({address:x.address,amount:x.amount.toString(),cumulativeAmount:x.cumulative.toString()})),
    batches
