@@ -35,7 +35,8 @@ export async function GET(request:NextRequest){
  const token=request.nextUrl.searchParams.get("token");
  if(!token||!isAddress(token))return NextResponse.json({ok:false,error:"INVALID_TOKEN"},{status:400});
  try{
-  const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const rpc=process.env.RPC_URL?.trim();
+  if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
   const client=createPublicClient({chain,transport:http(rpc)});
   const pons=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]});
   if(!pons.exists)return NextResponse.json({ok:true,stage:"not-launched",launched:false,provisioned:false,poolKeyConfigured:false,rewardsActive:false,ready:false});
