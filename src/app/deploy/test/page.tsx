@@ -87,7 +87,7 @@ export default function LiveTestPage(){
  useEffect(()=>{if(isAddress(token)&&new URLSearchParams(window.location.search).get("token")===token){const id=window.setTimeout(()=>inspect(),250);return()=>window.clearTimeout(id)}},[token]);
  const ready=Boolean(state?.tokenValid&&state.routeMatched&&state.vaultApproved&&state.poolKeyMatched&&state.executorPaused);
 
- return <main className="shell"><Nav/><div className="wrap">
+ return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Final validation</span><h1>Live-test readiness.</h1><p className="lead">Run read-only onchain checks before the final constrained swap test. This page never unpauses the executor and never sends a swap.</p></div><span className="pill">Safe preflight</span></header>
   <section className="form-card">
    <label>Provisioned token address<input value={token} onChange={e=>{setToken(e.target.value);setState(null)}} placeholder="0x…"/></label>
