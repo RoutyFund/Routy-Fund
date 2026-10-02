@@ -1,10 +1,11 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import Nav from "@/components/Nav";
-import {decodeErrorResult,decodeEventLog,encodeFunctionData,formatEther,keccak256,toBytes,type Hex} from "viem";
+import {decodeErrorResult,decodeEventLog,encodeFunctionData,formatEther,type Hex} from "viem";
 import {getInjectedProvider} from "@/lib/ethereum-provider";
 import {PONS_V2,factoryLaunchAbi,factoryReadAbi} from "@/lib/pons";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
+import {v5LaunchIntentSalt} from "@/lib/v5-launch-intent";
 
 type Asset={tokenSymbol:string;tokenName:string;contractAddress:string};
 type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;enabled:boolean}>};
@@ -90,7 +91,8 @@ export default function Launch(){
    if(!pairApproved)throw new Error("Pons preflight: PairTokenNotApproved.");
    if(!launchAllowed)throw new Error("Pons preflight: canLaunch(account) returned false.");
 
-   const salt=keccak256(toBytes(account+":"+Date.now().toString()));
+   const intentNonce="0x"+Array.from(crypto.getRandomValues(new Uint8Array(32)),byte=>byte.toString(16).padStart(2,"0")).join("");
+   const salt=v5LaunchIntentSalt({creator:account,targetAsset:asset,policy:Number(policy),nonce:intentNonce});
    const routerResponse=await fetch("/api/fee-router/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({creator:account,salt})});
    const routerPrediction=await routerResponse.json() as {ok?:boolean;router?:string;error?:string};
    if(!routerResponse.ok||!routerPrediction.ok||!routerPrediction.router)throw new Error("Routy V5 fee routing is not ready: "+(routerPrediction.error||"router prediction failed"));
@@ -127,7 +129,7 @@ export default function Launch(){
      if(autoSetupEnabled){
       setStatus("Launch confirmed. Adding Routy route setup to the automation queue…");
       try{
-       const queued=await fetch("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tokenAddress,creator:account,targetAsset:asset,policy:Number(policy),launchTx:hash,setupNonce:salt,feeRouter})});
+       const queued=await fetch("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tokenAddress,creator:account,targetAsset:asset,policy:Number(policy),launchTx:hash,setupNonce:salt,feeRouter,intentNonce})});
        const q=await queued.json();
        setStatus(queued.ok&&q.ok?(q.alreadyReady?"Launch confirmed. Routy route is already ready.":"Launch confirmed. Routy route setup is queued automatically."):"Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.");
       }catch{setStatus("Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.")}
