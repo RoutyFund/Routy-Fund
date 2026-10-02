@@ -110,7 +110,7 @@ contract FeeRouterV5Test {
         require(!duplicate,"DUPLICATE_ROUTER");
     }
 
-    function testFailedTreasuryTransferRollsBackClaimAndVaultTransfer() public {
+    function testTreasuryRejectionRollsBackClaimAndVaultTransfer() public {
         FeeRouterV5MockEscrow escrow=new FeeRouterV5MockEscrow();
         FeeRouterV5RejectTreasury treasury=new FeeRouterV5RejectTreasury();
         FeeRouterFactoryV5 factory=new FeeRouterFactoryV5(address(this),address(this),address(escrow),address(treasury));
