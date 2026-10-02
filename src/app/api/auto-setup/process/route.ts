@@ -77,6 +77,9 @@ async function handle(req:NextRequest){
     state=await publicClient.readContract({address:launcher as Address,abi:launcherAbi,functionName:"routes",args:[job.token_address as Address]});
     vault=state[3];router=state[4];distributor=state[5];
    }
+   const zero="0x0000000000000000000000000000000000000000";
+   if(vault===zero||router===zero||distributor===zero)throw new Error("PROVISION_STATE_INCOMPLETE");
+   await patchJob(job.id,{status:"poolkey",provisioned:true,vault_address:vault,router_address:router,distributor_address:distributor,last_error:null});
 
    const wasPaused=await publicClient.readContract({address:executor as Address,abi:executorAbi,functionName:"paused"});
    if(!wasPaused){
@@ -93,6 +96,7 @@ async function handle(req:NextRequest){
    const resumeReceipt=await publicClient.waitForTransactionReceipt({hash:resumeHash});
    if(resumeReceipt.status!=="success")throw new Error("EXECUTOR_RESUME_FAILED");
 
+   await patchJob(job.id,{status:"rewards",pool_key_configured:true,last_error:null});
    const rewardHash=await walletClient.writeContract({address:controller as Address,abi:controllerAbi,functionName:"setDistributorPaused",args:[distributor,false],account});
    const rewardReceipt=await publicClient.waitForTransactionReceipt({hash:rewardHash});
    if(rewardReceipt.status!=="success")throw new Error("REWARD_ACTIVATION_FAILED");
