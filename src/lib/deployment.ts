@@ -28,11 +28,6 @@ export const ROUTY_DEPLOYMENT = {
   swapExecutorV4: "0x9ef31960d25c9ed2f8e39544d765077fddbb2c00",
   protocolLauncherV4: "0xdf1180c0a0e32dcc850bdf384acd7c6ba1292a5b",
   automationOperatorV4: "0x866d5D863381efe9e10cCb2E44f388611F781212",
-  // V5 direct-fee addresses are configured after deployment. Runtime code must fail closed while these are empty.
-  feeRouterFactoryV5: "",
-  swapExecutorV5: "",
-  protocolLauncherV5: "",
-  rewardAutomationControllerV5: "",
 } as const;
 
 export const ROUTY_RELEASE_STATE = {
