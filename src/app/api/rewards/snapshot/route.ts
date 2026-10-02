@@ -21,10 +21,11 @@ export async function GET(req:NextRequest){
   const [creator,,,vault,router,distributor,policy,createdAt]=route;
   if(vault==="0x0000000000000000000000000000000000000000")return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
   const block=await client.getBlock({blockTag:"latest"});
-  const approximateFrom=block.number>500_000n?block.number-500_000n:0n;
-  const holders=await snapshotTokenHolders({token,fromBlock:approximateFrom,excluded:[creator,vault,router,distributor,PONS_V2.factory,PONS_V2.feeEscrow],rpcUrl:rpc});
+  const snapshotBlock=block.number>2n?block.number-2n:block.number;
+  const fromBlock=snapshotBlock>500_000n?snapshotBlock-500_000n:0n;
+  const holders=await snapshotTokenHolders({token,fromBlock,toBlock:snapshotBlock,excluded:[creator,vault,router,distributor,PONS_V2.factory,PONS_V2.feeEscrow],rpcUrl:rpc});
   const total=holders.reduce((n,h)=>n+h.balance,0n);
-  return NextResponse.json({ok:true,token,policy:Number(policy),createdAt:Number(createdAt),holderCount:holders.length,totalEligibleBalance:total.toString(),holders:holders.map(h=>({address:h.address,balance:h.balance.toString()}))});
+  return NextResponse.json({ok:true,token,policy:Number(policy),createdAt:Number(createdAt),snapshotBlock:snapshotBlock.toString(),snapshotFromBlock:fromBlock.toString(),holderCount:holders.length,totalEligibleBalance:total.toString(),holders:holders.map(h=>({address:h.address,balance:h.balance.toString()}))});
  }catch(error){
   return NextResponse.json({ok:false,error:"SNAPSHOT_FAILED",message:error instanceof Error?error.message:"unknown"},{status:503});
  }
