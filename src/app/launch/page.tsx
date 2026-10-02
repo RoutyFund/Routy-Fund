@@ -94,11 +94,11 @@ export default function Launch(){
     }
     if(receipt.status==="confirmed"&&receipt.token){
      if(receipt.creator?.toLowerCase()!==pending.creator.toLowerCase())throw new Error("Launch creator mismatch");
-     setLaunchedToken(receipt.token);setStatus("Launch confirmed. Queueing automatic V5 setup…");
+     setLaunchedToken(receipt.token);setStatus("Launch confirmed. Queueing automatic route setup…");
      const record={...pending,token:receipt.token};
      const result=await fetchJson<{ok:boolean;alreadyReady?:boolean}>("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...record,token:receipt.token})});
      if(stopped)return;
-     savePending({...record,queued:true});setStatus(result.alreadyReady?"Launch confirmed. Routy route is already ready.":"Launch confirmed. Automatic V5 route setup is queued.");return;
+     savePending({...record,queued:true});setStatus(result.alreadyReady?"Launch confirmed. Routy route is already ready.":"Launch confirmed. Automatic route setup is queued.");return;
     }
     setStatus("Launch submitted and still pending. Confirmation will be checked automatically.");
    }catch(cause){if(!stopped)setStatus("Automatic setup will retry: "+(cause instanceof Error?cause.message:"connection unavailable"))}
@@ -147,7 +147,7 @@ export default function Launch(){
    const salt=v5LaunchIntentSalt({creator:account,targetAsset:asset,policy:Number(policy),nonce:intentNonce});
    const routerResponse=await fetch("/api/fee-router/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({creator:account,salt})});
    const routerPrediction=await routerResponse.json() as {ok?:boolean;router?:string;error?:string};
-   if(!routerResponse.ok||!routerPrediction.ok||!routerPrediction.router)throw new Error("Routy V5 fee routing is not ready: "+(routerPrediction.error||"router prediction failed"));
+   if(!routerResponse.ok||!routerPrediction.ok||!routerPrediction.router)throw new Error("Routy fee routing is not ready: "+(routerPrediction.error||"router prediction failed"));
    const feeRouter=routerPrediction.router as `0x${string}`;
    const validation=launchMetadataError({logo,description:description.trim(),socials:[x.trim(),website.trim(),telegram.trim()],tax,maxTax:freshMaxTax});
    if(validation)throw new Error(validation);
@@ -165,7 +165,7 @@ export default function Launch(){
    setStatus("Preflight passed. Confirm the Pons launch in your wallet.");
    const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{...tx,gas:padded}]});
    savePending({version:1,chainId:4663,creator:account,targetAsset:asset,policy:Number(policy),intentNonce,setupNonce:salt,feeRouter,launchTx:hash});
-   setStatus("Launch submitted. Confirming the transaction and automatic V5 setup…");
+   setStatus("Launch submitted. Confirming the transaction and automatic route setup…");
 
   }catch(e){setStatus(walletErrorMessage(e)||"Launch cancelled or failed.");}finally{setBusy(false)}
  }
