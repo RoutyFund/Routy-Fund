@@ -2,7 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,createWalletClient,http,isAddress,type Address,type Hex} from "viem";
 import {privateKeyToAccount} from "viem/accounts";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
-import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
+import {requireCurrentDeployment} from "@/lib/active-deployment";
 
 export const dynamic="force-dynamic";
 export const maxDuration=60;
@@ -63,11 +63,9 @@ async function handle(req:NextRequest){
   const rpc=process.env.RPC_URL?.trim();
   if(!rpc)throw new Error("RPC_URL_MISSING");
   const rawKey=process.env.ROUTY_AUTOMATION_PRIVATE_KEY?.trim();
-  const useV5=Boolean(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||"");
-  const launcher=useV5?(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||""):(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4);
-  const executor=useV5?(process.env.ROUTY_SWAP_EXECUTOR_V5_ADDRESS?.trim()||""):(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4);
-  const controller=useV5?(process.env.ROUTY_REWARD_CONTROLLER_V5_ADDRESS?.trim()||""):(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
-  const routerFactoryV5=process.env.ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS?.trim()||"";
+  const deployment=requireCurrentDeployment();
+  const useV5=deployment.version==="V5";
+  const {launcher,executor,controller,routerFactory:routerFactoryV5}=deployment;
   if(!rawKey||!/^0x[0-9a-fA-F]{64}$/.test(rawKey)){console.error("[auto-setup] KEY_CHECK_FAILED");throw new Error("AUTOMATION_KEY_INVALID");}
   console.info("[auto-setup] KEY_CHECK_OK");
   if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller)||(useV5&&(!routerFactoryV5||!isAddress(routerFactoryV5)))){console.error("[auto-setup] ADDRESS_CHECK_FAILED");throw new Error(useV5?"V5_ADDRESSES_INVALID":"V4_ADDRESSES_INVALID");}

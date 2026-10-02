@@ -51,20 +51,14 @@ export default function Launch(){
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
  const[asset,setAsset]=useState<string>(EXECUTABLE_ROUTES[0].target); const[policy,setPolicy]=useState("0");
  const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null); const[routeStatus,setRouteStatus]=useState<RouteStatus[]>([]); const[routeStatusLoaded,setRouteStatusLoaded]=useState(false);
- const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState(""); const[autoSetup,setAutoSetup]=useState<AutoSetup|null>(null); const[autoSetupEnabled,setAutoSetupEnabled]=useState(false);
- useEffect(()=>{fetch("/api/auto-setup/config").then(r=>r.json()).then(d=>setAutoSetupEnabled(Boolean(d.enabled))).catch(()=>setAutoSetupEnabled(false));fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{});fetch("/api/route-status").then(r=>r.json()).then(d=>{if(d.ok)setRouteStatus(d.routes||[])}).catch(()=>{}).finally(()=>setRouteStatusLoaded(true))},[]);
+ const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState(""); const[autoSetup,setAutoSetup]=useState<AutoSetup|null>(null); const[autoSetupEnabled,setAutoSetupEnabled]=useState(false); const[launchReadinessLoaded,setLaunchReadinessLoaded]=useState(false);
+ useEffect(()=>{fetch("/api/auto-setup/config").then(r=>r.json()).then(d=>setAutoSetupEnabled(d.launchReady===true)).catch(()=>setAutoSetupEnabled(false)).finally(()=>setLaunchReadinessLoaded(true));fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{});fetch("/api/route-status").then(r=>r.json()).then(d=>{if(d.ok)setRouteStatus(d.routes||[])}).catch(()=>{}).finally(()=>setRouteStatusLoaded(true))},[]);
  useEffect(()=>{if(!launchedToken)return;let stopped=false;async function poll(){try{const r=await fetch("/api/auto-setup/status?token="+launchedToken,{cache:"no-store"});const d=await r.json();if(!stopped&&d.ok)setAutoSetup(d)}catch{}}poll();const id=window.setInterval(poll,3000);return()=>{stopped=true;window.clearInterval(id)}},[launchedToken]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
  const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
  const verifiedTarget=Boolean(selectedRoute);
  const routeConfigured=Boolean(routeStatusLoaded&&selectedRoute&&routeStatus.find(s=>s.symbol===selectedRoute.symbol)?.configurationComplete);
- const valid=name.trim()&&symbol.trim()&&description.trim()&&logo.length<=512&&description.length<=2048&&x.length<=256&&website.length<=256&&telegram.length<=256&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
- function file(e:React.ChangeEvent<HTMLInputElement>){
-  const f=e.target.files?.[0];
-  if(!f)return;
-  setLogo("");
-  setStatus("Pons V2 stores only a short logo URI on-chain. Direct image uploads are disabled until Routy uploads the image to storage and passes a URI.");
- }
+ const valid=autoSetupEnabled&&name.trim()&&symbol.trim()&&description.trim()&&logo.length<=512&&description.length<=2048&&x.length<=256&&website.length<=256&&telegram.length<=256&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- injected wallets expose receipt payloads without a stable TS type.
  async function waitReceipt(hash:string,provider:ReturnType<typeof getInjectedProvider>){if(!provider)return null;for(let i=0;i<40;i++){const r=await provider.request<any>({method:"eth_getTransactionReceipt",params:[hash]});if(r)return r;await new Promise(x=>setTimeout(x,1500))}return null}
  async function launch(){
@@ -73,7 +67,7 @@ export default function Launch(){
   try{
    const accounts=await provider.request<string[]>({method:"eth_requestAccounts"});const account=accounts?.[0];if(!account)throw new Error("Wallet not connected");
    await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1237"}]});
-   const pairToken="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as const;
+   const pairToken=selectedRoute!.quote;
 
    const feeData=encodeFunctionData({abi:factoryReadAbi,functionName:"launchFee"});
    const canLaunchData=encodeFunctionData({abi:factoryReadAbi,functionName:"canLaunch",args:[account as `0x${string}`]});
@@ -105,7 +99,7 @@ export default function Launch(){
    const data=encodeFunctionData({abi:factoryLaunchAbi,functionName:"launchToken",args:[{
     name:name.trim(),symbol:symbol.trim(),logo,description:description.trim(),
     socials:{twitter:x.trim(),telegram:telegram.trim(),discord:"",website:website.trim(),farcaster:""},
-    creatorFeeRecipient:feeRouter,creatorTaxBps:creatorTax,buybackEnabled:true,expectedEconomics:economics as `0x${string}`,salt
+    creatorFeeRecipient:feeRouter,creatorTaxBps:creatorTax,buybackEnabled:false,expectedEconomics:economics as `0x${string}`,salt
    },BigInt(config!.id),pairToken]});
 
    const tx={from:account,to:PONS_V2.factory,data,value:"0x"+freshLaunchFee.toString(16)};
@@ -168,7 +162,8 @@ export default function Launch(){
     <label>Reward policy<select value={policy} onChange={e=>setPolicy(e.target.value)}><option value="0">Weighted raffle</option><option value="1">Equal lottery</option><option value="2">Pro-rata</option></select></label>
     <label>Creator tax (BPS)<input type="number" min="0" max={pons?.maxCreatorTaxBps||"1000"} value={tax} onChange={e=>setTax(e.target.value)}/></label>
     <div className="route-summary"><div><span className="data-label">Pair</span><b>USDG</b></div><div><span className="data-label">Launch fee</span><b>{pons?formatEther(BigInt(pons.launchFee))+" ETH":"Loading…"}</b></div><div><span className="data-label">Rewards</span><b>{["Weighted raffle","Equal lottery","Pro-rata"][Number(policy)]}</b></div><div><span className="data-label">Network</span><b>Robinhood Chain</b></div></div>
-    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":!routeStatusLoaded?"Checking route…":routeConfigured?"Launch token":"Route setup required"} <span>→</span></button>
+    {launchReadinessLoaded&&!autoSetupEnabled&&<div className="notice">Launches open after direct fee routing and automatic setup are activated.</div>}
+    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":!launchReadinessLoaded?"Checking launch availability…":!autoSetupEnabled?"Launch setup pending":!routeStatusLoaded?"Checking route…":routeConfigured?"Launch token":"Route setup required"} <span>→</span></button>
     <p className="muted" style={{fontSize:11,margin:0}}>Your wallet signs the Pons launch directly. Routy never receives your private key or custody of your wallet.</p>
     {status&&<div className="notice">{status}</div>}
     {launchTx&&<a className="secondary" target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/tx/"+launchTx}>View launch transaction ↗</a>}

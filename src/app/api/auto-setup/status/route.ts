@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,http,isAddress,type Address} from "viem";
-import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
+import {requireCurrentDeployment} from "@/lib/active-deployment";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 
@@ -41,15 +41,16 @@ export async function GET(request:NextRequest){
   const pons=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]});
   if(!pons.exists)return NextResponse.json({ok:true,stage:"not-launched",launched:false,provisioned:false,poolKeyConfigured:false,rewardsActive:false,ready:false});
 
-  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
-  const executor=(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4) as Address;
+  const deployment=requireCurrentDeployment();
+  const launcher=deployment.launcher as Address;
+  const executor=deployment.executor as Address;
   const route=await client.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token as Address]});
   const [creator,targetAsset,quoteToken,vault,router,distributor,policy]=route;
   const provisioned=vault!==ZERO&&router!==ZERO&&distributor!==ZERO;
   if(!provisioned){
    return NextResponse.json({
     ok:true,stage:"provisioning",launched:true,provisioned:false,poolKeyConfigured:false,rewardsActive:false,ready:false,
-    creator:pons.creatorFeeRecipient,targetAsset:null,policy:null
+    creator:pons.deployer,targetAsset:null,policy:null
    });
   }
 
