@@ -68,7 +68,7 @@ contract RoutyAutomation {
     }
 
     /// @notice Permissionless trigger. Reverts harmlessly if the FeeRouter has no claimable fees.
-    function harvest(address token) external returns(uint256 claimed){
+    function harvest(address token) public returns(uint256 claimed){
         require(!paused,"PAUSED");RouteConfig storage c=configForToken[token];require(c.enabled,"NOT_ENABLED");
         claimed=IFeeRouterAutomation(c.router).harvest();
         emit HarvestTriggered(token,c.router,claimed);
@@ -76,7 +76,7 @@ contract RoutyAutomation {
 
     /// @notice Permissionless trigger with owner-defined amount/cooldown/slippage bounds.
     /// Executor ownership must explicitly be transferred to this contract before this can operate.
-    function swap(address token) external {
+    function swap(address token) public {
         require(!paused,"PAUSED");RouteConfig storage c=configForToken[token];require(c.enabled,"NOT_ENABLED");
         require(block.timestamp>=uint256(c.lastSwap)+c.cooldown,"COOLDOWN");
         uint256 available=IAutomationVault(c.vault).availableEarned();require(available>=c.minSwapAmount,"BELOW_THRESHOLD");
