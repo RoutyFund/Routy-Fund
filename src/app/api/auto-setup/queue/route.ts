@@ -6,6 +6,7 @@ import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 export const dynamic="force-dynamic";
 const SUPABASE_URL="https://hcwtwtvovdzfuugnjqyz.supabase.co";
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://rpc.mainnet.chain.robinhood.com"]}}} as const;
+const ZERO="0x0000000000000000000000000000000000000000";
 
 function dbHeaders():Record<string,string>{
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -17,9 +18,11 @@ function dbHeaders():Record<string,string>{
 
 export async function POST(req:NextRequest){
  try{
-  const body=await req.json() as {token?:string;creator?:string;targetAsset?:string;policy?:number;launchTx?:string};
+  const body=await req.json() as {token?:string;creator?:string;targetAsset?:string;policy?:number;launchTx?:string;setupNonce?:string;feeRouter?:string};
   if(!body.token||!isAddress(body.token)||!body.creator||!isAddress(body.creator)||!body.targetAsset||!isAddress(body.targetAsset))return NextResponse.json({ok:false,error:"INVALID_REQUEST"},{status:400});
   if(!Number.isInteger(body.policy)||body.policy===undefined||body.policy<0||body.policy>2)return NextResponse.json({ok:false,error:"INVALID_POLICY"},{status:400});
+  const v5=Boolean(body.setupNonce||body.feeRouter);
+  if(v5&&(!body.setupNonce||!/^0x[0-9a-fA-F]{64}$/.test(body.setupNonce)||!body.feeRouter||!isAddress(body.feeRouter)||body.feeRouter===ZERO))return NextResponse.json({ok:false,error:"INVALID_V5_ROUTER"},{status:400});
   const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===body.targetAsset!.toLowerCase());
   if(!route)return NextResponse.json({ok:false,error:"UNVERIFIED_ROUTE"},{status:400});
 
@@ -28,7 +31,10 @@ export async function POST(req:NextRequest){
   const client=createPublicClient({chain,transport:http(rpc)});
   const launch=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[body.token as Address]});
   if(!launch.exists)return NextResponse.json({ok:false,error:"NOT_PONS_TOKEN"},{status:400});
-  if(launch.creatorFeeRecipient.toLowerCase()!==body.creator.toLowerCase())return NextResponse.json({ok:false,error:"CREATOR_MISMATCH"},{status:403});
+  if(v5){
+   if(launch.deployer.toLowerCase()!==body.creator.toLowerCase())return NextResponse.json({ok:false,error:"CREATOR_MISMATCH"},{status:403});
+   if(launch.creatorFeeRecipient.toLowerCase()!==body.feeRouter!.toLowerCase())return NextResponse.json({ok:false,error:"FEE_ROUTER_MISMATCH"},{status:403});
+  }else if(launch.creatorFeeRecipient.toLowerCase()!==body.creator.toLowerCase())return NextResponse.json({ok:false,error:"CREATOR_MISMATCH"},{status:403});
   if(launch.pairToken.toLowerCase()!==route.quote.toLowerCase())return NextResponse.json({ok:false,error:"PAIR_MISMATCH"},{status:400});
 
   const existing=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?select=status,target_asset,reward_policy&token_address=eq."+encodeURIComponent(body.token.toLowerCase())+"&limit=1",{headers:dbHeaders(),cache:"no-store"});
@@ -41,7 +47,9 @@ export async function POST(req:NextRequest){
    target_symbol:route.symbol,
    reward_policy:body.policy,
    launch_tx:body.launchTx||null,
-   status:"queued"
+   status:"queued",
+   setup_nonce:v5?body.setupNonce:null,
+   router_address:v5?body.feeRouter!.toLowerCase():null
   };
   const db=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?on_conflict=token_address",{method:"POST",headers:dbHeaders(),body:JSON.stringify(payload),cache:"no-store"});
   const data=await db.json().catch(()=>null);
