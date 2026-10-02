@@ -9,7 +9,6 @@ export default function Assets(){
  useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets(d.assets||[])).catch(()=>setAssets([])).finally(()=>setLoaded(true))},[]);
  const rows=useMemo(()=>assets.filter(a=>{const routable=EXECUTABLE_ROUTES.some(r=>r.target.toLowerCase()===(a.contractAddress||"").toLowerCase());const q=query.trim().toLowerCase();const matches=!q||a.tokenSymbol?.toLowerCase().includes(q)||a.tokenName?.toLowerCase().includes(q)||a.contractAddress?.toLowerCase().includes(q);return matches&&(mode==="all"||(mode==="routable"?routable:!routable))}),[assets,query,mode]);
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize);
- useEffect(()=>{setPage(1)},[query,mode]);
  return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Underlying market registry</span><h1>Assets.</h1><p className="lead">Stock Tokens available on Robinhood Chain. This registry is separate from tokens launched through Routy Fund.</p></div><span className="pill">{loaded?assets.length+" canonical":"Loading registry"}</span></header>
   <section className="proof-grid">
@@ -24,8 +23,8 @@ export default function Assets(){
   </section>
   <section className="section">
    <div className="terminal-filterbar">
-    <div className="terminal-search"><span>/</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search symbol, company or address"/></div>
-    <div className="tabs"><button className={"tab "+(mode==="all"?"active":"")} onClick={()=>setMode("all")}>All</button><button className={"tab "+(mode==="routable"?"active":"")} onClick={()=>setMode("routable")}>Routable</button><button className={"tab "+(mode==="registry"?"active":"")} onClick={()=>setMode("registry")}>Registry only</button></div>
+    <div className="terminal-search"><span>/</span><input value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder="Search symbol, company or address"/></div>
+    <div className="tabs"><button className={"tab "+(mode==="all"?"active":"")} onClick={()=>{setMode("all");setPage(1)}}>All</button><button className={"tab "+(mode==="routable"?"active":"")} onClick={()=>{setMode("routable");setPage(1)}}>Routable</button><button className={"tab "+(mode==="registry"?"active":"")} onClick={()=>{setMode("registry");setPage(1)}}>Registry only</button></div>
     <span className="terminal-count">{rows.length} RESULTS</span>
    </div>
    <div className="asset-terminal-head"><span>ASSET</span><span>CLASS</span><span>MULTIPLIER</span><span>ADDRESS</span><span>STATUS</span></div>
