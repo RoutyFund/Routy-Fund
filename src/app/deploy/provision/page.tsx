@@ -73,7 +73,7 @@ export default function ProvisionPage(){
  const pairMatches=Boolean(ponsLaunch?.pairToken&&ponsLaunch.pairToken.toLowerCase()===selected.quote.toLowerCase());
  const preflightReady=ponsExists&&feeRecipientMatches&&pairMatches;
 
- return <main className="shell"><Nav/><div className="wrap">
+ return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Routy provisioning</span><h1>Finish the route.</h1><p className="lead">Provision a verified Stock Token route after a successful Pons launch, then attach the matching PoolKey.</p></div><span className="pill">Step 2</span></header>
   <div className="launch-form">
    <section className="form-card"><span className="micro">LAUNCHED TOKEN</span><h3>Provision vault</h3>
