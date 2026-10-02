@@ -67,14 +67,19 @@ async function swapEarned(publicClient:PublicClient,walletClient:Wallet,account:
   publicClient.readContract({address:executor,abi:executorAbi,functionName:"paused"})
  ]);
  if(executorPaused)return "EXECUTOR_PAUSED";
- const minSwap=BigInt(process.env.ROUTY_MIN_SWAP_UNITS||"1");
- const cap=BigInt(process.env.ROUTY_MAX_SWAP_UNITS||"0");
+ const minSwapRaw=process.env.ROUTY_MIN_SWAP_UNITS||"1";
+ const capRaw=process.env.ROUTY_MAX_SWAP_UNITS||"0";
+ if(!/^\d+$/.test(minSwapRaw)||!/^\d+$/.test(capRaw))throw new Error("INVALID_SWAP_LIMIT_ENV");
+ const minSwap=BigInt(minSwapRaw);
+ const cap=BigInt(capRaw);
  const amountIn=cap>0n&&available>cap?cap:available;
  if(amountIn<minSwap||amountIn===0n)return "NOTHING_TO_SWAP";
  const expected=await publicClient.readContract({address:ROUTY_DEPLOYMENT.swapOracleQuoter as Address,abi:quoterAbi,functionName:"expectedOut",args:[ROUTY_DEPLOYMENT.oracleRegistry as Address,ROUTY_DEPLOYMENT.oracleGuard as Address,quote,target,amountIn]});
  // Slippage must stay inside the executor's own deviation bound (MAX_PRICE_DEVIATION_BPS).
- const deviation=Math.min(Number(process.env.MAX_PRICE_DEVIATION_BPS||"200"),2000);
- const slippage=Math.min(Number(process.env.MAX_SLIPPAGE_BPS||"100"),deviation);
+ const deviationRaw=Number(process.env.MAX_PRICE_DEVIATION_BPS||"200");
+ const slippageRaw=Number(process.env.MAX_SLIPPAGE_BPS||"100");
+ const deviation=Number.isFinite(deviationRaw)?Math.max(0,Math.min(Math.floor(deviationRaw),2000)):200;
+ const slippage=Number.isFinite(slippageRaw)?Math.max(0,Math.min(Math.floor(slippageRaw),deviation)):Math.min(100,deviation);
  const minOut=expected*BigInt(10_000-slippage)/10_000n;
  if(minOut===0n)return "ORACLE_QUOTE_ZERO";
  const deadline=BigInt(Math.floor(Date.now()/1000)+10*60);
