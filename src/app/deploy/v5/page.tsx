@@ -134,7 +134,7 @@ export default function V5DeploymentPage() {
       const provider = await guardedProvider();
       const transaction = buildV5Transaction(id, progress, CONFIG, DEPLOY_BYTECODE);
       const estimate = await provider.request<Hex>({method: "eth_estimateGas", params: [transaction]});
-      const gas = ("0x" + (BigInt(estimate) * 125n / 100n).toString(16)) as Hex;
+      // Robinhood Chain can consume materially more gas for contract creation than eth_estimateGas reports.\n      // Use a larger deployment buffer so large V5 factories do not fail by exhausting the exact gas limit.\n      const estimatedGas = BigInt(estimate);\n      const deployStep = !transaction.to;\n      const bufferedGas = deployStep ? estimatedGas * 250n / 100n : estimatedGas * 150n / 100n;\n      const minimumDeployGas = 3_000_000n;\n      const gasLimit = deployStep && bufferedGas < minimumDeployGas ? minimumDeployGas : bufferedGas;\n      const gas = ("0x" + gasLimit.toString(16)) as Hex;
       const hash = await provider.request<Hex>({method: "eth_sendTransaction", params: [{...transaction, gas}]});
       if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new Error("Wallet returned an invalid transaction hash.");
       const next = {...progress, [id]: {hash}};
