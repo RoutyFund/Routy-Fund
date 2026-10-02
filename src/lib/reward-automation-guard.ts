@@ -18,7 +18,7 @@ export async function rewardAutomationStatus(){
  const client=createPublicClient({chain,transport:http(rpc)});
  const [owner,keeper]=await Promise.all([
   client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationControllerV4,abi,functionName:"owner"}),
-  client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationController,abi,functionName:"keeper"}),
+  client.readContract({address:ROUTY_DEPLOYMENT.rewardAutomationControllerV4,abi,functionName:"keeper"}),
  ]);
  const account=keeperAccount();
  return {
