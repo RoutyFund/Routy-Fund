@@ -15,8 +15,13 @@ export async function GET(){
  try{
   const client=createPublicClient({chain,transport:http()});
   const latest=await client.getBlockNumber();
-  const configured=process.env.ROUTY_EVENT_START_BLOCK?BigInt(process.env.ROUTY_EVENT_START_BLOCK):null;
-  const fromBlock=configured??(latest>50000n?latest-50000n:0n);
+  const configuredRaw=process.env.ROUTY_EVENT_START_BLOCK?.trim();
+  let configured:bigint|null=null;
+  if(configuredRaw){
+   try{configured=BigInt(configuredRaw)}catch{configured=null}
+  }
+  const historyComplete=configured!==null&&configured>=0n&&configured<=latest;
+  const fromBlock=historyComplete?configured!:(latest>50000n?latest-50000n:0n);
   const logs=[];
   const chunk=10000n;
   for(let start=fromBlock;start<=latest;start+=chunk){
@@ -53,7 +58,7 @@ export async function GET(){
     transactionHash:log.transactionHash,
    };
   }));
-  return NextResponse.json({ok:true,chainId:4663,count:launches.length,scannedFrom:Number(fromBlock),scannedTo:Number(latest),launches});
+  return NextResponse.json({ok:true,chainId:4663,count:launches.length,historyComplete,scannedFrom:Number(fromBlock),scannedTo:Number(latest),launches});
  }catch(error){
   return NextResponse.json({ok:false,error:"ROUTY_LAUNCHES_UNAVAILABLE",detail:error instanceof Error?error.message:"unknown",launches:[]},{status:503});
  }
