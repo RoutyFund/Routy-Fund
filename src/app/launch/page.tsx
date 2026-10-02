@@ -60,7 +60,7 @@ export default function Launch(){
    else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
   }catch(e){setStatus(e instanceof Error?e.message:"Launch cancelled or failed.");}finally{setBusy(false)}
  }
- return <main className="shell"><Nav/><div className="wrap">
+ return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Launch on Routy</span><h1>Create your route.</h1><p className="lead">Launch through Routy with Pons infrastructure underneath. Choose the token identity, Stock Token target and community reward policy here.</p></div><span className="pill">Robinhood Chain</span></header>
   <div className="launch-form">
    <section className="form-card"><div><span className="micro">TOKEN</span><h3 style={{marginTop:8}}>Token details</h3></div>
