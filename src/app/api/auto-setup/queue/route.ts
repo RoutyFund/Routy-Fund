@@ -7,10 +7,12 @@ export const dynamic="force-dynamic";
 const SUPABASE_URL="https://hcwtwtvovdzfuugnjqyz.supabase.co";
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 
-function dbHeaders(){
+function dbHeaders():Record<string,string>{
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!key)throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
- return {apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=representation"};
+ const prefer="resolution=merge-duplicates,return=representation";
+ // New-format sb_secret_ keys are not JWTs; Supabase rejects them in the Authorization header.
+ return key.startsWith("sb_")?{apikey:key,"Content-Type":"application/json",Prefer:prefer}:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:prefer};
 }
 
 export async function POST(req:NextRequest){

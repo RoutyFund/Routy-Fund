@@ -23,10 +23,11 @@ const controllerAbi=[{type:"function",name:"setDistributorPaused",stateMutabilit
 const distributorAbi=[{type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]}] as const;
 
 type Job={id:string;token_address:string;creator_address:string;target_asset:string;target_symbol:string;reward_policy:number;status:string;attempts:number};
-function dbHeaders(){
+function dbHeaders():Record<string,string>{
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!key)throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
- return {apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json"};
+ // New-format sb_secret_ keys are not JWTs; Supabase rejects them in the Authorization header.
+ return key.startsWith("sb_")?{apikey:key,"Content-Type":"application/json"}:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json"};
 }
 async function patchJob(id:string,patch:Record<string,unknown>){
  const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{...dbHeaders(),Prefer:"return=minimal"},body:JSON.stringify({...patch,updated_at:new Date().toISOString()}),cache:"no-store"});

@@ -66,7 +66,8 @@ export async function GET(req:NextRequest){
   const holders=await snapshotTokenHolders({
    token,
    fromBlock,
-   excluded:[creator,vault,router,distributor,PONS_V2.factory,PONS_V2.feeEscrow],
+   // Protocol-owned contracts (bonding curve, pool manager, hooks, locker...) must never receive rewards.
+   excluded:[creator,vault,router,distributor,launch.curve,launch.deployer,PONS_V2.factory,PONS_V2.feeEscrow,PONS_V2.memeHook,PONS_V2.buybackVault,PONS_V2.locker,PONS_V2.launchAndBuy,PONS_V2.launchDeployer,PONS_V2.graduationExecutor,PONS_V2.graduationGuard,PONS_V2.poolManager],
    rpcUrl:rpc,
    toBlock:snapshotBlock
   });
