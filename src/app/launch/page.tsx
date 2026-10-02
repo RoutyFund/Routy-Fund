@@ -53,7 +53,7 @@ export default function Launch(){
  const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null); const[routeStatus,setRouteStatus]=useState<RouteStatus[]>([]); const[routeStatusLoaded,setRouteStatusLoaded]=useState(false);
  const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState(""); const[autoSetup,setAutoSetup]=useState<AutoSetup|null>(null); const[autoSetupEnabled,setAutoSetupEnabled]=useState(false);
  useEffect(()=>{fetch("/api/auto-setup/config").then(r=>r.json()).then(d=>setAutoSetupEnabled(Boolean(d.enabled))).catch(()=>setAutoSetupEnabled(false));fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{});fetch("/api/route-status").then(r=>r.json()).then(d=>{if(d.ok)setRouteStatus(d.routes||[])}).catch(()=>{}).finally(()=>setRouteStatusLoaded(true))},[]);
- useEffect(()=>{if(!launchedToken)return;let stopped=false;async function poll(){try{const r=await fetch("/api/auto-setup/status?token="+launchedToken,{cache:"no-store"});const d=await r.json();if(!stopped&&d.ok)setAutoSetup(d)}catch{}}poll();const id=window.setInterval(poll,5000);return()=>{stopped=true;window.clearInterval(id)}},[launchedToken]);
+ useEffect(()=>{if(!launchedToken)return;let stopped=false;async function poll(){try{const r=await fetch("/api/auto-setup/status?token="+launchedToken,{cache:"no-store"});const d=await r.json();if(!stopped&&d.ok)setAutoSetup(d)}catch{}}poll();const id=window.setInterval(poll,3000);return()=>{stopped=true;window.clearInterval(id)}},[launchedToken]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
  const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
  const verifiedTarget=Boolean(selectedRoute);
@@ -131,7 +131,7 @@ export default function Launch(){
       try{
        const queued=await fetch("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tokenAddress,creator:account,targetAsset:asset,policy:Number(policy),launchTx:hash})});
        const q=await queued.json();
-       setStatus(queued.ok&&q.ok?"Launch confirmed. Routy route setup is queued automatically.":"Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.");
+       setStatus(queued.ok&&q.ok?(q.alreadyReady?"Launch confirmed. Routy route is already ready.":"Launch confirmed. Routy route setup is queued automatically."):"Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.");
       }catch{setStatus("Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.")}
      }else setStatus("Launch confirmed. Routy automatic setup is not enabled yet; continue with provisioning.");
     }

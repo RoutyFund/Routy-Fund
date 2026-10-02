@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
-import {createPublicClient,http,isAddress,type Address,type Hex} from "viem";
+import {createPublicClient,http,isAddress,type Address} from "viem";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
@@ -28,6 +28,9 @@ export async function POST(req:NextRequest){
   if(!launch.exists)return NextResponse.json({ok:false,error:"NOT_PONS_TOKEN"},{status:400});
   if(launch.creatorFeeRecipient.toLowerCase()!==body.creator.toLowerCase())return NextResponse.json({ok:false,error:"CREATOR_MISMATCH"},{status:403});
   if(launch.pairToken.toLowerCase()!==route.quote.toLowerCase())return NextResponse.json({ok:false,error:"PAIR_MISMATCH"},{status:400});
+
+  const existing=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?select=status,target_asset,reward_policy&token_address=eq."+encodeURIComponent(body.token.toLowerCase())+"&limit=1",{headers:dbHeaders(),cache:"no-store"});
+  if(existing.ok){const rows=await existing.json() as Array<{status:string;target_asset:string;reward_policy:number}>;const current=rows[0];if(current&&current.status==="ready")return NextResponse.json({ok:true,queued:false,alreadyReady:true,token:body.token,targetSymbol:route.symbol});}
 
   const payload={
    token_address:body.token.toLowerCase(),

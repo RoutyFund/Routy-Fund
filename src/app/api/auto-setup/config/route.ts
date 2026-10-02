@@ -21,6 +21,7 @@ export async function GET(){
    supabaseServiceRoleConfigured:serviceRoleConfigured,
    cronSecretConfigured:cronSecretConfigured,
    rpcConfigured:Boolean(process.env.RPC_URL?.trim()),
+   swapExecutionRequested:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true",
    launcherV4Configured:Boolean(ROUTY_DEPLOYMENT.protocolLauncherV4),
    executorV4Configured:Boolean(ROUTY_DEPLOYMENT.swapExecutorV4),
    rewardControllerV4Configured:Boolean(ROUTY_DEPLOYMENT.rewardAutomationControllerV4)
