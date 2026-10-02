@@ -67,12 +67,14 @@ contract SwapExecutor {
     error PriceDeviation();
     error ApproveFailed();
 
+    event OwnerTransferred(address indexed previousOwner,address indexed newOwner);
     event PurchaseExecuted(address indexed vault,address indexed quoteToken,address indexed targetAsset,uint256 quoteSpent,uint256 assetReceived);
     modifier onlyOwner(){if(msg.sender!=owner) revert NotOwner();_;}
     modifier onlyLauncher(){if(msg.sender!=launcher||launcher==address(0)) revert NotLauncher();_;}
 
     constructor(address owner_){if(owner_==address(0)) revert ZeroAddress();owner=owner_;}
 
+    function transferOwnership(address next) external onlyOwner {if(next==address(0)) revert ZeroAddress();address previous=owner;owner=next;emit OwnerTransferred(previous,next);}
     function setLauncher(address launcher_) external onlyOwner {if(launcher!=address(0)) revert AlreadySet();if(launcher_==address(0)) revert ZeroAddress();launcher=launcher_;}
 
     function configureDependencies(address registry_,address guard_,address quoter_,address adapter_,uint16 deviation_) external onlyOwner {
