@@ -7,7 +7,8 @@ const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:
 const registryAbi=[{type:"function",name:"approved",stateMutability:"view",inputs:[{name:"asset",type:"address"}],outputs:[{type:"bool"}]}] as const;
 const oracleAbi=[{type:"function",name:"feedForAsset",stateMutability:"view",inputs:[{name:"asset",type:"address"}],outputs:[{type:"address"}]}] as const;
 
-export const dynamic="force-dynamic";\nexport async function GET(){
+export const dynamic="force-dynamic";
+export async function GET(){
  try{
   const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim()||chain.rpcUrls.default.http[0];
   const client=createPublicClient({chain,transport:http(rpc)});
