@@ -42,9 +42,9 @@ export default function Home(){
      <div className="terminal-window">
       <div className="terminal-window-head"><span>REWARD MODES</span><span>POLICY</span></div>
       <div className="terminal-log">
-       <p><time>00</time><span>Weighted raffle</span><b>available</b></p>
-       <p><time>01</time><span>Equal lottery</span><b>available</b></p>
-       <p><time>02</time><span>Pro-rata</span><b>available</b></p>
+       <p><time>00</time><span>Weighted raffle</span><b>policy only</b></p>
+       <p><time>01</time><span>Equal lottery</span><b>policy only</b></p>
+       <p><time>02</time><span>Pro-rata</span><b>policy only</b></p>
       </div>
      </div>
     </div>
