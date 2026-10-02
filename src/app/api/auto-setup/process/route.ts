@@ -55,10 +55,12 @@ async function handle(req:NextRequest){
   if(!q.ok){console.error("[auto-setup] QUEUE_READ_FAILED",q.status);throw new Error("QUEUE_READ_FAILED");}
   console.info("[auto-setup] QUEUE_READ_OK");
   const jobs=await q.json() as Job[];
+  console.info("[auto-setup] QUEUE_JOB_COUNT",jobs.length);
   if(!jobs.length)return NextResponse.json({ok:true,processed:false,reason:"EMPTY_QUEUE"});
   const job=jobs[0];
   const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===job.target_asset.toLowerCase());
-  if(!route||job.reward_policy<0||job.reward_policy>2)throw new Error("INVALID_QUEUED_JOB");
+  if(!route||job.reward_policy<0||job.reward_policy>2){console.error("[auto-setup] INVALID_QUEUED_JOB",{routeFound:Boolean(route),policyValid:job.reward_policy>=0&&job.reward_policy<=2});throw new Error("INVALID_QUEUED_JOB");}
+  console.info("[auto-setup] JOB_VALID");
 
   await patchJob(job.id,{status:"processing",attempts:(job.attempts||0)+1,last_error:null});
   const account=privateKeyToAccount(rawKey as Hex);
@@ -103,7 +105,9 @@ async function handle(req:NextRequest){
    return NextResponse.json({ok:false,error:"JOB_FAILED",message},{status:503});
   }
  }catch(error){
-  return NextResponse.json({ok:false,error:"PROCESSOR_UNAVAILABLE",message:error instanceof Error?error.message:"unknown"},{status:503});
+  const message=error instanceof Error?error.message:"unknown";
+  console.error("[auto-setup] PROCESSOR_UNAVAILABLE",message);
+  return NextResponse.json({ok:false,error:"PROCESSOR_UNAVAILABLE",message},{status:503});
  }
 }
 
