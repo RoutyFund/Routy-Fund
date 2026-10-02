@@ -37,7 +37,7 @@ export default function ReleasePage(){
    setData({readiness,routes,pool,config,health});
   }catch(cause){setError(cause instanceof Error?cause.message:"Could not load release status.")}
  },[]);
- useEffect(()=>{void refresh()},[refresh]);
+ useEffect(()=>{const id=window.setTimeout(()=>{void refresh()},0);return()=>window.clearTimeout(id)},[refresh]);
 
  const routeRows=data?.routes.routes??[];
  const readyRoutes=routeRows.filter(r=>r.configurationComplete===true).length;
