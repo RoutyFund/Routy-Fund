@@ -68,7 +68,7 @@ export default function ProductionRouteSetupPage(){
 
  useEffect(()=>{const t=window.setTimeout(()=>{refreshWallet().catch(()=>{});fetch("/api/route-readiness").then(r=>r.json()).then(setRouteCheck).catch(()=>setRouteCheck(null));refreshState().catch(()=>{})},0);return()=>window.clearTimeout(t)},[selectedSymbol]);
 
- return <main className="shell"><Nav/><div className="wrap">
+ return <main className="shell"><Nav/><div className="wrap console-page">
   <span className="kicker">Routy production route</span><h1 style={{fontSize:56}}>Prepare verified routes safely.</h1>
   <p className="muted">Configure AssetRegistry and oracle prerequisites for verified routes. SwapExecutor remains paused.</p>
   <div className="launch-form">
