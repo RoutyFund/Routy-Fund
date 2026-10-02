@@ -1,129 +1,83 @@
 import Nav from "@/components/Nav";
 
-const proof = [
-  ["3 routes", "Verified markets", "AAPL · TSLA · NVDA"],
-  ["80 / 20", "Routing split", "Vault / protocol treasury"],
-  ["Robinhood", "Settlement network", "Chain ID 4663"],
-  ["3 policies", "Reward modes", "Weighted · Equal · Pro-rata"],
+const markets=[
+ ["AAPL","Apple","READY","USDG","3000","60"],
+ ["TSLA","Tesla","READY","USDG","3000","60"],
+ ["NVDA","NVIDIA","READY","USDG","100","1"],
 ];
 
 export default function Home(){
-  return <main className="shell">
-    <Nav/>
-    <div className="ambient ambient-a"/>
-    <div className="ambient ambient-b"/>
-    <div className="wrap home-wrap">
-      <section className="hero premium-hero">
-        <div className="hero-copy">
-          <div className="eyebrow-row">
-            <span className="kicker"><span className="status-dot"/> Built for Robinhood Chain</span>
-            <span className="mini-proof">Onchain fee routing</span>
-          </div>
-          <h1><span>Trade.</span><span>Route.</span><span className="accent-text">Reward.</span></h1>
-          <p className="hero-lead">Routy turns creator-fee flow into transparent onchain asset acquisition and community rewards, with every route designed to be auditable from launch to distribution.</p>
-          <div className="actions">
-            <a className="primary premium-cta" href="/launch">Launch with Routy <span>↗</span></a>
-            <a className="secondary premium-cta" href="/explore">Explore protocol</a>
-          </div>
-          <div className="trust-row">
-            <span>Non-custodial routing</span><i/>
-            <span>Verified PoolKey</span><i/>
-            <span>Oracle guarded</span>
-          </div>
-        </div>
+ return <main className="shell"><Nav/><div className="wrap terminal-home">
+  <div className="terminal-commandbar"><span className="terminal-prompt">routy@fund:~$</span><span>overview --network robinhood --mode production</span><span className="terminal-cursor">█</span></div>
 
-        <div className="hero-visual">
-          <div className="route-orbit route-orbit-a"/>
-          <div className="route-orbit route-orbit-b"/>
-          <div className="premium-panel route-panel">
-            <div className="panel-head">
-              <div><span className="micro">VERIFIED ROUTES</span><h3>AAPL · TSLA · NVDA</h3></div>
-              <span className="verified-pill">Verified</span>
-            </div>
-            <div className="route-line">
-              <div className="token-disc">R</div>
-              <div className="route-track"><span/></div>
-              <div className="token-disc token-disc-light">3</div>
-            </div>
-            <div className="split-grid">
-              <div><span>Asset vault</span><strong>80%</strong></div>
-              <div><span>Treasury</span><strong>20%</strong></div>
-            </div>
-            <div className="market-strip"><span>AAPL</span><span>TSLA</span><span>NVDA</span></div>
-            <div className="panel-foot"><span className="status-dot"/> 3 verified PoolKeys · Execution remains paused for final live test</div>
-          </div>
-        </div>
-      </section>
-
-      <section className="proof-grid">
-        {proof.map(([value,label,detail])=><article className="proof-card" key={label}>
-          <span className="micro">{label}</span>
-          <strong>{value}</strong>
-          <p>{detail}</p>
-        </article>)}
-      </section>
-
-      <section className="section quick-stats">
-        <div className="section-head"><div><span className="micro">ROUTY AT A GLANCE</span><h2>Built around visible controls.</h2></div><p className="section-copy">The public interface now surfaces the important route, execution and reward primitives instead of hiding them behind protocol jargon.</p></div>
-        <div className="quick-grid">
-          <article><span>Markets</span><strong>3</strong><p>AAPL, TSLA and NVDA verified routes.</p></article>
-          <article><span>Pair</span><strong>USDG</strong><p>Consistent quote asset across current routes.</p></article>
-          <article><span>Execution</span><strong>Guarded</strong><p>Oracle, deviation and PoolKey controls.</p></article>
-          <article><span>Custody</span><strong>Wallet</strong><p>Launches are signed directly by the creator.</p></article>
-        </div>
-      </section>
-
-      <section className="section premium-section">
-        <div className="section-head">
-          <div><span className="micro">PROTOCOL DESIGN</span><h2>Infrastructure that stays legible.</h2></div>
-          <p className="section-copy">Routy separates fee capture, asset routing, execution controls and holder rewards so every step can be inspected independently.</p>
-        </div>
-        <div className="feature-grid">
-          <article className="feature-card feature-card-wide">
-            <span className="feature-index">01</span>
-            <div><span className="micro">ROUTING</span><h3>Fees move with a purpose.</h3><p>Creator-fee flow is routed into an explicit vault policy rather than disappearing into an opaque treasury path.</p></div>
-            <div className="allocation">
-              <div className="allocation-bar"><span/></div>
-              <div className="allocation-labels"><span>80% Asset vault</span><span>20% Treasury</span></div>
-            </div>
-          </article>
-          <article className="feature-card">
-            <span className="feature-index">02</span>
-            <span className="micro">EXECUTION</span>
-            <h3>Guarded by design.</h3>
-            <p>Oracle validation, deviation limits, verified PoolKey data and a pausable executor protect the value-moving path.</p>
-          </article>
-          <article className="feature-card">
-            <span className="feature-index">03</span>
-            <span className="micro">REWARDS</span>
-            <h3>Transparent distribution.</h3>
-            <p>Weighted raffle, equal lottery and pro-rata policies give communities clear reward mechanics without fabricated offchain balances.</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head compact-head">
-          <div><span className="micro">HOW ROUTY WORKS</span><h2>One route, four clear stages.</h2></div>
-        </div>
-        <div className="flow premium-flow">
-          {[
-            ["01","Launch","Create through Pons with a supported pair."],
-            ["02","Harvest","Creator fees are collected by the route."],
-            ["03","Acquire","Verified execution converts flow into the target asset."],
-            ["04","Reward","Purchased assets become transparent community rewards."],
-          ].map(([n,t,d])=><div className="flow-step" key={n}><span>{n}</span><div><b>{t}</b><p>{d}</p></div></div>)}
-        </div>
-      </section>
-
-      <section className="section closing-panel">
-        <div>
-          <span className="micro">ROUTY</span>
-          <h2>Make trading activity compound into community value.</h2>
-        </div>
-        <a className="primary premium-cta" href="/launch">Start a route <span>↗</span></a>
-      </section>
+  <section className="terminal-dashboard">
+   <div className="terminal-main">
+    <div className="terminal-window">
+     <div className="terminal-window-head"><span>MARKET ROUTES</span><span>LIVE CONFIGURATION</span></div>
+     <div className="terminal-table terminal-table-head"><span>SYMBOL</span><span>ASSET</span><span>STATUS</span><span>PAIR</span><span>FEE</span><span>TICK</span></div>
+     {markets.map(([symbol,name,status,pair,fee,tick])=><a href="/assets" className="terminal-table" key={symbol}>
+      <strong>{symbol}</strong><span>{name}</span><span className="terminal-ok">● {status}</span><span>{pair}</span><span>{fee}</span><span>{tick}</span>
+     </a>)}
     </div>
-    <footer className="footer premium-footer"><span>Routy · Robinhood Chain</span><span>Stock Tokens provide tokenized economic exposure and are not direct ownership of underlying shares.</span></footer>
-  </main>
+
+    <div className="terminal-window">
+     <div className="terminal-window-head"><span>PROTOCOL PIPELINE</span><span>ROUTY FUND</span></div>
+     <div className="terminal-pipeline">
+      <div><span>01</span><b>LAUNCH</b><small>Pons V2</small></div><i>→</i>
+      <div><span>02</span><b>HARVEST</b><small>Creator fees</small></div><i>→</i>
+      <div><span>03</span><b>ROUTE</b><small>80% / 20%</small></div><i>→</i>
+      <div><span>04</span><b>ACQUIRE</b><small>Stock Token</small></div><i>→</i>
+      <div><span>05</span><b>REWARD</b><small>Community</small></div>
+     </div>
+    </div>
+
+    <div className="terminal-grid-2">
+     <div className="terminal-window">
+      <div className="terminal-window-head"><span>EXECUTION GUARDS</span><span>SECURITY</span></div>
+      <div className="terminal-log">
+       <p><time>[OK]</time><span>AssetRegistry</span><b>3 assets approved</b></p>
+       <p><time>[OK]</time><span>OracleRegistry</span><b>feeds configured</b></p>
+       <p><time>[OK]</time><span>PoolKey verification</span><b>3 / 3 matched</b></p>
+       <p><time>[SAFE]</time><span>SwapExecutor</span><b>paused pre-live-test</b></p>
+      </div>
+     </div>
+     <div className="terminal-window">
+      <div className="terminal-window-head"><span>REWARD MODES</span><span>POLICY</span></div>
+      <div className="terminal-log">
+       <p><time>00</time><span>Weighted raffle</span><b>available</b></p>
+       <p><time>01</time><span>Equal lottery</span><b>available</b></p>
+       <p><time>02</time><span>Pro-rata</span><b>available</b></p>
+      </div>
+     </div>
+    </div>
+   </div>
+
+   <aside className="terminal-sidebar">
+    <div className="terminal-window">
+     <div className="terminal-window-head"><span>SYSTEM</span><span>PROD</span></div>
+     <div className="terminal-kpis">
+      <div><span>NETWORK</span><strong>RH 4663</strong></div>
+      <div><span>ROUTES</span><strong>3 / 3</strong></div>
+      <div><span>QUOTE</span><strong>USDG</strong></div>
+      <div><span>CUSTODY</span><strong>WALLET</strong></div>
+     </div>
+    </div>
+
+    <div className="terminal-window">
+     <div className="terminal-window-head"><span>ALLOCATION</span><span>FEES</span></div>
+     <div className="terminal-allocation"><strong>80%</strong><span>ASSET VAULT</span><div><i/></div><strong>20%</strong><span>TREASURY</span></div>
+    </div>
+
+    <div className="terminal-window terminal-actions-panel">
+     <div className="terminal-window-head"><span>QUICK ACTIONS</span><span>CMD</span></div>
+     <a href="/launch"><span>$</span> launch --new <b>↗</b></a>
+     <a href="/explore"><span>$</span> routes --explore <b>↗</b></a>
+     <a href="/portfolio"><span>$</span> wallet --portfolio <b>↗</b></a>
+     <a href="/analytics"><span>$</span> protocol --analytics <b>↗</b></a>
+    </div>
+   </aside>
+  </section>
+
+  <div className="terminal-bottomline"><span>Routy Fund / Robinhood Chain</span><span>Stock Tokens provide tokenized economic exposure and are not direct ownership of underlying shares.</span></div>
+ </div></main>
 }
