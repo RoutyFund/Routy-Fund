@@ -93,7 +93,7 @@ export default function ProductionRouteSetupPage(){
     {!quoteFeedConfigured&&<button className="primary" disabled={!authorized||!correctChain||!poolVerified||Boolean(busy)} onClick={()=>send("Configure USDG feed",ROUTY_DEPLOYMENT.oracleRegistry,encodeFunctionData({abi:oracleAbi,functionName:"setFeed",args:[route.quote,route.quoteFeed]}))}>Set USDG feed</button>}
    </div>
    <button className="secondary" onClick={()=>refreshState().catch(c=>setError(walletErrorMessage(c,"Could not refresh chain state.")))} disabled={Boolean(busy)}>Refresh on-chain status</button>
-   {complete&&<div className="notice" style={{marginTop:16}}>{route.symbol}/USDG prerequisites are complete. Automatic V5 setup attaches the PoolKey for each new vault.</div>}
+   {complete&&<div className="notice" style={{marginTop:16}}>{route.symbol}/USDG prerequisites are complete. Automatic setup attaches the PoolKey for each new vault.</div>}
    {notice&&<p className="notice">{notice}</p>}{error&&<p className="notice danger">{error}</p>}
   </section>
  </div></main>
