@@ -83,7 +83,7 @@ export default function LiveTestPage(){
   }finally{setBusy(false)}
  }
 
- useEffect(()=>{const q=new URLSearchParams(window.location.search);const t=q.get("token");if(t&&isAddress(t))setToken(t)},[]);
+ useEffect(()=>{const id=window.setTimeout(()=>{const q=new URLSearchParams(window.location.search);const t=q.get("token");if(t&&isAddress(t))setToken(t)},0);return()=>window.clearTimeout(id)},[]);
  useEffect(()=>{if(isAddress(token)&&new URLSearchParams(window.location.search).get("token")===token){const id=window.setTimeout(()=>inspect(),250);return()=>window.clearTimeout(id)}},[token]);
  const ready=Boolean(state?.tokenValid&&state.routeMatched&&state.vaultApproved&&state.poolKeyMatched&&state.executorPaused);
 
