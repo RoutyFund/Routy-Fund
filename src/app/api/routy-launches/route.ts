@@ -5,7 +5,7 @@ import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:[process.env.RPC_URL||process.env.NEXT_PUBLIC_RPC_URL||"https://rpc.mainnet.chain.robinhood.com"]}}} as const;
-const routeEvent=parseAbiItem("event RouteProvisioned(address indexed token,address indexed creator,address indexed targetAsset,address vault,address router,address quoteToken,uint8 policy)");
+const routeEvent=parseAbiItem("event RouteProvisionedV2(address indexed token,address indexed creator,address indexed targetAsset,address vault,address router,address distributor,address quoteToken,uint8 policy)");
 const erc20Abi=[
  {type:"function",name:"name",stateMutability:"view",inputs:[],outputs:[{type:"string"}]},
  {type:"function",name:"symbol",stateMutability:"view",inputs:[],outputs:[{type:"string"}]},
@@ -26,7 +26,7 @@ export async function GET(){
   const chunk=10000n;
   for(let start=fromBlock;start<=latest;start+=chunk){
    const end=start+chunk-1n>latest?latest:start+chunk-1n;
-   const part=await client.getLogs({address:ROUTY_DEPLOYMENT.protocolLauncher,event:routeEvent,fromBlock:start,toBlock:end});
+   const part=await client.getLogs({address:ROUTY_DEPLOYMENT.protocolLauncherV2,event:routeEvent,fromBlock:start,toBlock:end});
    logs.push(...part);
   }
   const launches=await Promise.all(logs.reverse().map(async log=>{
@@ -50,6 +50,7 @@ export async function GET(){
     quoteToken:log.args.quoteToken,
     vault:log.args.vault,
     router:log.args.router,
+    distributor:log.args.distributor,
     policy:Number(log.args.policy??0),
     ponsPhase:pons?Number(pons.phase):null,
     creatorTaxBps:pons?Number(pons.creatorTaxBps):null,
