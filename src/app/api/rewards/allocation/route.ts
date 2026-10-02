@@ -1,8 +1,8 @@
 import {NextRequest,NextResponse} from "next/server";
+import {currentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,encodePacked,http,isAddress,keccak256,type Address} from "viem";
 import {snapshotTokenHolders} from "@/lib/holder-snapshot";
 import {PONS_V2,factoryReadAbi,factoryLaunchAbi} from "@/lib/pons";
-import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 
 export const dynamic="force-dynamic";
 
@@ -51,7 +51,7 @@ export async function GET(req:NextRequest){
   const launch=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]});
   if(!launch.exists)return NextResponse.json({ok:false,error:"NOT_PONS_TOKEN"},{status:404});
 
-  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
+  const launcher=currentDeployment().launcher as Address;
   const route=await client.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token as Address]});
   const [creator,,,vault,router,distributor,policy]=route;
   if(vault===ZERO||distributor===ZERO)return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});

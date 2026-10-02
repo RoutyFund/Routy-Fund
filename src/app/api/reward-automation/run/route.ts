@@ -1,4 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
+import {currentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,createWalletClient,http,isAddress,type Address,type PublicClient} from "viem";
 import {rewardAutomationStatus,keeperAccount} from "@/lib/reward-automation-guard";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
@@ -59,7 +60,7 @@ function reason(error:unknown){
 
 // Executes SwapExecutor.execute for what the vault has earned, bounded by the oracle price and slippage.
 async function swapEarned(publicClient:PublicClient,walletClient:Wallet,account:Keeper,vault:Address){
- const executor=(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4) as Address;
+ const executor=currentDeployment().executor as Address;
  const [available,quote,target,executorPaused]=await Promise.all([
   publicClient.readContract({address:vault,abi:vaultAbi,functionName:"availableEarned"}),
   publicClient.readContract({address:vault,abi:vaultAbi,functionName:"quoteToken"}),
@@ -107,7 +108,7 @@ async function handle(req:NextRequest){
   if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
   const publicClient=createPublicClient({chain,transport:http(rpc)}) as PublicClient;
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
-  const controller=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4) as Address;
+  const controller=currentDeployment().controller as Address;
   const swapEnabled=process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true";
 
   const single=req.nextUrl.searchParams.get("token");
@@ -119,7 +120,7 @@ async function handle(req:NextRequest){
    if(Date.now()-started>TIME_BUDGET_MS)break;
    const out:TokenResult={token,harvest:"skipped",distribution:"skipped"};
    try{
-    const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
+    const launcher=currentDeployment().launcher as Address;
     const route=await publicClient.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token]});
     const [,,,vault,router,distributor]=route;
     if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);if(!single)await touchReadyToken(token);continue}

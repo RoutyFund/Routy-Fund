@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
+import {currentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,http,parseAbiItem,type Address} from "viem";
-import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 
@@ -16,7 +16,7 @@ export async function GET(){
   const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim();
   if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING",launches:[]},{status:503});
   const client=createPublicClient({chain,transport:http(rpc)});
-  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
+  const launcher=currentDeployment().launcher as Address;
   const latest=await client.getBlockNumber();
   const configuredRaw=process.env.ROUTY_EVENT_START_BLOCK?.trim();
   let configured:bigint|null=null;

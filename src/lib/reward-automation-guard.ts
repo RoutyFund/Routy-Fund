@@ -1,6 +1,6 @@
 import {createPublicClient,http,type Hex} from "viem";
+import {currentDeployment} from "@/lib/active-deployment";
 import {privateKeyToAccount} from "viem/accounts";
-import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 const abi=[
@@ -17,7 +17,7 @@ export async function rewardAutomationStatus(){
  const rpc=process.env.RPC_URL?.trim();
  if(!rpc)throw new Error("RPC_URL_MISSING");
  const client=createPublicClient({chain,transport:http(rpc)});
- const controller=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4) as `0x${string}`;
+ const controller=currentDeployment().controller as `0x${string}`;
  const [owner,keeper]=await Promise.all([
   client.readContract({address:controller,abi,functionName:"owner"}),
   client.readContract({address:controller,abi,functionName:"keeper"}),
