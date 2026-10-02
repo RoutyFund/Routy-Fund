@@ -1,4 +1,5 @@
 import Nav from "@/components/Nav";
+import TokenLogo from "@/components/TokenLogo";
 
 const markets=[
  ["AAPL","Apple","READY","USDG","3000","60"],
@@ -16,7 +17,7 @@ export default function Home(){
      <div className="terminal-window-head"><span>MARKET ROUTES</span><span>LIVE CONFIGURATION</span></div>
      <div className="terminal-table terminal-table-head"><span>SYMBOL</span><span>ASSET</span><span>STATUS</span><span>PAIR</span><span>FEE</span><span>TICK</span></div>
      {markets.map(([symbol,name,status,pair,fee,tick])=><a href="/assets" className="terminal-table" key={symbol}>
-      <strong>{symbol}</strong><span>{name}</span><span className="terminal-ok">● {status}</span><span>{pair}</span><span>{fee}</span><span>{tick}</span>
+      <strong className="terminal-market-symbol"><TokenLogo src={"/api/company-logo?symbol="+symbol} symbol={symbol} size={30}/><span>{symbol}</span></strong><span>{name}</span><span className="terminal-ok">● {status}</span><span>{pair}</span><span>{fee}</span><span>{tick}</span>
      </a>)}
     </div>
 
