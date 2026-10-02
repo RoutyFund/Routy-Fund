@@ -56,8 +56,13 @@ export default function Launch(){
  const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
  const verifiedTarget=Boolean(selectedRoute);
  const routeConfigured=Boolean(routeStatusLoaded&&selectedRoute&&routeStatus.find(s=>s.symbol===selectedRoute.symbol)?.configurationComplete);
- const valid=name.trim()&&symbol.trim()&&description.trim()&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
- function file(e:React.ChangeEvent<HTMLInputElement>){const f=e.target.files?.[0];if(!f)return; if(f.size>500000){setStatus("Logo must be under 500 KB.");return} const r=new FileReader();r.onload=()=>setLogo(String(r.result||""));r.readAsDataURL(f)}
+ const valid=name.trim()&&symbol.trim()&&description.trim()&&logo.length<=512&&description.length<=2048&&x.length<=256&&website.length<=256&&telegram.length<=256&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
+ function file(e:React.ChangeEvent<HTMLInputElement>){
+  const f=e.target.files?.[0];
+  if(!f)return;
+  setLogo("");
+  setStatus("Pons V2 stores only a short logo URI on-chain. Direct image uploads are disabled until Routy uploads the image to storage and passes a URI.");
+ }
  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- injected wallets expose receipt payloads without a stable TS type.
  async function waitReceipt(hash:string,provider:ReturnType<typeof getInjectedProvider>){if(!provider)return null;for(let i=0;i<40;i++){const r=await provider.request<any>({method:"eth_getTransactionReceipt",params:[hash]});if(r)return r;await new Promise(x=>setTimeout(x,1500))}return null}
  async function launch(){
@@ -131,8 +136,8 @@ export default function Launch(){
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Launch on Routy</span><h1>Create your route.</h1><p className="lead">Launch through Routy with Pons infrastructure underneath. Choose the token identity, Stock Token target and community reward policy here.</p></div><span className="pill">Robinhood Chain</span></header>
   <div className="launch-form">
    <section className="form-card"><div><span className="micro">TOKEN</span><h3 style={{marginTop:8}}>Token details</h3></div>
-    <label>Logo<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={file}/></label>
-    {logo&&<img src={logo} alt="Token preview" style={{width:64,height:64,borderRadius:14,objectFit:"cover",border:"1px solid var(--line)"}}/>}
+    <label>Logo URI<input value={logo} onChange={e=>setLogo(e.target.value)} placeholder="https://... or ipfs://..." maxLength={512}/></label>
+    <p className="muted" style={{fontSize:11,marginTop:-8}}>Pons V2 limits the on-chain logo field to 512 bytes. Use a short HTTPS or IPFS URI, not base64 image data.</p>
     <label>Name<input value={name} onChange={e=>setName(e.target.value)} placeholder="Token name"/></label>
     <label>Ticker<input value={symbol} onChange={e=>setSymbol(e.target.value)} placeholder="Ticker" maxLength={16}/></label>
     <label>Description<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Tell the community what this launch is about."/></label>
