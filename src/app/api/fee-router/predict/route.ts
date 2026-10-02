@@ -1,3 +1,4 @@
+import {publicErrorMessage} from "@/lib/public-error";
 import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,http,isAddress,type Address,type Hex} from "viem";
 import {requireCurrentDeployment} from "@/lib/active-deployment";
@@ -18,5 +19,5 @@ export async function POST(req:NextRequest){
   const client=createPublicClient({chain,transport:http(rpc)});
   const router=await client.readContract({address:factory as Address,abi:factoryAbi,functionName:"predictRouter",args:[body.creator as Address,body.salt as Hex]});
   return NextResponse.json({ok:true,router,salt:body.salt});
- }catch(error){return NextResponse.json({ok:false,error:"ROUTER_PREDICTION_FAILED",message:error instanceof Error?error.message:"unknown"},{status:503})}
+ }catch(error){return NextResponse.json({ok:false,error:"ROUTER_PREDICTION_FAILED",message:publicErrorMessage(error)},{status:503})}
 }

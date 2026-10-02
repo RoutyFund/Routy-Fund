@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {requireCurrentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,createWalletClient,http,isAddress,type Address,type PublicClient} from "viem";
 import {rewardAutomationStatus,keeperAccount} from "@/lib/reward-automation-guard";
+import {readRewardPlan,unpaidRewardRows,type RewardPlan} from "@/lib/reward-plan";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 
 export const dynamic="force-dynamic";
@@ -26,7 +27,10 @@ const executorAbi=[
 ] as const;
 const quoterAbi=[{type:"function",name:"expectedOut",stateMutability:"view",inputs:[{name:"registry",type:"address"},{name:"guard",type:"address"},{name:"quote",type:"address"},{name:"target",type:"address"},{name:"amountIn",type:"uint256"}],outputs:[{type:"uint256"}]}] as const;
 const controllerAbi=[{type:"function",name:"distribute",stateMutability:"nonpayable",inputs:[{name:"distributor",type:"address"},{name:"accounts",type:"address[]"},{name:"cumulativeAmounts",type:"uint256[]"}],outputs:[]}] as const;
-const distributorAbi=[{type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]}] as const;
+const distributorAbi=[
+ {type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]},
+ {type:"function",name:"distributedTo",stateMutability:"view",inputs:[{type:"address"}],outputs:[{type:"uint256"}]},
+] as const;
 
 type TokenResult={token:string;harvest:string;swap?:string;distribution:string;batches?:number;recipients?:number;amount?:string;error?:string};
 type Wallet=ReturnType<typeof createWalletClient>;
@@ -44,14 +48,27 @@ async function readyTokens():Promise<Address[]>{
  const rows=await r.json() as {token_address:string}[];
  return rows.map(x=>x.token_address).filter(a=>isAddress(a)) as Address[];
 }
-async function touchReadyToken(token:Address){
- const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?token_address=eq."+encodeURIComponent(token),{
-  method:"PATCH",
-  headers:{...dbHeaders(),"Content-Type":"application/json",Prefer:"return=minimal"},
-  body:JSON.stringify({updated_at:new Date().toISOString()}),
-  cache:"no-store"
+type RewardJob={token_address:string;reward_plan:unknown;reward_lease_until:string};
+async function claimRewardToken(token:Address):Promise<RewardJob|null>{
+ const now=new Date().toISOString();
+ const lease=new Date(Date.now()+120_000).toISOString();
+ const filter="?token_address=eq."+encodeURIComponent(token.toLowerCase())+"&status=eq.ready&or="+encodeURIComponent("(reward_lease_until.is.null,reward_lease_until.lt."+now+")");
+ const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue"+filter,{
+  method:"PATCH",headers:{...dbHeaders(),"Content-Type":"application/json",Prefer:"return=representation"},
+  body:JSON.stringify({reward_lease_until:lease,updated_at:now}),cache:"no-store"
  });
- if(!r.ok)console.error("[reward-automation] ROTATION_TOUCH_FAILED",token,r.status);
+ if(!r.ok)throw new Error("REWARD_LEASE_FAILED_"+r.status);
+ const rows=await r.json() as RewardJob[];
+ return rows[0]||null;
+}
+async function patchRewardJob(token:Address,lease:string,patch:Record<string,unknown>){
+ const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?token_address=eq."+encodeURIComponent(token.toLowerCase())+"&reward_lease_until=eq."+encodeURIComponent(lease),{
+  method:"PATCH",headers:{...dbHeaders(),"Content-Type":"application/json",Prefer:"return=representation"},
+  body:JSON.stringify({...patch,updated_at:new Date().toISOString()}),cache:"no-store"
+ });
+ if(!r.ok)throw new Error("REWARD_CHECKPOINT_WRITE_FAILED_"+r.status);
+ const rows=await r.json() as RewardJob[];
+ if(rows.length!==1)throw new Error("REWARD_LEASE_LOST");
 }
 function reason(error:unknown){
  const e=error as {shortMessage?:string;message?:string};
@@ -121,11 +138,15 @@ async function handle(req:NextRequest){
   for(const token of tokens){
    if(Date.now()-started>TIME_BUDGET_MS)break;
    const out:TokenResult={token,harvest:"skipped",distribution:"skipped"};
+   let lease:string|null=null;
    try{
+    const job=await claimRewardToken(token);
+    if(!job){out.distribution="BUSY_OR_NOT_READY";results.push(out);continue}
+    lease=job.reward_lease_until;
     const launcher=requireCurrentDeployment().launcher as Address;
     const route=await publicClient.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token]});
     const [,,,vault,router,distributor]=route;
-    if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);if(!single)await touchReadyToken(token);continue}
+    if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);continue}
 
     // 1. Harvest creator fees (permissionless).
     try{
@@ -145,32 +166,48 @@ async function handle(req:NextRequest){
 
     // 3. Distribute whatever the distributor holds, using the allocation endpoint as the single source of truth.
     const paused=await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"paused"}).catch(()=>null);
-    if(paused===null){out.distribution="DISTRIBUTOR_STATUS_UNAVAILABLE";results.push(out);if(!single)await touchReadyToken(token);continue}
-    if(paused){out.distribution="DISTRIBUTOR_PAUSED";results.push(out);if(!single)await touchReadyToken(token);continue}
-    const allocationUrl=new URL("/api/rewards/allocation",req.url);allocationUrl.searchParams.set("token",token);
-    const allocationRes=await fetch(allocationUrl,{cache:"no-store"});
-    const allocation=await allocationRes.json();
-    if(!allocationRes.ok||!allocation.ok){out.distribution="ALLOCATION_UNAVAILABLE";out.error=String(allocation?.error||allocationRes.status);results.push(out);if(!single)await touchReadyToken(token);continue}
-    if(!allocation.batches?.length){out.distribution=allocation.reason||"NO_REWARDS";results.push(out);if(!single)await touchReadyToken(token);continue}
-
+    if(paused===null){out.distribution="DISTRIBUTOR_STATUS_UNAVAILABLE";results.push(out);continue}
+    if(paused){out.distribution="DISTRIBUTOR_PAUSED";results.push(out);continue}
+    let plan=readRewardPlan(job.reward_plan,{token,distributor,controller});
+    if(!plan){
+     const allocationUrl=new URL("/api/rewards/allocation",req.url);allocationUrl.searchParams.set("token",token);
+     const allocationRes=await fetch(allocationUrl,{cache:"no-store"});
+     const allocation=await allocationRes.json();
+     if(!allocationRes.ok||!allocation.ok){out.distribution="ALLOCATION_UNAVAILABLE";out.error=String(allocation?.error||allocationRes.status);results.push(out);continue}
+     if(!allocation.allocations?.length){out.distribution=allocation.reason||"NO_REWARDS";results.push(out);continue}
+     plan=readRewardPlan({version:1,token,distributor,controller,snapshotBlock:allocation.snapshotBlock,fundedBalance:allocation.fundedBalance,allocations:allocation.allocations},{token,distributor,controller}) as RewardPlan;
+     // Durable before the first transaction: retries keep the original snapshot and targets.
+     await patchRewardJob(token,lease,{reward_plan:plan});
+    }
     let recipients=0;
-    for(const batch of allocation.batches as {accounts:Address[];cumulativeAmounts:string[]}[]){
-     if(Date.now()-started>TIME_BUDGET_MS){out.distribution="TIME_BUDGET_EXCEEDED";break}
-     const {request}=await publicClient.simulateContract({account,address:controller,abi:controllerAbi,functionName:"distribute",args:[allocation.distributor as Address,batch.accounts,batch.cumulativeAmounts.map(x=>BigInt(x))]});
+    let interrupted=false;
+    for(let index=0;index<plan.allocations.length;index+=200){
+     if(Date.now()-started>TIME_BUDGET_MS){out.distribution="TIME_BUDGET_EXCEEDED";interrupted=true;break}
+     const batch=plan.allocations.slice(index,index+200);
+     const balances=await Promise.all(batch.map(async row=>[
+      row.address.toLowerCase(),await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"distributedTo",args:[row.address]})
+     ] as const));
+     const unpaid=unpaidRewardRows({...plan,allocations:batch},new Map(balances));
+     if(!unpaid.length)continue;
+     const {request}=await publicClient.simulateContract({account,address:controller,abi:controllerAbi,functionName:"distribute",args:[distributor,unpaid.map(row=>row.address),unpaid.map(row=>BigInt(row.cumulativeAmount))]});
      const hash=await walletClient.writeContract(request);
-     const receipt=await publicClient.waitForTransactionReceipt({hash});
+     const receipt=await publicClient.waitForTransactionReceipt({hash,timeout:20_000});
      if(receipt.status!=="success")throw new Error("DISTRIBUTE_REVERTED "+hash);
-     recipients+=batch.accounts.length;
+     recipients+=unpaid.length;
      out.batches=(out.batches??0)+1;
     }
     out.recipients=recipients;
-    out.amount=String(allocation.fundedBalance);
-    if(out.distribution==="skipped")out.distribution="distributed";
+    out.amount=plan.fundedBalance;
+    if(!interrupted){
+     await patchRewardJob(token,lease,{reward_plan:null});
+     out.distribution="distributed";
+    }
    }catch(error){
     out.error=reason(error);
+   }finally{
+    if(lease)await patchRewardJob(token,lease,{reward_lease_until:null}).catch(error=>{console.error("[reward-automation] LEASE_RELEASE_FAILED",reason(error))});
    }
    results.push(out);
-   if(!single)await touchReadyToken(token);
   }
   return NextResponse.json({ok:true,keeper:account.address,processed:results.length,results});
  }catch(error){

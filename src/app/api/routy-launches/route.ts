@@ -1,3 +1,5 @@
+import {publicErrorMessage} from "@/lib/public-error";
+import {contractCreationBlock} from "@/lib/contract-history";
 import {NextResponse} from "next/server";
 import {requireCurrentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,http,parseAbiItem,type Address} from "viem";
@@ -22,14 +24,8 @@ export async function GET(){
   const launcher=deployment.launcher as Address;
   const routeEvent=deployment.version==="V5"?routeEventV5:routeEventV4;
   const latest=await client.getBlockNumber();
-  const configuredRaw=process.env.ROUTY_EVENT_START_BLOCK?.trim();
-  let configured:bigint|null=null;
-  if(configuredRaw){
-   try{configured=BigInt(configuredRaw)}catch{configured=null}
-  }
-  const historyComplete=configured!==null&&configured>=0n&&configured<=latest;
-  const fallbackWindow=500000n;
-  const fromBlock=historyComplete?configured!:(latest>fallbackWindow?latest-fallbackWindow:0n);
+  const fromBlock=await contractCreationBlock(client,launcher,latest);
+  const historyComplete=true;
   const logs=[];
   const chunk=10000n;
   for(let start=fromBlock;start<=latest;start+=chunk){
@@ -64,12 +60,12 @@ export async function GET(){
     creatorTaxBps:pons?Number(pons.creatorTaxBps):null,
     createdAt:block?Number(block.timestamp):null,
     blockNumber:Number(log.blockNumber),
-    launchBlock:Number(log.blockNumber),
+    provisionBlock:Number(log.blockNumber),
     transactionHash:log.transactionHash,
    };
   }));
   return NextResponse.json({ok:true,chainId:4663,generation:deployment.version.toLowerCase(),launcher,count:launches.length,historyComplete,scannedFrom:Number(fromBlock),scannedTo:Number(latest),launches});
  }catch(error){
-  return NextResponse.json({ok:false,error:"ROUTY_LAUNCHES_UNAVAILABLE",detail:error instanceof Error?error.message:"unknown",launches:[]},{status:503});
+  return NextResponse.json({ok:false,error:"ROUTY_LAUNCHES_UNAVAILABLE",detail:publicErrorMessage(error),launches:[]},{status:503});
  }
 }

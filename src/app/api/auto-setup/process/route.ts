@@ -1,3 +1,4 @@
+import {publicErrorMessage} from "@/lib/public-error";
 import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,createWalletClient,http,isAddress,type Address,type Hex} from "viem";
 import {privateKeyToAccount} from "viem/accounts";
@@ -153,12 +154,12 @@ async function handle(req:NextRequest){
    await patchJob(job.id,{status:"ready",provisioned:true,pool_key_configured:true,rewards_active:true,vault_address:vault,router_address:router,distributor_address:distributor,last_error:null});
    return NextResponse.json({ok:true,processed:true,token:job.token_address,status:"ready"});
   }catch(error){
-   const message=error instanceof Error?error.message:"unknown";
+   const message=publicErrorMessage(error);
    await patchJob(job.id,{status:"queued",last_error:message});
    return NextResponse.json({ok:false,error:"JOB_FAILED",message},{status:503});
   }
  }catch(error){
-  const message=error instanceof Error?error.message:"unknown";
+  const message=publicErrorMessage(error);
   console.error("[auto-setup] PROCESSOR_UNAVAILABLE",message);
   return NextResponse.json({ok:false,error:"PROCESSOR_UNAVAILABLE",message},{status:503});
  }

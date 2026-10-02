@@ -18,6 +18,6 @@ export async function GET(){
  return NextResponse.json({
   chainId:4663,
   pons:{factory:PONS_V2.factory,feeEscrow:PONS_V2.feeEscrow,launchAndBuy:PONS_V2.launchAndBuy,poolManager:PONS_V2.poolManager},
-  routy:{...protocolReadiness(),deployment:ROUTY_DEPLOYMENT,activeDeployment:deployment,...ROUTY_RELEASE_STATE,rpcConfigured:Boolean(rpc),effectiveSwapExecutor:executor,swapExecutionEnabled:paused===false,swapExecutorPaused:paused}
+  routy:{...protocolReadiness(),deployment:{...ROUTY_DEPLOYMENT,protocolLauncher:deployment.launcher,swapExecutor:deployment.executor,rewardAutomationController:deployment.controller,feeRouterFactory:deployment.routerFactory,assetVaultFactory:deployment.version==="V5"?process.env.ROUTY_ASSET_VAULT_FACTORY_V5_ADDRESS:ROUTY_DEPLOYMENT.assetVaultFactoryV4,rewardDistributorFactory:deployment.version==="V5"?process.env.ROUTY_REWARD_DISTRIBUTOR_FACTORY_V5_ADDRESS:ROUTY_DEPLOYMENT.rewardDistributorFactoryV4},activeDeployment:deployment,...ROUTY_RELEASE_STATE,rpcConfigured:Boolean(rpc),effectiveSwapExecutor:executor,swapExecutionRequested:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true",swapExecutionEnabled:paused===false,swapExecutorPaused:paused}
  });
 }

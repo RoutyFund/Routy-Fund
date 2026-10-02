@@ -1,3 +1,4 @@
+import {publicErrorMessage} from "@/lib/public-error";
 import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,http,isAddress,type Address,type Hex} from "viem";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
@@ -62,6 +63,6 @@ export async function POST(req:NextRequest){
   if(!Array.isArray(data))return NextResponse.json({ok:false,error:"QUEUE_RESPONSE_INVALID"},{status:503});
   return NextResponse.json({ok:true,queued:data.length>0,alreadyQueued:data.length===0,token:body.token,targetSymbol:route.symbol});
  }catch(error){
-  return NextResponse.json({ok:false,error:"QUEUE_UNAVAILABLE",message:error instanceof Error?error.message:"unknown"},{status:503});
+  return NextResponse.json({ok:false,error:"QUEUE_UNAVAILABLE",message:publicErrorMessage(error)},{status:503});
  }
 }

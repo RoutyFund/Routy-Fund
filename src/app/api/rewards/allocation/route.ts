@@ -1,8 +1,10 @@
+import {publicErrorMessage} from "@/lib/public-error";
+import {contractCreationBlock} from "@/lib/contract-history";
 import {NextRequest,NextResponse} from "next/server";
 import {requireCurrentDeployment} from "@/lib/active-deployment";
 import {createPublicClient,encodePacked,http,isAddress,keccak256,type Address} from "viem";
 import {snapshotTokenHolders} from "@/lib/holder-snapshot";
-import {PONS_V2,factoryReadAbi,factoryLaunchAbi} from "@/lib/pons";
+import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 
 export const dynamic="force-dynamic";
 
@@ -56,15 +58,17 @@ export async function GET(req:NextRequest){
   const [creator,,,vault,router,distributor,policy]=route;
   if(vault===ZERO||distributor===ZERO)return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
 
+  const [fundedBalance,batchNonce]=await Promise.all([
+   client.readContract({address:distributor,abi:distributorAbi,functionName:"fundedBalance"}),
+   client.readContract({address:distributor,abi:distributorAbi,functionName:"batchNonce"})
+  ]);
+  if(fundedBalance===0n)return NextResponse.json({ok:true,token,policy:Number(policy),fundedBalance:"0",allocations:[],batches:[],reason:"NO_FUNDED_REWARDS"});
+
   // Pin one finalized-ish block for both holder reconstruction and raffle seed.
   const head=await client.getBlock({blockTag:"latest"});
   const snapshotBlock=head.number>2n?head.number-2n:head.number;
   const latest=await client.getBlock({blockNumber:snapshotBlock});
-  const launchEvent=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched");
-  if(!launchEvent)throw new Error("PONS_LAUNCH_EVENT_ABI_MISSING");
-  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:snapshotBlock}).catch(()=>[]);
-  const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
-  const fromBlock=launchBlock??(latest.number>500_000n?latest.number-500_000n:0n);
+  const fromBlock=await contractCreationBlock(client,token as Address,snapshotBlock);
   const holders=await snapshotTokenHolders({
    token,
    fromBlock,
@@ -73,13 +77,7 @@ export async function GET(req:NextRequest){
    rpcUrl:rpc,
    toBlock:snapshotBlock
   });
-  if(!holders.length)return NextResponse.json({ok:true,token,policy:Number(policy),fundedBalance:"0",allocations:[],batches:[],reason:"NO_ELIGIBLE_HOLDERS"});
-
-  const [fundedBalance,batchNonce]=await Promise.all([
-   client.readContract({address:distributor,abi:distributorAbi,functionName:"fundedBalance"}),
-   client.readContract({address:distributor,abi:distributorAbi,functionName:"batchNonce"})
-  ]);
-  if(fundedBalance===0n)return NextResponse.json({ok:true,token,policy:Number(policy),fundedBalance:"0",allocations:[],batches:[],reason:"NO_FUNDED_REWARDS"});
+  if(!holders.length)return NextResponse.json({ok:true,token,policy:Number(policy),fundedBalance:fundedBalance.toString(),allocations:[],batches:[],reason:"NO_ELIGIBLE_HOLDERS"});
 
   const anchorHash=latest.hash;
   if(!anchorHash)throw new Error("SNAPSHOT_BLOCK_HASH_MISSING");
@@ -121,6 +119,6 @@ export async function GET(req:NextRequest){
    batches
   });
  }catch(error){
-  return NextResponse.json({ok:false,error:"ALLOCATION_FAILED",message:error instanceof Error?error.message:"unknown"},{status:503});
+  return NextResponse.json({ok:false,error:"ALLOCATION_FAILED",message:publicErrorMessage(error)},{status:503});
  }
 }

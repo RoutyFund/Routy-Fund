@@ -1,8 +1,10 @@
+import {publicErrorMessage} from "@/lib/public-error";
+import {contractCreationBlock} from "@/lib/contract-history";
 import {NextRequest,NextResponse} from "next/server";
 import {requireCurrentDeployment} from "@/lib/active-deployment";
 import {isAddress} from "viem";
 import {snapshotTokenHolders} from "@/lib/holder-snapshot";
-import {PONS_V2,factoryReadAbi,factoryLaunchAbi} from "@/lib/pons";
+import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 import {createPublicClient,http,type Address} from "viem";
 
 export const dynamic="force-dynamic";
@@ -24,15 +26,11 @@ export async function GET(req:NextRequest){
   if(vault==="0x0000000000000000000000000000000000000000")return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
   const block=await client.getBlock({blockTag:"latest"});
   const snapshotBlock=block.number>2n?block.number-2n:block.number;
-  const launchEvent=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched");
-  if(!launchEvent)throw new Error("PONS_LAUNCH_EVENT_ABI_MISSING");
-  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:snapshotBlock});
-  const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
-  const fromBlock=launchBlock??(snapshotBlock>500_000n?snapshotBlock-500_000n:0n);
+  const fromBlock=await contractCreationBlock(client,token as Address,snapshotBlock);
   const holders=await snapshotTokenHolders({token,fromBlock,toBlock:snapshotBlock,excluded:[creator,vault,router,distributor,launch.curve,launch.deployer,PONS_V2.factory,PONS_V2.feeEscrow,PONS_V2.memeHook,PONS_V2.buybackVault,PONS_V2.locker,PONS_V2.launchAndBuy,PONS_V2.launchDeployer,PONS_V2.graduationExecutor,PONS_V2.graduationGuard,PONS_V2.poolManager],rpcUrl:rpc});
   const total=holders.reduce((n,h)=>n+h.balance,0n);
   return NextResponse.json({ok:true,token,policy:Number(policy),createdAt:Number(createdAt),snapshotBlock:snapshotBlock.toString(),snapshotFromBlock:fromBlock.toString(),holderCount:holders.length,totalEligibleBalance:total.toString(),holders:holders.map(h=>({address:h.address,balance:h.balance.toString()}))});
  }catch(error){
-  return NextResponse.json({ok:false,error:"SNAPSHOT_FAILED",message:error instanceof Error?error.message:"unknown"},{status:503});
+  return NextResponse.json({ok:false,error:"SNAPSHOT_FAILED",message:publicErrorMessage(error)},{status:503});
  }
 }
