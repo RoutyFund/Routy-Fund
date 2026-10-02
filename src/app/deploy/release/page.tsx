@@ -49,7 +49,7 @@ export default function ReleasePage(){
  const loaded=Boolean(data);
  const allStatic=infra&&protocol&&readyRoutes===3&&matchedPools===3&&!swapEnabled;
 
- return <main className="shell"><Nav/><div className="wrap">
+ return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Operator release console</span><h1>Release status.</h1><p className="lead">One screen for infrastructure, route setup, PoolKey verification and the final live-test gate.</p></div><button className="secondary" onClick={()=>void refresh()}>Refresh status</button></header>
   <div className="proof-grid">
    <article className="proof-card"><span className="micro">INFRASTRUCTURE</span><strong>{!loaded?"Checking…":infra?"Ready":"Blocked"}</strong><p>Environment + deployment checks</p></article>
