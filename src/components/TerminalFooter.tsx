@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
 export default function TerminalFooter(){
  const year=new Date().getUTCFullYear();
@@ -6,11 +7,11 @@ export default function TerminalFooter(){
   <div className="terminal-footer-cta">
    <div className="terminal-footer-prompt"><span>routy@fund:~$</span><b>start --route</b><i>█</i></div>
    <div className="terminal-footer-copy">
-    <div><span className="micro">ROUTY FUND</span><h2>Route creator fees into verified markets.</h2><p>Launch through Pons, provision a Routy vault, and route activity toward verified Stock Token markets on Robinhood Chain.</p></div>
+    <div><span className="micro">ROUTY FUND</span><h2>Route creator fees into verified markets.</h2><p>Launch through Routy. Automatic V5 setup connects creator fees to the selected Stock Token market and holder reward policy.</p></div>
     <div className="terminal-footer-actions"><Link className="primary" href="/launch">+ Launch route</Link><Link className="secondary" href="/explore">Explore Routy</Link></div>
    </div>
    <div className="terminal-footer-stats">
-    <div><span>NETWORK</span><b>RH 4663</b></div><div><span>MARKETS</span><b>3 VERIFIED</b></div><div><span>QUOTE</span><b>USDG</b></div><div><span>CUSTODY</span><b>NON-CUSTODIAL</b></div>
+    <div><span>NETWORK</span><b>RH 4663</b></div><div><span>MARKETS</span><b>{EXECUTABLE_ROUTES.length} VERIFIED</b></div><div><span>QUOTE</span><b>USDG</b></div><div><span>CUSTODY</span><b>NON-CUSTODIAL</b></div>
    </div>
   </div>
   <div className="terminal-footer-main">
@@ -24,7 +25,7 @@ export default function TerminalFooter(){
   <div className="terminal-footer-bottom">
    <span>© {year} Routy Fund</span>
    <span>Stock Tokens provide tokenized economic exposure and are not direct ownership of underlying shares.</span>
-   <span className="terminal-footer-live"><i/> RH CHAIN ONLINE</span>
+   <span className="terminal-footer-live"><i/> RH CHAIN 4663</span>
   </div>
  </footer>
 }

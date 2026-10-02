@@ -1,3 +1,4 @@
+import {publicErrorMessage} from "@/lib/public-error";
 import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,http,isAddress,type Address} from "viem";
 import {requireCurrentDeployment} from "@/lib/active-deployment";
@@ -22,6 +23,7 @@ const launcherAbi=[
  ]},
 ] as const;
 const executorAbi=[
+ {type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]},
  {type:"function",name:"poolKeyForVault",stateMutability:"view",inputs:[{name:"vault",type:"address"}],outputs:[
   {name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},
   {name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}
@@ -68,15 +70,16 @@ export async function GET(request:NextRequest){
 
   const paused=await client.readContract({address:distributor,abi:distributorAbi,functionName:"paused"});
   const rewardsActive=!paused;
-  const ready=Boolean(expected&&poolKeyConfigured&&rewardsActive);
-  const stage=!poolKeyConfigured?"poolkey":!rewardsActive?"rewards":"ready";
+  const executorPaused=await client.readContract({address:executor,abi:executorAbi,functionName:"paused"});
+  const ready=Boolean(expected&&poolKeyConfigured&&rewardsActive&&!executorPaused);
+  const stage=!poolKeyConfigured?"poolkey":!rewardsActive?"rewards":executorPaused?"execution":"ready";
 
   return NextResponse.json({
-   ok:true,stage,launched:true,provisioned:true,poolKeyConfigured,rewardsActive,ready,
+   ok:true,stage,launched:true,provisioned:true,poolKeyConfigured,rewardsActive,executorPaused,ready,
    creator,targetAsset,quoteToken,vault,router,distributor,policy:Number(policy),
    symbol:expected?.symbol??null
   });
  }catch(error){
-  return NextResponse.json({ok:false,error:"AUTO_SETUP_STATUS_FAILED",message:error instanceof Error?error.message:"unknown"},{status:503});
+  return NextResponse.json({ok:false,error:"AUTO_SETUP_STATUS_FAILED",message:publicErrorMessage(error)},{status:503});
  }
 }

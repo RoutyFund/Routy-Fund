@@ -8,6 +8,8 @@ export function GET(){
     infrastructureReady:infrastructureReady(checks),
     blockers:blockers(checks),
     checks,
+    scope:"deployment-and-worker-configuration",
+    executionStatusUrl:"/api/config",
     chainId:4663
   });
 }

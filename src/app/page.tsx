@@ -2,7 +2,7 @@ import Nav from "@/components/Nav";
 import TokenLogo from "@/components/TokenLogo";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
-const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"READY",r.quoteSymbol,String(r.poolKey.fee),String(r.poolKey.tickSpacing)]);
+const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"VERIFIED",r.quoteSymbol,String(r.poolKey.fee),String(r.poolKey.tickSpacing)]);
 
 export default function Home(){
  return <main className="shell"><Nav/><div className="wrap terminal-home">
@@ -11,7 +11,7 @@ export default function Home(){
   <section className="terminal-dashboard">
    <div className="terminal-main">
     <div className="terminal-window">
-     <div className="terminal-window-head"><span>MARKET ROUTES</span><span>LIVE CONFIGURATION</span></div>
+     <div className="terminal-window-head"><span>MARKET ROUTES</span><span>VERIFIED CATALOG</span></div>
      <div className="terminal-table terminal-table-head"><span>SYMBOL</span><span>ASSET</span><span>STATUS</span><span>PAIR</span><span>FEE</span><span>TICK</span></div>
      {markets.map(([symbol,name,status,pair,fee,tick])=><a href="/assets" className="terminal-table" key={symbol}>
       <strong className="terminal-market-symbol"><TokenLogo src={"/api/company-logo?symbol="+symbol} symbol={symbol} size={30}/><span>{symbol}</span></strong><span>{name}</span><span className="terminal-ok">● {status}</span><span>{pair}</span><span>{fee}</span><span>{tick}</span>
@@ -33,18 +33,18 @@ export default function Home(){
      <div className="terminal-window">
       <div className="terminal-window-head"><span>EXECUTION GUARDS</span><span>SECURITY</span></div>
       <div className="terminal-log">
-       <p><time>[OK]</time><span>AssetRegistry</span><b>{EXECUTABLE_ROUTES.length} assets approved</b></p>
-       <p><time>[OK]</time><span>OracleRegistry</span><b>feeds configured</b></p>
-       <p><time>[OK]</time><span>PoolKey verification</span><b>{EXECUTABLE_ROUTES.length} / {EXECUTABLE_ROUTES.length} matched</b></p>
-       <p><time>[V4]</time><span>SwapExecutor</span><b>guarded route execution</b></p>
+       <p><time>[OK]</time><span>AssetRegistry</span><b>approval required</b></p>
+       <p><time>[OK]</time><span>OracleRegistry</span><b>fresh feeds required</b></p>
+       <p><time>[OK]</time><span>PoolKey catalog</span><b>{EXECUTABLE_ROUTES.length} pinned routes</b></p>
+       <p><time>[V5]</time><span>SwapExecutor</span><b>guarded route execution</b></p>
       </div>
      </div>
      <div className="terminal-window">
       <div className="terminal-window-head"><span>REWARD MODES</span><span>POLICY</span></div>
       <div className="terminal-log">
-       <p><time>00</time><span>Weighted raffle</span><b>V4 allocation</b></p>
-       <p><time>01</time><span>Equal lottery</span><b>V4 allocation</b></p>
-       <p><time>02</time><span>Pro-rata</span><b>V4 allocation</b></p>
+       <p><time>00</time><span>Weighted raffle</span><b>Automatic V5 push</b></p>
+       <p><time>01</time><span>Equal lottery</span><b>Automatic V5 push</b></p>
+       <p><time>02</time><span>Pro-rata</span><b>Automatic V5 push</b></p>
       </div>
      </div>
     </div>

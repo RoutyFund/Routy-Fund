@@ -1,11 +1,15 @@
 "use client";
-import {useEffect,useMemo,useState} from "react";
+import {useCallback,useEffect,useMemo,useState} from "react";
 import Nav from "@/components/Nav";
-import {decodeErrorResult,decodeEventLog,encodeFunctionData,formatEther,type Hex} from "viem";
+import DataNotice from "@/components/DataNotice";
+import {useApiResource} from "@/lib/use-api-resource";
+import {fetchJson} from "@/lib/fetch-json";
+import {PENDING_LAUNCH_KEY,readPendingLaunch,launchMetadataError,type PendingLaunch} from "@/lib/pending-launch";
+import {decodeErrorResult,encodeFunctionData,formatEther,type Hex} from "viem";
 import {getInjectedProvider} from "@/lib/ethereum-provider";
 import {PONS_V2,factoryLaunchAbi,factoryReadAbi} from "@/lib/pons";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
-import {v5LaunchIntentSalt} from "@/lib/v5-launch-intent";
+import {matchesV5LaunchIntent,v5LaunchIntentSalt} from "@/lib/v5-launch-intent";
 
 type Asset={tokenSymbol:string;tokenName:string;contractAddress:string};
 type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;enabled:boolean}>};
@@ -51,17 +55,65 @@ export default function Launch(){
  const[name,setName]=useState(""); const[symbol,setSymbol]=useState(""); const[description,setDescription]=useState("");
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
  const[asset,setAsset]=useState<string>(EXECUTABLE_ROUTES[0].target); const[policy,setPolicy]=useState("0");
- const[tax,setTax]=useState("0"); const[assets,setAssets]=useState<Asset[]>([]); const[pons,setPons]=useState<Pons|null>(null); const[routeStatus,setRouteStatus]=useState<RouteStatus[]>([]); const[routeStatusLoaded,setRouteStatusLoaded]=useState(false);
- const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState(""); const[autoSetup,setAutoSetup]=useState<AutoSetup|null>(null); const[autoSetupEnabled,setAutoSetupEnabled]=useState(false); const[launchReadinessLoaded,setLaunchReadinessLoaded]=useState(false);
- useEffect(()=>{fetch("/api/auto-setup/config").then(r=>r.json()).then(d=>setAutoSetupEnabled(d.launchReady===true)).catch(()=>setAutoSetupEnabled(false)).finally(()=>setLaunchReadinessLoaded(true));fetch("/api/assets").then(r=>r.json()).then(d=>setAssets((d.assets||[]).filter((a:Asset)=>a.contractAddress))).catch(()=>{});fetch("/api/pons").then(r=>r.json()).then(d=>d.ok&&setPons(d)).catch(()=>{});fetch("/api/route-status").then(r=>r.json()).then(d=>{if(d.ok)setRouteStatus(d.routes||[])}).catch(()=>{}).finally(()=>setRouteStatusLoaded(true))},[]);
- useEffect(()=>{if(!launchedToken)return;let stopped=false;async function poll(){try{const r=await fetch("/api/auto-setup/status?token="+launchedToken,{cache:"no-store"});const d=await r.json();if(!stopped&&d.ok)setAutoSetup(d)}catch{}}poll();const id=window.setInterval(poll,3000);return()=>{stopped=true;window.clearInterval(id)}},[launchedToken]);
+ const[tax,setTax]=useState("0");
+ const assetResource=useApiResource<{assets:Asset[]}>("/api/assets");
+ const ponsResource=useApiResource<Pons>("/api/pons");
+ const routesResource=useApiResource<{routes:RouteStatus[]}>("/api/route-status");
+ const setupResource=useApiResource<{launchReady:boolean}>("/api/auto-setup/config");
+ const assets=assetResource.data?.assets||[],pons=ponsResource.data,routeStatus=routesResource.data?.routes||[];
+ const routeStatusLoaded=!routesResource.loading&&!routesResource.error;
+ const autoSetupEnabled=setupResource.data?.launchReady===true,launchReadinessLoaded=!setupResource.loading;
+ const configurationError=setupResource.error||ponsResource.error||routesResource.error;
+ const[status,setStatus]=useState(""); const[busy,setBusy]=useState(false); const[launchedToken,setLaunchedToken]=useState(""); const[launchTx,setLaunchTx]=useState(""); const[autoSetup,setAutoSetup]=useState<AutoSetup|null>(null);
+ const[pending,setPending]=useState<PendingLaunch|null>(null);const[recoveryLoaded,setRecoveryLoaded]=useState(false);const[recoveryRetry,setRecoveryRetry]=useState(0);const[storageError,setStorageError]=useState("");
+ const savePending=useCallback((record:PendingLaunch)=>{
+  setPending(record);setLaunchTx(record.launchTx);if(record.token)setLaunchedToken(record.token);
+  try{localStorage.setItem(PENDING_LAUNCH_KEY,JSON.stringify(record))}catch{setStorageError("Browser storage is unavailable. Keep this page open until automatic setup is queued.")}
+ },[]);
+ useEffect(()=>{
+  const id=window.setTimeout(()=>{
+   let record:PendingLaunch|null=null;
+   try{record=readPendingLaunch(localStorage.getItem(PENDING_LAUNCH_KEY))}catch{}
+   if(record&&matchesV5LaunchIntent(record.setupNonce,{creator:record.creator,targetAsset:record.targetAsset,policy:record.policy,nonce:record.intentNonce})){
+    savePending(record);setAsset(record.targetAsset);setPolicy(String(record.policy));setStatus(record.queued?"Restored confirmed launch. Checking automatic route setup…":"Restored submitted launch. Resuming confirmation and automatic setup…");
+   }
+   setRecoveryLoaded(true);
+  },0);
+  return()=>window.clearTimeout(id);
+ },[savePending]);
+ useEffect(()=>{
+  if(!pending||pending.queued)return;
+  let stopped=false;let timer:number|undefined;
+  async function recover(){
+   if(!pending)return;
+   try{
+    const receipt=await fetchJson<{status:string;token?:string;creator?:string}>("/api/launch/receipt?hash="+pending.launchTx);
+    if(stopped)return;
+    if(receipt.status==="reverted"){
+     setStatus("The launch reverted on-chain. Review the transaction before starting a new launch.");setPending(null);try{localStorage.removeItem(PENDING_LAUNCH_KEY)}catch{};return;
+    }
+    if(receipt.status==="confirmed"&&receipt.token){
+     if(receipt.creator?.toLowerCase()!==pending.creator.toLowerCase())throw new Error("Launch creator mismatch");
+     setLaunchedToken(receipt.token);setStatus("Launch confirmed. Queueing automatic V5 setup…");
+     const record={...pending,token:receipt.token};
+     const result=await fetchJson<{ok:boolean;alreadyReady?:boolean}>("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...record,token:receipt.token})});
+     if(stopped)return;
+     savePending({...record,queued:true});setStatus(result.alreadyReady?"Launch confirmed. Routy route is already ready.":"Launch confirmed. Automatic V5 route setup is queued.");return;
+    }
+    setStatus("Launch submitted and still pending. Confirmation will be checked automatically.");
+   }catch(cause){if(!stopped)setStatus("Automatic setup will retry: "+(cause instanceof Error?cause.message:"connection unavailable"))}
+   if(!stopped)timer=window.setTimeout(()=>void recover(),5000);
+  }
+  void recover();
+  return()=>{stopped=true;if(timer!==undefined)window.clearTimeout(timer)};
+ },[pending,recoveryRetry,savePending]);
+ useEffect(()=>{if(!launchedToken)return;let stopped=false;let timer:number|undefined;async function poll(){try{const d=await fetchJson<AutoSetup>("/api/auto-setup/status?token="+launchedToken);if(!stopped){setAutoSetup(d);if(d.ready){try{localStorage.removeItem(PENDING_LAUNCH_KEY)}catch{};return}}}catch(cause){if(!stopped)setStatus("Launch confirmed. Route status is temporarily unavailable: "+(cause instanceof Error?cause.message:"connection error"))}if(!stopped)timer=window.setTimeout(()=>void poll(),5000)}void poll();return()=>{stopped=true;if(timer!==undefined)window.clearTimeout(timer)}},[launchedToken]);
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
  const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
  const verifiedTarget=Boolean(selectedRoute);
  const routeConfigured=Boolean(routeStatusLoaded&&selectedRoute&&routeStatus.find(s=>s.symbol===selectedRoute.symbol)?.configurationComplete);
- const valid=autoSetupEnabled&&name.trim()&&symbol.trim()&&description.trim()&&logo.length<=512&&description.length<=2048&&x.length<=256&&website.length<=256&&telegram.length<=256&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
- // eslint-disable-next-line @typescript-eslint/no-explicit-any -- injected wallets expose receipt payloads without a stable TS type.
- async function waitReceipt(hash:string,provider:ReturnType<typeof getInjectedProvider>){if(!provider)return null;for(let i=0;i<40;i++){const r=await provider.request<any>({method:"eth_getTransactionReceipt",params:[hash]});if(r)return r;await new Promise(x=>setTimeout(x,1500))}return null}
+ const metadataError=launchMetadataError({logo,description,socials:[x,website,telegram],tax,maxTax:Number(pons?.maxCreatorTaxBps||1000)});
+ const valid=recoveryLoaded&&!pending&&autoSetupEnabled&&name.trim()&&symbol.trim()&&description.trim()&&!metadataError&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
  async function launch(){
   if(!valid||busy)return; const provider=getInjectedProvider(); if(!provider){setStatus("Connect an EVM wallet first.");return}
   setBusy(true);setStatus("Preparing launch…");
@@ -97,7 +149,9 @@ export default function Launch(){
    const routerPrediction=await routerResponse.json() as {ok?:boolean;router?:string;error?:string};
    if(!routerResponse.ok||!routerPrediction.ok||!routerPrediction.router)throw new Error("Routy V5 fee routing is not ready: "+(routerPrediction.error||"router prediction failed"));
    const feeRouter=routerPrediction.router as `0x${string}`;
-   const creatorTax=Math.max(0,Math.min(Number(tax||0),freshMaxTax));
+   const validation=launchMetadataError({logo,description:description.trim(),socials:[x.trim(),website.trim(),telegram.trim()],tax,maxTax:freshMaxTax});
+   if(validation)throw new Error(validation);
+   const creatorTax=Number(tax);
    const data=encodeFunctionData({abi:factoryLaunchAbi,functionName:"launchToken",args:[{
     name:name.trim(),symbol:symbol.trim(),logo,description:description.trim(),
     socials:{twitter:x.trim(),telegram:telegram.trim(),discord:"",website:website.trim(),farcaster:""},
@@ -106,46 +160,18 @@ export default function Launch(){
 
    const tx={from:account,to:PONS_V2.factory,data,value:"0x"+freshLaunchFee.toString(16)};
    setStatus("Running Pons preflight…");
-   try{
-    const estimated=await provider.request<string>({method:"eth_estimateGas",params:[tx]});
-    const padded="0x"+((BigInt(estimated)*125n/100n).toString(16));
-    setStatus("Preflight passed. Confirm the Pons launch in your wallet.");
-    const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{...tx,gas:padded}]});
-    setLaunchTx(hash);setStatus("Launch submitted: "+hash.slice(0,10)+"… Waiting for confirmation.");
-    const receipt=await waitReceipt(hash,provider);
-    if(!receipt){setStatus("Launch is still pending. Do not resubmit.");return}
-    if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error("Pons launch failed on-chain.");
-    let tokenAddress="";
-    for(const log of receipt.logs||[]){try{
-     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wallet log topics are untyped EIP-1193 data.
-     const decoded=decodeEventLog({abi:factoryLaunchAbi,data:log.data as Hex,topics:log.topics as any});
-     if(decoded.eventName==="TokenLaunched"){
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem event args are narrowed at runtime by eventName.
-      tokenAddress=String((decoded.args as any).token||"");break
-     }
-    }catch{}}
-    if(tokenAddress){
-     setLaunchedToken(tokenAddress);
-     if(autoSetupEnabled){
-      setStatus("Launch confirmed. Adding Routy route setup to the automation queue…");
-      try{
-       const queued=await fetch("/api/auto-setup/queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tokenAddress,creator:account,targetAsset:asset,policy:Number(policy),launchTx:hash,setupNonce:salt,feeRouter,intentNonce})});
-       const q=await queued.json();
-       setStatus(queued.ok&&q.ok?(q.alreadyReady?"Launch confirmed. Routy route is already ready.":"Launch confirmed. Routy route setup is queued automatically."):"Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.");
-      }catch{setStatus("Launch confirmed, but automatic queueing is unavailable. Continue with provisioning.")}
-     }else setStatus("Launch confirmed. Routy automatic setup is not enabled yet; continue with provisioning.");
-    }
-    else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
-    return;
-   }catch(preflightError){
-    const detail=walletErrorMessage(preflightError);
-    throw new Error("Pons preflight failed before wallet submission: "+detail);
-   }
+   const estimated=await provider.request<string>({method:"eth_estimateGas",params:[tx]});
+   const padded="0x"+((BigInt(estimated)*125n/100n).toString(16));
+   setStatus("Preflight passed. Confirm the Pons launch in your wallet.");
+   const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{...tx,gas:padded}]});
+   savePending({version:1,chainId:4663,creator:account,targetAsset:asset,policy:Number(policy),intentNonce,setupNonce:salt,feeRouter,launchTx:hash});
+   setStatus("Launch submitted. Confirming the transaction and automatic V5 setup…");
 
   }catch(e){setStatus(walletErrorMessage(e)||"Launch cancelled or failed.");}finally{setBusy(false)}
  }
  return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Launch on Routy</span><h1>Create your route.</h1><p className="lead">Launch through Routy with Pons infrastructure underneath. Choose the token identity, Stock Token target and community reward policy here.</p></div><span className="pill">Robinhood Chain</span></header>
+  <DataNotice error={configurationError} retry={()=>{void setupResource.reload();void ponsResource.reload();void routesResource.reload()}}/>
   <div className="launch-form">
    <section className="form-card"><div><span className="micro">TOKEN</span><h3 style={{marginTop:8}}>Token details</h3></div>
     <label>Logo URI<input value={logo} onChange={e=>setLogo(e.target.value)} placeholder="https://... or ipfs://..." maxLength={512}/></label>
@@ -165,12 +191,16 @@ export default function Launch(){
     <label>Creator tax (BPS)<input type="number" min="0" max={pons?.maxCreatorTaxBps||"1000"} value={tax} onChange={e=>setTax(e.target.value)}/></label>
     <div className="route-summary"><div><span className="data-label">Pair</span><b>USDG</b></div><div><span className="data-label">Launch fee</span><b>{pons?formatEther(BigInt(pons.launchFee))+" ETH":"Loading…"}</b></div><div><span className="data-label">Rewards</span><b>{["Weighted raffle","Equal lottery","Pro-rata"][Number(policy)]}</b></div><div><span className="data-label">Network</span><b>Robinhood Chain</b></div></div>
     {launchReadinessLoaded&&!autoSetupEnabled&&<div className="notice">Launches open after direct fee routing and automatic setup are activated.</div>}
-    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":!launchReadinessLoaded?"Checking launch availability…":!autoSetupEnabled?"Launch setup pending":!routeStatusLoaded?"Checking route…":routeConfigured?"Launch token":"Route setup required"} <span>→</span></button>
-    <p className="muted" style={{fontSize:11,margin:0}}>Your wallet signs the Pons launch directly. Routy never receives your private key or custody of your wallet.</p>
-    {status&&<div className="notice">{status}</div>}
+    <button className="primary" disabled={!valid||busy} onClick={launch}>{busy?"Preparing…":pending?"Launch already submitted":!recoveryLoaded?"Restoring launch…":!launchReadinessLoaded?"Checking launch availability…":!autoSetupEnabled?"Launch setup pending":!routeStatusLoaded?"Checking route…":routeConfigured?"Launch token":"Route setup required"} <span>→</span></button>
+    <p className="muted" style={{fontSize:11,margin:0}}>Your wallet signs one launch. Routy automatically prepares the route and sends funded rewards according to your policy. Routy never receives your wallet private key.</p>
+    {metadataError&&<div className="notice danger">{metadataError}</div>}
+    {storageError&&<div className="notice danger">{storageError}</div>}
+    {status&&<div className="notice" role="status">{status}</div>}
+    {pending&&!pending.queued&&<button type="button" className="secondary" onClick={()=>setRecoveryRetry(value=>value+1)}>Check confirmation / retry setup</button>}
+    {pending&&autoSetup?.ready&&<button type="button" className="secondary" onClick={()=>{setPending(null);setLaunchedToken("");setLaunchTx("");setAutoSetup(null);setStatus("")}}>Start another launch</button>}
     {launchTx&&<a className="secondary" target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/tx/"+launchTx}>View launch transaction ↗</a>}
     {launchedToken&&<div className="notice"><b>Token:</b> <code>{launchedToken}</code></div>}
-    {launchedToken&&<div className="notice"><b>Routy setup:</b> {autoSetup?.ready?"Ready":autoSetupEnabled?(autoSetup?.stage==="rewards"?"Activating rewards…":autoSetup?.stage==="poolkey"?"Attaching verified PoolKey…":autoSetup?.stage==="provisioning"?"Provisioning route…":"Queued automatically…"):"Manual fallback until automation is activated."}</div>}
+    {launchedToken&&<div className="notice"><b>Routy setup:</b> {autoSetup?.ready?"Ready":autoSetupEnabled?(autoSetup?.stage==="execution"?"Swap execution paused":autoSetup?.stage==="rewards"?"Activating rewards…":autoSetup?.stage==="poolkey"?"Attaching verified PoolKey…":autoSetup?.stage==="provisioning"?"Provisioning route…":"Queued automatically…"):"Manual fallback until automation is activated."}</div>}
     {launchedToken&&!autoSetupEnabled&&<a className="primary" href={"/deploy/provision?token="+launchedToken+"&asset="+asset+"&policy="+policy}>Continue to provisioning →</a>}
     {launchedToken&&autoSetup&&<div className="route-summary"><div><span className="data-label">Provision</span><b>{autoSetup.provisioned?"Ready":"Pending"}</b></div><div><span className="data-label">PoolKey</span><b>{autoSetup.poolKeyConfigured?"Ready":"Pending"}</b></div><div><span className="data-label">Rewards</span><b>{autoSetup.rewardsActive?"Active":"Pending"}</b></div><div><span className="data-label">Route</span><b>{autoSetup.ready?"Ready":autoSetup.symbol||"Setting up"}</b></div></div>}
    </section>
@@ -179,7 +209,7 @@ export default function Launch(){
    <div className="flow-step"><span>01</span><div><b>Create</b><p>Set the token identity and social links in Routy.</p></div></div>
    <div className="flow-step"><span>02</span><div><b>Launch</b><p>Your wallet launches the token through the verified Pons V2 factory.</p></div></div>
    <div className="flow-step"><span>03</span><div><b>Auto-route</b><p>After launch confirmation, Routy automatically provisions the selected Stock Token route and verified PoolKey.</p></div></div>
-   <div className="flow-step"><span>04</span><div><b>Reward</b><p>Routy activates the managed distributor automatically; verified acquired assets follow your selected reward policy.</p></div></div>
+   <div className="flow-step"><span>04</span><div><b>Reward</b><p>Routy activates the managed distributor automatically; funded Stock Tokens are pushed to eligible recipient wallets according to your selected policy. Rewards require earned creator fees and successful swaps.</p></div></div>
   </div></section>
  </div></main>
 }

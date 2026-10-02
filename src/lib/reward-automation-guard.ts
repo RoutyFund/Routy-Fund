@@ -6,6 +6,7 @@ const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:
 const abi=[
  {type:"function",name:"owner",stateMutability:"view",inputs:[],outputs:[{type:"address"}]},
  {type:"function",name:"keeper",stateMutability:"view",inputs:[],outputs:[{type:"address"}]},
+ {type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]},
 ] as const;
 
 export function keeperAccount(){
@@ -17,10 +18,12 @@ export async function rewardAutomationStatus(){
  const rpc=process.env.RPC_URL?.trim();
  if(!rpc)throw new Error("RPC_URL_MISSING");
  const client=createPublicClient({chain,transport:http(rpc)});
- const controller=requireCurrentDeployment().controller as `0x${string}`;
- const [owner,keeper]=await Promise.all([
+ const deployment=requireCurrentDeployment();
+ const controller=deployment.controller as `0x${string}`;
+ const [owner,keeper,executorPaused]=await Promise.all([
   client.readContract({address:controller,abi,functionName:"owner"}),
   client.readContract({address:controller,abi,functionName:"keeper"}),
+  client.readContract({address:deployment.executor as `0x${string}`,abi,functionName:"paused"}),
  ]);
  const account=keeperAccount();
  return {
@@ -28,10 +31,12 @@ export async function rewardAutomationStatus(){
   configuredKeeper:account?.address??null,
   keeperSecretConfigured:Boolean(account),
   keeperMatches:Boolean(account&&account.address.toLowerCase()===keeper.toLowerCase()),
-  // V4 automation is enabled when a configured signer actually matches the
-  // controller keeper. This avoids stale legacy feature flags blocking V4.
+  // A signer must match the selected deployment's controller keeper.
   automationEnabled:Boolean(account&&account.address.toLowerCase()===keeper.toLowerCase()),
   swapExecutionEnabled:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true",
+  executorPaused,
+  swapExecutionActive:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true"&&!executorPaused,
+  generation:deployment.version.toLowerCase(),
   rpcConfigured:Boolean(process.env.RPC_URL?.trim()),
   cronSecretConfigured:Boolean(process.env.CRON_SECRET?.trim()),
  };

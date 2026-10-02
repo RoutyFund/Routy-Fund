@@ -3,6 +3,7 @@
 import {useCallback,useEffect,useState} from "react";
 import Nav from "@/components/Nav";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
+import {fetchJson} from "@/lib/fetch-json";
 
 type ReadinessResponse={
  infrastructureReady?:boolean;
@@ -12,9 +13,9 @@ type RouteStatusRow={symbol?:string;configurationComplete?:boolean};
 type RouteStatusResponse={routes?:RouteStatusRow[]};
 type PoolStatusRow={symbol?:string;poolKeyMatches?:boolean};
 type PoolStatusResponse={routes?:PoolStatusRow[]};
-type ConfigResponse={routy?:{swapExecutionEnabled?:boolean}};
+type ConfigResponse={routy?:{swapExecutionEnabled?:boolean;swapExecutorPaused?:boolean|null}};
 type HealthResponse={protocolConfigured?:boolean;generation?:string};
-type AutomationResponse={ok?:boolean;automationEnabled?:boolean;keeperMatches?:boolean;keeperSecretConfigured?:boolean};
+type AutomationResponse={ok?:boolean;configurationReady?:boolean;automationEnabled?:boolean;keeperMatches?:boolean;keeperSecretConfigured?:boolean};
 type Data={
  readiness:ReadinessResponse;
  routes:RouteStatusResponse;
@@ -29,14 +30,15 @@ export default function ReleasePage(){
  const[error,setError]=useState("");
  const refresh=useCallback(async()=>{
   setError("");
+  setData(null);
   try{
    const [readiness,routes,pool,config,health,automation]=await Promise.all([
-    fetch("/api/readiness",{cache:"no-store"}).then(r=>r.json() as Promise<ReadinessResponse>),
-    fetch("/api/route-status",{cache:"no-store"}).then(r=>r.json() as Promise<RouteStatusResponse>),
-    fetch("/api/route-readiness",{cache:"no-store"}).then(r=>r.json() as Promise<PoolStatusResponse>),
-    fetch("/api/config",{cache:"no-store"}).then(r=>r.json() as Promise<ConfigResponse>),
-    fetch("/api/health",{cache:"no-store"}).then(r=>r.json() as Promise<HealthResponse>),
-    fetch("/api/reward-automation/status",{cache:"no-store"}).then(r=>r.json() as Promise<AutomationResponse>),
+    fetchJson<ReadinessResponse>("/api/readiness"),
+    fetchJson<RouteStatusResponse>("/api/route-status"),
+    fetchJson<PoolStatusResponse>("/api/route-readiness"),
+    fetchJson<ConfigResponse>("/api/config"),
+    fetchJson<HealthResponse>("/api/health"),
+    fetchJson<AutomationResponse>("/api/reward-automation/status"),
    ]);
    setData({readiness,routes,pool,config,health,automation});
   }catch(cause){setError(cause instanceof Error?cause.message:"Could not load release status.")}
@@ -53,7 +55,7 @@ export default function ReleasePage(){
  const swapEnabled=data?.config.routy?.swapExecutionEnabled===true;
  const loaded=Boolean(data);
  const totalRoutes=EXECUTABLE_ROUTES.length;
- const automationReady=data?.automation.ok===true&&data?.automation.automationEnabled===true&&data?.automation.keeperMatches===true;
+ const automationReady=data?.automation.ok===true&&data?.automation.configurationReady===true;
  const allStatic=infra&&protocol&&readyRoutes===totalRoutes&&matchedPools===totalRoutes;
 
  return <main className="shell"><Nav/><div className="wrap console-page">
@@ -62,7 +64,7 @@ export default function ReleasePage(){
    <article className="proof-card"><span className="micro">INFRASTRUCTURE</span><strong>{!loaded?"Checking…":infra?"Ready":"Blocked"}</strong><p>Environment + deployment checks</p></article>
    <article className="proof-card"><span className="micro">ROUTES</span><strong>{!loaded?"—":readyRoutes+"/"+totalRoutes}</strong><p>{EXECUTABLE_ROUTES.map(r=>r.symbol).join(" · ")} configured</p></article>
    <article className="proof-card"><span className="micro">POOLKEYS</span><strong>{!loaded?"—":matchedPools+"/"+totalRoutes}</strong><p>Verified route hashes matched</p></article>
-   <article className="proof-card"><span className="micro">SWAP EXECUTION</span><strong>{!loaded?"Checking…":swapEnabled?"Enabled":"Paused"}</strong><p>Active on-chain SwapExecutor state</p></article><article className="proof-card"><span className="micro">REWARD AUTOMATION</span><strong>{!loaded?"Checking…":automationReady?"Ready":"Pending"}</strong><p>{automationReady?"Keeper matches controller":"Keeper/controller check required"}</p></article>
+   <article className="proof-card"><span className="micro">SWAP EXECUTION</span><strong>{!loaded?"Checking…":data?.config.routy?.swapExecutorPaused===null?"Unavailable":swapEnabled?"Enabled":"Paused"}</strong><p>Active on-chain SwapExecutor state</p></article><article className="proof-card"><span className="micro">REWARD AUTOMATION</span><strong>{!loaded?"Checking…":automationReady?"Configured":"Pending"}</strong><p>{automationReady?"Keeper + cron + swap worker configured":"Keeper/controller/worker check required"}</p></article>
   </div>
   <section className="section"><div className="section-head"><div><span className="micro">VERIFIED MARKETS</span><h2>Route-by-route status.</h2></div></div><div className="market-directory">{EXECUTABLE_ROUTES.map(({symbol})=>{const route=routeRows.find(r=>r.symbol===symbol);const pool=poolRows.find(r=>r.symbol===symbol);const ok=route?.configurationComplete===true&&pool?.poolKeyMatches===true;return <article key={symbol}><div className="market-icon">{symbol[0]}</div><div><b>{symbol}</b><span>{!loaded?"Checking…":ok?"Registry + oracle + PoolKey verified":"Action required"}</span></div><span className="pill">{!loaded?"Checking":ok?"Ready":"Pending"}</span></article>})}</div></section>
   <section className="section">

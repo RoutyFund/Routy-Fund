@@ -3,30 +3,34 @@
 import Link from "next/link";
 import {usePathname} from "next/navigation";
 import { useEffect, useState } from "react";
-import { getInjectedProvider } from "@/lib/ethereum-provider";
+import { getInjectedProvider, walletErrorCode, walletErrorMessage } from "@/lib/ethereum-provider";
 import { EXECUTABLE_ROUTES } from "@/lib/route-catalog";
 
 export default function Nav() {
   const pathname=usePathname();
   const [account,setAccount]=useState("");
+  const [chainId,setChainId]=useState("");
+  const [error,setError]=useState("");
   const [open,setOpen]=useState(false);
 
   useEffect(()=>{
     const provider=getInjectedProvider();
-    const sync=()=>provider?.request<string[]>({method:"eth_accounts"}).then(a=>setAccount(a?.[0]||"")).catch(()=>{});
+    const sync=async()=>{if(!provider)return;try{const [accounts,chain]=await Promise.all([provider.request<string[]>({method:"eth_accounts"}),provider.request<string>({method:"eth_chainId"})]);setAccount(accounts?.[0]||"");setChainId(chain)}catch{}};
     const timer=window.setTimeout(sync,0);
     provider?.on?.("accountsChanged",sync);
-    return()=>{window.clearTimeout(timer);provider?.removeListener?.("accountsChanged",sync)};
+    provider?.on?.("chainChanged",sync);
+    return()=>{window.clearTimeout(timer);provider?.removeListener?.("accountsChanged",sync);provider?.removeListener?.("chainChanged",sync)};
   },[]);
 
   async function connect(){
     const provider=getInjectedProvider();
-    if(!provider){window.alert("Install a compatible EVM wallet.");return}
+    if(!provider){setError("Open Routy in a compatible EVM wallet browser to connect.");return}
+    setError("");
     try{
       const accounts=await provider.request<string[]>({method:"eth_requestAccounts"});
       try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1237"}]})}
-      catch{
-        try{
+      catch(cause){
+        if(walletErrorCode(cause)!==4902&&walletErrorCode(cause)!=="4902")throw cause;
           await provider.request({method:"wallet_addEthereumChain",params:[{
             chainId:"0x1237",
             chainName:"Robinhood Chain",
@@ -34,10 +38,12 @@ export default function Nav() {
             rpcUrls:["https://rpc.mainnet.chain.robinhood.com"],
             blockExplorerUrls:["https://robinhoodchain.blockscout.com"]
           }]})
-        }catch{}
       }
+      const chain=await provider.request<string>({method:"eth_chainId"});
+      if(BigInt(chain)!==4663n)throw new Error("Switch your wallet to Robinhood Chain (4663).");
+      setChainId(chain);
       setAccount(accounts?.[0]||"");
-    }catch{}
+    }catch(cause){setError(walletErrorMessage(cause,"Wallet connection failed."))}
   }
 
   const links=[["/explore","Explore"],["/assets","Assets"],["/rewards","Rewards"],["/analytics","Analytics"],["/activity","Activity"],["/portfolio","Portfolio"],["/docs","Docs"]];
@@ -58,14 +64,15 @@ export default function Nav() {
     </div>
     <nav className="nav">
       <Link className="brand" href="/"><span className="logo">R</span><span>routy.</span><small>fund console</small></Link>
-      <div className={"navlinks "+(open?"navlinks-open":"")}>
-        {links.map(([href,label])=><Link className={pathname===href?"nav-active":""} key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
+      <div id="routy-navigation" className={"navlinks "+(open?"navlinks-open":"")}>
+        {links.map(([href,label])=><Link className={pathname===href||pathname.startsWith(href+"/")?"nav-active":""} key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
       </div>
       <div className="nav-actions">
         <Link className="secondary terminal-launch" href="/launch">+ Launch</Link>
-        <button className="menu" aria-label="Toggle navigation" onClick={()=>setOpen(v=>!v)}>{open?"Close":"Menu"}</button>
-        <button className="wallet" onClick={connect}>{account ? account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
+        <button className="menu" aria-label="Toggle navigation" aria-expanded={open} aria-controls="routy-navigation" onClick={()=>setOpen(v=>!v)}>{open?"Close":"Menu"}</button>
+        <button className="wallet" onClick={connect}>{account ? chainId&&BigInt(chainId)!==4663n?"Switch network":account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
       </div>
     </nav>
+    {error&&<div className="notice danger" role="alert">{error}<button type="button" className="secondary" onClick={()=>setError("")}>Dismiss</button></div>}
   </header>;
 }

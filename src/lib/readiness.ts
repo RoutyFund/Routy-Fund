@@ -65,9 +65,8 @@ export function serverReadiness():Readiness{
   uniswapRouter:matchesAddress(process.env.UNISWAP_UNIVERSAL_ROUTER||UNISWAP_ROBINHOOD.universalRouter,UNISWAP_ROBINHOOD.universalRouter),
   permit2:matchesAddress(process.env.UNISWAP_PERMIT2||UNISWAP_ROBINHOOD.permit2,UNISWAP_ROBINHOOD.permit2),
   maxPriceDeviation:Number.isInteger(deviation)&&deviation>0&&deviation<=2000,
-  // Runtime execution state is verified on-chain by /api/config and /api/health.
-  // Do not mark infrastructure unready because of the retired legacy env flag.
-  swapExecutionEnabled:true
+  // This check covers the worker flag. /api/config reports the actual pause state.
+  swapExecutionEnabled:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true"
  };
 }
 

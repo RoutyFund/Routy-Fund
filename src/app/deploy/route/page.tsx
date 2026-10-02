@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect,useState} from "react";
+import {useCallback,useEffect,useState} from "react";
 import {decodeFunctionResult,encodeFunctionData,type Address,type Hex} from "viem";
 import Nav from "@/components/Nav";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
@@ -47,8 +47,8 @@ export default function ProductionRouteSetupPage(){
  const quoteFeedConfigured=state.quoteFeed.toLowerCase()===route.quoteFeed.toLowerCase();
  const complete=poolVerified&&state.assetApproved&&targetFeedConfigured&&quoteFeedConfigured;
 
- async function refreshWallet(){const p=getInjectedProvider();if(!p)return;const[a,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);setAccount(a?.[0]||"");setChainId(c||"")}
- async function refreshState(){const p=getInjectedProvider();if(!p)return;
+ const refreshWallet=useCallback(async()=>{const p=getInjectedProvider();if(!p)return;const[a,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);setAccount(a?.[0]||"");setChainId(c||"")},[setAccount,setChainId]);
+ const refreshState=useCallback(async()=>{const p=getInjectedProvider();if(!p)return;
   const [approvedRaw,targetRaw,quoteRaw]=await Promise.all([
    ethCall(p,ROUTY_DEPLOYMENT.assetRegistry,encodeFunctionData({abi:registryAbi,functionName:"approved",args:[route.target]})),
    ethCall(p,ROUTY_DEPLOYMENT.oracleRegistry,encodeFunctionData({abi:oracleAbi,functionName:"feedForAsset",args:[route.target]})),
@@ -59,7 +59,7 @@ export default function ProductionRouteSetupPage(){
    targetFeed:decodeFunctionResult({abi:oracleAbi,functionName:"feedForAsset",data:targetRaw}) as Address,
    quoteFeed:decodeFunctionResult({abi:oracleAbi,functionName:"feedForAsset",data:quoteRaw}) as Address,
   });
- }
+ },[route,setState]);
  async function connect(){const p=getInjectedProvider();if(!p)return setError("Compatible injected EVM wallet not found.");try{await p.request({method:"eth_requestAccounts"});await refreshWallet();setError("")}catch(c){setError(walletErrorMessage(c,"Wallet connection failed."))}}
  async function switchChain(){const p=getInjectedProvider();if(!p)return;try{await p.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID}]});await refreshWallet();setError("")}catch(c){setError(walletErrorMessage(c,"Could not switch to Robinhood Chain."))}}
  async function send(label:string,to:Address,data:Hex){const p=getInjectedProvider();if(!p)return setError("Wallet provider not found.");if(!authorized||!correctChain||!poolVerified)return setError("Owner wallet, Robinhood Chain, and verified PoolKey are required.");
@@ -67,12 +67,12 @@ export default function ProductionRouteSetupPage(){
   try{const hash=await p.request<Hex>({method:"eth_sendTransaction",params:[{from:OWNER,to,data,value:"0x0"}]});setNotice(label+" submitted. Waiting for confirmation…");const receipt=await waitForReceipt(p,hash);if(!receipt)return setNotice(label+" is still pending. Do not resend.");if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error(label+" failed on-chain.");await refreshState();const status=await fetch("/api/route-status",{cache:"no-store"}).then(r=>r.json()).catch(()=>null);if(status?.routes)setAllStatus(status.routes);setNotice(label+" confirmed and verified on-chain.")}catch(c){setError(walletErrorMessage(c,label+" failed."))}finally{setBusy("")}
  }
 
- useEffect(()=>{const t=window.setTimeout(()=>{refreshWallet().catch(()=>{});fetch("/api/route-readiness").then(r=>r.json()).then(setRouteCheck).catch(()=>setRouteCheck(null));fetch("/api/route-status",{cache:"no-store"}).then(r=>r.json()).then(d=>setAllStatus(d.routes||[])).catch(()=>setAllStatus([]));refreshState().catch(()=>{})},0);return()=>window.clearTimeout(t)},[selectedSymbol]);
+ useEffect(()=>{const t=window.setTimeout(()=>{refreshWallet().catch(()=>{});fetch("/api/route-readiness").then(r=>r.json()).then(setRouteCheck).catch(()=>setRouteCheck(null));fetch("/api/route-status",{cache:"no-store"}).then(r=>r.json()).then(d=>setAllStatus(d.routes||[])).catch(()=>setAllStatus([]));refreshState().catch(()=>{})},0);return()=>window.clearTimeout(t)},[refreshState,refreshWallet]);
 
  return <main className="shell"><Nav/><div className="wrap console-page">
   <span className="kicker">Routy production route</span><h1 style={{fontSize:56}}>Prepare verified routes safely.</h1>
-  <p className="muted">Configure AssetRegistry and oracle prerequisites for verified routes. SwapExecutor remains paused.</p>
-  <section className="section"><div className="section-head"><div><span className="micro">ROUTE CONFIGURATION</span><h2>11 verified PoolKeys · owner setup status.</h2></div><p className="section-copy">Green routes are ready. Pending routes still need AssetRegistry approval and their target Chainlink feed. USDG feed is already configured.</p></div><div className="route-setup-matrix">{ROUTE_CATALOG.map(r=>{const s=allStatus.find(x=>x.symbol===r.symbol);return <button key={r.symbol} type="button" className={r.symbol===selectedSymbol?"route-setup-cell active":"route-setup-cell"} onClick={()=>setSelectedSymbol(r.symbol)}><span>{r.symbol}</span><b className={s?.configurationComplete?"terminal-ok":"terminal-registry"}>{s?.configurationComplete?"● READY":"○ SETUP"}</b><small>{r.launchEnabled?"LIVE":"VERIFIED"}</small></button>})}</div></section>
+  <p className="muted">Configure AssetRegistry and oracle prerequisites for verified routes. Active executor pause state is shown in Release status.</p>
+  <section className="section"><div className="section-head"><div><span className="micro">ROUTE CONFIGURATION</span><h2>{ROUTE_CATALOG.length} verified PoolKeys · owner setup status.</h2></div><p className="section-copy">Green routes are ready. Pending routes still need AssetRegistry approval and their target Chainlink feed. USDG feed is already configured.</p></div><div className="route-setup-matrix">{ROUTE_CATALOG.map(r=>{const s=allStatus.find(x=>x.symbol===r.symbol);return <button key={r.symbol} type="button" className={r.symbol===selectedSymbol?"route-setup-cell active":"route-setup-cell"} onClick={()=>setSelectedSymbol(r.symbol)}><span>{r.symbol}</span><b className={s?.configurationComplete?"terminal-ok":"terminal-registry"}>{s?.configurationComplete?"● READY":"○ SETUP"}</b><small>{r.launchEnabled?"LIVE":"VERIFIED"}</small></button>})}</div></section>
   <div className="launch-form">
    <section className="form-card"><h2>Wallet</h2><p>Required owner: <code>{OWNER}</code></p><p>Connected: <b>{account||"Not connected"}</b></p><p>Network: <b>{chainId?Number.parseInt(chainId,16):"Not connected"}</b></p>
     {!account?<button className="primary" onClick={connect}>Connect wallet</button>:!correctChain?<button className="primary" onClick={switchChain}>Switch to Robinhood Chain</button>:!authorized?<div className="notice danger">Wrong wallet.</div>:<div className="notice">Owner wallet and chain verified.</div>}
@@ -93,7 +93,7 @@ export default function ProductionRouteSetupPage(){
     {!quoteFeedConfigured&&<button className="primary" disabled={!authorized||!correctChain||!poolVerified||Boolean(busy)} onClick={()=>send("Configure USDG feed",ROUTY_DEPLOYMENT.oracleRegistry,encodeFunctionData({abi:oracleAbi,functionName:"setFeed",args:[route.quote,route.quoteFeed]}))}>Set USDG feed</button>}
    </div>
    <button className="secondary" onClick={()=>refreshState().catch(c=>setError(walletErrorMessage(c,"Could not refresh chain state.")))} disabled={Boolean(busy)}>Refresh on-chain status</button>
-   {complete&&<div className="notice" style={{marginTop:16}}>{route.symbol}/USDG prerequisites are complete. SwapExecutor is still paused.</div>}
+   {complete&&<div className="notice" style={{marginTop:16}}>{route.symbol}/USDG prerequisites are complete. Automatic V5 setup attaches the PoolKey for each new vault.</div>}
    {notice&&<p className="notice">{notice}</p>}{error&&<p className="notice danger">{error}</p>}
   </section>
  </div></main>

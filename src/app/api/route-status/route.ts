@@ -1,3 +1,4 @@
+import {publicErrorMessage} from "@/lib/public-error";
 import {NextResponse} from "next/server";
 import {createPublicClient,decodeFunctionResult,encodeFunctionData,http,type Address} from "viem";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
@@ -38,6 +39,6 @@ export async function GET(){
   }
   return NextResponse.json({ok:true,chainId:4663,routes:rows});
  }catch(error){
-  return NextResponse.json({ok:false,error:"ROUTE_STATUS_UNAVAILABLE",detail:error instanceof Error?error.message:"unknown"},{status:503});
+  return NextResponse.json({ok:false,error:"ROUTE_STATUS_UNAVAILABLE",detail:publicErrorMessage(error)},{status:503});
  }
 }
