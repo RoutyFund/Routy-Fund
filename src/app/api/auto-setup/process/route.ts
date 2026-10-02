@@ -45,11 +45,14 @@ async function handle(req:NextRequest){
   const launcher=process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4;
   const executor=process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4;
   const controller=process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4;
-  if(!rawKey||!/^0x[0-9a-fA-F]{64}$/.test(rawKey))throw new Error("ROUTY_AUTOMATION_PRIVATE_KEY is missing or invalid");
-  if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller))throw new Error("V4 automation contract addresses are not configured");
+  if(!rawKey||!/^0x[0-9a-fA-F]{64}$/.test(rawKey)){console.error("[auto-setup] KEY_CHECK_FAILED");throw new Error("AUTOMATION_KEY_INVALID");}
+  console.info("[auto-setup] KEY_CHECK_OK");
+  if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller)){console.error("[auto-setup] ADDRESS_CHECK_FAILED");throw new Error("V4_ADDRESSES_INVALID");}
+  console.info("[auto-setup] ADDRESS_CHECK_OK");
 
   const q=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=eq.queued&order=created_at.asc&limit=1",{headers:{...dbHeaders(),Accept:"application/json"},cache:"no-store"});
-  if(!q.ok)throw new Error("QUEUE_READ_FAILED");
+  if(!q.ok){console.error("[auto-setup] QUEUE_READ_FAILED",q.status);throw new Error("QUEUE_READ_FAILED");}
+  console.info("[auto-setup] QUEUE_READ_OK");
   const jobs=await q.json() as Job[];
   if(!jobs.length)return NextResponse.json({ok:true,processed:false,reason:"EMPTY_QUEUE"});
   const job=jobs[0];
