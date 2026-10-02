@@ -101,11 +101,12 @@ async function handle(req:NextRequest){
   const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
   const publicClient=createPublicClient({chain,transport:http(rpc)}) as PublicClient;
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
-  const controller=ROUTY_DEPLOYMENT.rewardAutomationControllerV4 as Address;
+  const controller=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4) as Address;
   const swapEnabled=process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true";
 
   const single=req.nextUrl.searchParams.get("token");
-  const tokens=single&&isAddress(single)?[single as Address]:await readyTokens();
+  if(single&&!isAddress(single))return NextResponse.json({ok:false,error:"INVALID_TOKEN"},{status:400});
+  const tokens=single?[single as Address]:await readyTokens();
   const results:TokenResult[]=[];
 
   for(const token of tokens){
