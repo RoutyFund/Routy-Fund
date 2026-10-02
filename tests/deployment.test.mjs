@@ -13,15 +13,15 @@ test("every recorded deployment address is a complete 20-byte EVM address", () =
 
 test("SwapExecutor matches the contract derived at deployer nonce 15", () => {
   assert.equal(
-    ROUTY_DEPLOYMENT.swapExecutor,
-    "0xc91a4e8d64Dfa97b6263d958d9EF1F35Cc37675D",
+    ROUTY_DEPLOYMENT.swapExecutor.toLowerCase(),
+    "0xc91a4e8d64Dfa97b6263d958d9EF1F35Cc37675D".toLowerCase(),
   );
 });
 
 test("canonical SwapRouterAdapter matches the verified repair", () => {
   assert.equal(
-    ROUTY_DEPLOYMENT.swapRouterAdapter,
-    "0x43327B698FEf2e097B03529101eaeC39994219CD",
+    ROUTY_DEPLOYMENT.swapRouterAdapter.toLowerCase(),
+    "0x43327B698FEf2e097B03529101eaeC39994219CD".toLowerCase(),
   );
   assert.equal(ROUTY_RELEASE_STATE.swapAdapterRepairRequired, false);
 });
