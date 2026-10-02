@@ -12,6 +12,9 @@ export const ROUTY_DEPLOYMENT = {
   protocolLauncher: "0xcdf195f93d6d2bb3c121938d6761a3d5a26cd0e3",
   rewardDistributorFactoryV2: "0xd70896aabca6dbc3f8677434fa37bde61711674b",
   assetVaultFactoryV2: "0xc5c71c405b9fc0e357a9ebc66ce12200bfa5ca97",
+  feeRouterFactoryV2: "0xc5b2f4de0a04f5dec2c77571a056913beab3664c",
+  swapExecutorV2: "0xe7c921f1ff15a139a0178d44bc4844efab8da89a",
+  protocolLauncherV2: "0x2beaf6e1b543ef1c257cf481c2a0f39b6732d4fa",
 } as const;
 
 export const ROUTY_RELEASE_STATE = {
