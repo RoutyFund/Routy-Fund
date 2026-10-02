@@ -45,12 +45,14 @@ export async function GET(req:NextRequest){
  const token=req.nextUrl.searchParams.get("token");
  if(!token||!isAddress(token))return NextResponse.json({ok:false,error:"INVALID_TOKEN"},{status:400});
  try{
-  const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const rpc=process.env.RPC_URL?.trim();
+  if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
   const client=createPublicClient({chain,transport:http(rpc)});
   const launch=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]});
   if(!launch.exists)return NextResponse.json({ok:false,error:"NOT_PONS_TOKEN"},{status:404});
 
-  const route=await client.readContract({address:ROUTY_DEPLOYMENT.protocolLauncherV4,abi:launcherAbi,functionName:"routes",args:[token as Address]});
+  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
+  const route=await client.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token as Address]});
   const [creator,,,vault,router,distributor,policy]=route;
   if(vault===ZERO||distributor===ZERO)return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
 
