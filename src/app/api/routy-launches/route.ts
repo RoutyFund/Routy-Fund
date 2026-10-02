@@ -15,8 +15,17 @@ export async function GET(){
  try{
   const client=createPublicClient({chain,transport:http()});
   const latest=await client.getBlockNumber();
-  const configured=process.env.ROUTY_EVENT_START_BLOCK?BigInt(process.env.ROUTY_EVENT_START_BLOCK):null;
-  const fromBlock=configured??(latest>50000n?latest-50000n:0n);
+  const configuredRaw=process.env.ROUTY_EVENT_START_BLOCK?.trim();
+  if(!configuredRaw){
+   return NextResponse.json({ok:false,error:"ROUTY_EVENT_START_BLOCK_REQUIRED",detail:"Set ROUTY_EVENT_START_BLOCK to the verified ProtocolLauncher deployment block before indexing production history.",launches:[]},{status:503});
+  }
+  let fromBlock:bigint;
+  try{fromBlock=BigInt(configuredRaw)}catch{
+   return NextResponse.json({ok:false,error:"ROUTY_EVENT_START_BLOCK_INVALID",detail:"ROUTY_EVENT_START_BLOCK must be a non-negative integer block number.",launches:[]},{status:503});
+  }
+  if(fromBlock<0n||fromBlock>latest){
+   return NextResponse.json({ok:false,error:"ROUTY_EVENT_START_BLOCK_INVALID",detail:"ROUTY_EVENT_START_BLOCK is outside the current chain range.",launches:[]},{status:503});
+  }
   const logs=[];
   const chunk=10000n;
   for(let start=fromBlock;start<=latest;start+=chunk){
