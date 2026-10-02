@@ -122,7 +122,7 @@ export default function Launch(){
       tokenAddress=String((decoded.args as any).token||"");break
      }
     }catch{}}
-    if(tokenAddress){setLaunchedToken(tokenAddress);setStatus("Launch confirmed. Continue to Routy provisioning.");}
+    if(tokenAddress){setLaunchedToken(tokenAddress);setStatus("Launch confirmed. Routy route setup is queued automatically.");}
     else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
     return;
    }catch(preflightError){
@@ -157,14 +157,14 @@ export default function Launch(){
     {status&&<div className="notice">{status}</div>}
     {launchTx&&<a className="secondary" target="_blank" rel="noreferrer" href={"https://robinhoodchain.blockscout.com/tx/"+launchTx}>View launch transaction ↗</a>}
     {launchedToken&&<div className="notice"><b>Token:</b> <code>{launchedToken}</code></div>}
-    {launchedToken&&<a className="primary" href={"/deploy/provision?token="+launchedToken+"&asset="+asset+"&policy="+policy}>Continue to provisioning →</a>}
+    {launchedToken&&<div className="notice"><b>Routy setup:</b> Queued automatically. No additional creator transaction is required by the final automation flow.</div>}
    </section>
   </div>
   <section className="section"><div className="section-head"><div><span className="micro">HOW IT WORKS</span><h2>One launch flow.</h2></div></div><div className="flow">
    <div className="flow-step"><span>01</span><div><b>Create</b><p>Set the token identity and social links in Routy.</p></div></div>
    <div className="flow-step"><span>02</span><div><b>Launch</b><p>Your wallet launches the token through the verified Pons V2 factory.</p></div></div>
-   <div className="flow-step"><span>03</span><div><b>Route</b><p>Routy provisions the selected Stock Token route after launch confirmation.</p></div></div>
-   <div className="flow-step"><span>04</span><div><b>Reward</b><p>Verified acquired assets follow your selected reward policy.</p></div></div>
+   <div className="flow-step"><span>03</span><div><b>Auto-route</b><p>After launch confirmation, Routy automatically provisions the selected Stock Token route and verified PoolKey.</p></div></div>
+   <div className="flow-step"><span>04</span><div><b>Reward</b><p>Routy activates the managed distributor automatically; verified acquired assets follow your selected reward policy.</p></div></div>
   </div></section>
  </div></main>
 }
