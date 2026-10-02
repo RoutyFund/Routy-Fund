@@ -175,6 +175,7 @@ export default function RewardV2Deploy() {
   const [busy, setBusy] = useState<StepId | "resume" | "">("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [errorStep, setErrorStep] = useState<StepId | "">("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -334,6 +335,7 @@ export default function RewardV2Deploy() {
   async function submit(step: Step, index: number) {
     setBusy(step.id);
     setErr("");
+    setErrorStep("");
     setMsg("");
     try {
       if (!previousConfirmed(index)) throw new Error("Selesaikan dan verify langkah sebelumnya terlebih dahulu.");
@@ -355,16 +357,29 @@ export default function RewardV2Deploy() {
       if (target) await verifyCode(provider, target);
 
       const data = buildData(step);
+      const tx = {
+        from: OWNER,
+        ...(target ? { to: target } : {}),
+        data,
+        value: "0x0",
+      };
+
+      let gas: Hex;
+      try {
+        const estimated = await provider.request<Hex>({
+          method: "eth_estimateGas",
+          params: [tx],
+        });
+        const padded = (BigInt(estimated) * 125n) / 100n;
+        gas = (`0x${padded.toString(16)}`) as Hex;
+      } catch (estimateCause) {
+        const detail = estimateCause instanceof Error ? estimateCause.message : "unknown estimate error";
+        throw new Error(`Gas estimation gagal sebelum wallet popup: ${detail}`);
+      }
+
       const hash = await provider.request<Hex>({
         method: "eth_sendTransaction",
-        params: [
-          {
-            from: OWNER,
-            ...(target ? { to: target } : {}),
-            data,
-            value: "0x0",
-          },
-        ],
+        params: [{ ...tx, gas }],
       });
       if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error("Wallet tidak mengembalikan transaction hash valid.");
 
@@ -373,6 +388,7 @@ export default function RewardV2Deploy() {
       setSaved(next);
       setMsg("Transaksi dikirim. Tunggu konfirmasi lalu tekan Verify.");
     } catch (cause) {
+      setErrorStep(step.id);
       setErr(cause instanceof Error ? cause.message : "Transaksi gagal.");
     } finally {
       setBusy("");
@@ -544,6 +560,11 @@ export default function RewardV2Deploy() {
                   </button>
                   {!ready && <p className="muted">Step ini terbuka otomatis setelah step sebelumnya berstatus Verified.</p>}
                 </>
+              )}
+              {errorStep === step.id && err && (
+                <p className="error" role="alert" style={{ marginTop: 12 }}>
+                  {err}
+                </p>
               )}
             </section>
           );
