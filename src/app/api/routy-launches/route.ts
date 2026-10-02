@@ -13,7 +13,8 @@ const erc20Abi=[
 
 export async function GET(){
  try{
-  const client=createPublicClient({chain,transport:http()});
+  const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const client=createPublicClient({chain,transport:http(rpc)});
   const latest=await client.getBlockNumber();
   const configuredRaw=process.env.ROUTY_EVENT_START_BLOCK?.trim();
   let configured:bigint|null=null;
