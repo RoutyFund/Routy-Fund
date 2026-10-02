@@ -443,7 +443,7 @@ export default function DeployPage() {
   return (
     <main className="shell">
       <Nav />
-      <div className="wrap">
+      <div className="wrap console-page">
         <span className="kicker">Routy deployment console</span>
         <h1 style={{ fontSize: 56 }}>Mainnet deployment</h1>
         <p className="muted">Robinhood Chain (4663). Transactions are initiated only by your injected wallet, one explicit confirmation at a time. No private key or seed phrase is requested or stored.</p>
