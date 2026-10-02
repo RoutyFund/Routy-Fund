@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState} from "react";
 import Nav from "@/components/Nav";
 import TokenLogo from "@/components/TokenLogo";
 import {getInjectedProvider} from "@/lib/ethereum-provider";
-type Launch={token:string;name:string;symbol:string;creator:string;targetSymbol:string;targetName:string;vault:string;router:string;policy:number;createdAt:number|null;transactionHash:string};
+type Launch={token:string;name:string;symbol:string;creator:string;targetSymbol:string;targetName:string;vault:string;router:string;distributor:string;policy:number;createdAt:number|null;transactionHash:string};
 const short=(v:string)=>v.slice(0,6)+"…"+v.slice(-4);
 export default function PortfolioPage(){
  const[account,setAccount]=useState("");const[launches,setLaunches]=useState<Launch[]>([]);const[loaded,setLoaded]=useState(false);
