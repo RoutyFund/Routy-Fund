@@ -36,15 +36,15 @@ export default function Home(){
        <p><time>[OK]</time><span>AssetRegistry</span><b>{EXECUTABLE_ROUTES.length} assets approved</b></p>
        <p><time>[OK]</time><span>OracleRegistry</span><b>feeds configured</b></p>
        <p><time>[OK]</time><span>PoolKey verification</span><b>{EXECUTABLE_ROUTES.length} / {EXECUTABLE_ROUTES.length} matched</b></p>
-       <p><time>[SAFE]</time><span>SwapExecutor</span><b>paused pre-live-test</b></p>
+       <p><time>[V4]</time><span>SwapExecutor</span><b>route automation enabled</b></p>
       </div>
      </div>
      <div className="terminal-window">
       <div className="terminal-window-head"><span>REWARD MODES</span><span>POLICY</span></div>
       <div className="terminal-log">
-       <p><time>00</time><span>Weighted raffle</span><b>policy only</b></p>
-       <p><time>01</time><span>Equal lottery</span><b>policy only</b></p>
-       <p><time>02</time><span>Pro-rata</span><b>policy only</b></p>
+       <p><time>00</time><span>Weighted raffle</span><b>V4 allocation</b></p>
+       <p><time>01</time><span>Equal lottery</span><b>V4 allocation</b></p>
+       <p><time>02</time><span>Pro-rata</span><b>V4 allocation</b></p>
       </div>
      </div>
     </div>
