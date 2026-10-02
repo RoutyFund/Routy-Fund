@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import {usePathname} from "next/navigation";
 import { useEffect, useState } from "react";
 import { getInjectedProvider } from "@/lib/ethereum-provider";
 
 export default function Nav() {
+  const pathname=usePathname();
   const [account,setAccount]=useState("");
   const [open,setOpen]=useState(false);
 
@@ -56,7 +58,7 @@ export default function Nav() {
     <nav className="nav">
       <Link className="brand" href="/"><span className="logo">R</span><span>routy.</span><small>fund console</small></Link>
       <div className={"navlinks "+(open?"navlinks-open":"")}>
-        {links.map(([href,label])=><Link key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
+        {links.map(([href,label])=><Link className={pathname===href?"nav-active":""} key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
       </div>
       <div className="nav-actions">
         <Link className="secondary terminal-launch" href="/launch">+ Launch</Link>
