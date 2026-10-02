@@ -54,7 +54,10 @@ export async function GET(req:NextRequest){
   const [creator,,,vault,router,distributor,policy]=route;
   if(vault===ZERO||distributor===ZERO)return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
 
-  // Pin one finalized-ish block for both holder reconstruction and raffle seed so a\n  // single allocation request cannot observe two different chain tips.\n  const head=await client.getBlock({blockTag:"latest"});\n  const snapshotBlock=head.number>2n?head.number-2n:head.number;\n  const latest=await client.getBlock({blockNumber:snapshotBlock});
+  // Pin one finalized-ish block for both holder reconstruction and raffle seed.
+  const head=await client.getBlock({blockTag:"latest"});
+  const snapshotBlock=head.number>2n?head.number-2n:head.number;
+  const latest=await client.getBlock({blockNumber:snapshotBlock});
   const launchEvent=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched");
   if(!launchEvent)throw new Error("PONS_LAUNCH_EVENT_ABI_MISSING");
   const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:"latest"}).catch(()=>[]);
@@ -64,7 +67,8 @@ export async function GET(req:NextRequest){
    token,
    fromBlock,
    excluded:[creator,vault,router,distributor,PONS_V2.factory,PONS_V2.feeEscrow],
-   rpcUrl:rpc
+   rpcUrl:rpc,
+   toBlock:snapshotBlock
   });
   if(!holders.length)return NextResponse.json({ok:true,token,policy:Number(policy),fundedBalance:"0",allocations:[],batches:[],reason:"NO_ELIGIBLE_HOLDERS"});
 
@@ -74,8 +78,7 @@ export async function GET(req:NextRequest){
   ]);
   if(fundedBalance===0n)return NextResponse.json({ok:true,token,policy:Number(policy),fundedBalance:"0",allocations:[],batches:[],reason:"NO_FUNDED_REWARDS"});
 
-  const anchorBlock=await client.getBlock({blockNumber:latest.number});
-  const anchorHash=anchorBlock.hash;
+  const anchorHash=latest.hash;
   if(!anchorHash)throw new Error("SNAPSHOT_BLOCK_HASH_MISSING");
   // The seed is anchored to the reported snapshot block and current distributor nonce.
   // A retry after a successful batch changes batchNonce; a retry before execution keeps
