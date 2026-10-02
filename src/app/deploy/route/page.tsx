@@ -4,7 +4,7 @@ import {useEffect,useState} from "react";
 import {decodeFunctionResult,encodeFunctionData,type Address,type Hex} from "viem";
 import Nav from "@/components/Nav";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
-import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
+import {ROUTE_CATALOG} from "@/lib/route-catalog";
 import {getInjectedProvider,type EthereumProvider,type EthereumTransactionReceipt,walletErrorMessage} from "@/lib/ethereum-provider";
 
 const OWNER="0x866d5D863381efe9e10cCb2E44f388611F781212" as Address;
@@ -32,8 +32,8 @@ async function waitForReceipt(provider:EthereumProvider,hash:Hex){
 }
 
 export default function ProductionRouteSetupPage(){
- const[selectedSymbol,setSelectedSymbol]=useState(EXECUTABLE_ROUTES[0].symbol);
- const route=EXECUTABLE_ROUTES.find(r=>r.symbol===selectedSymbol)||EXECUTABLE_ROUTES[0];
+ const[selectedSymbol,setSelectedSymbol]=useState(ROUTE_CATALOG[0].symbol);
+ const route=ROUTE_CATALOG.find(r=>r.symbol===selectedSymbol)||ROUTE_CATALOG[0];
  const[account,setAccount]=useState("");const[chainId,setChainId]=useState("");const[routeCheck,setRouteCheck]=useState<RouteCheck|null>(null);
  const[state,setState]=useState<State>({assetApproved:false,targetFeed:ZERO,quoteFeed:ZERO});
  const[busy,setBusy]=useState("");const[notice,setNotice]=useState("");const[error,setError]=useState("");
@@ -75,7 +75,7 @@ export default function ProductionRouteSetupPage(){
    <section className="form-card"><h2>Wallet</h2><p>Required owner: <code>{OWNER}</code></p><p>Connected: <b>{account||"Not connected"}</b></p><p>Network: <b>{chainId?Number.parseInt(chainId,16):"Not connected"}</b></p>
     {!account?<button className="primary" onClick={connect}>Connect wallet</button>:!correctChain?<button className="primary" onClick={switchChain}>Switch to Robinhood Chain</button>:!authorized?<div className="notice danger">Wrong wallet.</div>:<div className="notice">Owner wallet and chain verified.</div>}
    </section>
-   <section className="form-card"><h2>Verified route</h2><div className="route-tabs" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>{EXECUTABLE_ROUTES.map(r=><button type="button" key={r.symbol} className={r.symbol===selectedSymbol?"primary":"secondary"} onClick={()=>setSelectedSymbol(r.symbol)}>{r.symbol}</button>)}</div><label>Stock Token<select value={selectedSymbol} onChange={e=>setSelectedSymbol(e.target.value)}>{EXECUTABLE_ROUTES.map(r=><option key={r.symbol} value={r.symbol}>{r.symbol} · {r.name}</option>)}</select></label>
+   <section className="form-card"><h2>Verified route</h2><div className="route-tabs" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(90px,1fr))",gap:8,marginBottom:16}}>{ROUTE_CATALOG.map(r=><button type="button" key={r.symbol} className={r.symbol===selectedSymbol?"primary":"secondary"} onClick={()=>setSelectedSymbol(r.symbol)}>{r.symbol}</button>)}</div><label>Stock Token<select value={selectedSymbol} onChange={e=>setSelectedSymbol(e.target.value)}>{ROUTE_CATALOG.map(r=><option key={r.symbol} value={r.symbol}>{r.symbol} · {r.name}</option>)}</select></label>
     <p>{route.symbol}: <code>{route.target}</code></p><p>USDG: <code>{route.quote}</code></p><p>Pool ID: <code>{route.poolId}</code></p><p>Fee / tick spacing: <b>{route.poolKey.fee} / {route.poolKey.tickSpacing}</b></p>
     <div className={poolVerified?"notice":"notice danger"}>PoolKey verification: <b>{poolVerified?"MATCHED":"NOT VERIFIED"}</b></div>
    </section>
