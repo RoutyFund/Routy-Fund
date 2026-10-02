@@ -10,6 +10,26 @@ type Asset={tokenSymbol:string;tokenName:string;contractAddress:string};
 type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;enabled:boolean}>};
 type RouteStatus={symbol:string;configurationComplete:boolean};
 
+function walletErrorMessage(error:unknown){
+ if(error instanceof Error)return error.message;
+ if(typeof error==="string")return error;
+ if(error&&typeof error==="object"){
+  const e=error as {message?:unknown;code?:unknown;data?:unknown;cause?:unknown};
+  const parts:string[]=[];
+  if(typeof e.message==="string"&&e.message)parts.push(e.message);
+  if(e.code!==undefined)parts.push("code "+String(e.code));
+  if(e.data!==undefined){
+   try{parts.push("data "+JSON.stringify(e.data))}catch{parts.push("data "+String(e.data))}
+  }
+  if(e.cause!==undefined){
+   try{parts.push("cause "+JSON.stringify(e.cause))}catch{parts.push("cause "+String(e.cause))}
+  }
+  if(parts.length)return parts.join(" · ");
+  try{return JSON.stringify(error)}catch{return String(error)}
+ }
+ return String(error);
+}
+
 export default function Launch(){
  const[name,setName]=useState(""); const[symbol,setSymbol]=useState(""); const[description,setDescription]=useState("");
  const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
@@ -82,11 +102,11 @@ export default function Launch(){
     else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
     return;
    }catch(preflightError){
-    const detail=preflightError instanceof Error?preflightError.message:String(preflightError);
+    const detail=walletErrorMessage(preflightError);
     throw new Error("Pons preflight failed before wallet submission: "+detail);
    }
 
-  }catch(e){setStatus(e instanceof Error?e.message:"Launch cancelled or failed.");}finally{setBusy(false)}
+  }catch(e){setStatus(walletErrorMessage(e)||"Launch cancelled or failed.");}finally{setBusy(false)}
  }
  return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Launch on Routy</span><h1>Create your route.</h1><p className="lead">Launch through Routy with Pons infrastructure underneath. Choose the token identity, Stock Token target and community reward policy here.</p></div><span className="pill">Robinhood Chain</span></header>
