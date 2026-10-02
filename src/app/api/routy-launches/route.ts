@@ -33,6 +33,7 @@ export async function GET(){
     client.readContract({address:token,abi:erc20Abi,functionName:"symbol"}).catch(()=>"TOKEN"),
     client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token]}).catch(()=>null),
    ]);
+   const block=await client.getBlock({blockNumber:log.blockNumber}).catch(()=>null);
    return {
     token,
     name,
@@ -46,6 +47,8 @@ export async function GET(){
     router:log.args.router,
     policy:Number(log.args.policy??0),
     ponsPhase:pons?Number(pons.phase):null,
+    creatorTaxBps:pons?Number(pons.creatorTaxBps):null,
+    createdAt:block?Number(block.timestamp):null,
     blockNumber:Number(log.blockNumber),
     transactionHash:log.transactionHash,
    };
