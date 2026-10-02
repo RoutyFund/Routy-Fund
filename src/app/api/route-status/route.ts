@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 import {createPublicClient,decodeFunctionResult,encodeFunctionData,http,type Address} from "viem";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
-import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
+import {ROUTE_CATALOG} from "@/lib/route-catalog";
 
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:[process.env.RPC_URL||process.env.NEXT_PUBLIC_RPC_URL||"https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 const registryAbi=[{type:"function",name:"approved",stateMutability:"view",inputs:[{name:"asset",type:"address"}],outputs:[{type:"bool"}]}] as const;
@@ -11,7 +11,7 @@ export async function GET(){
  try{
   const client=createPublicClient({chain,transport:http()});
   const rows=[];
-  for(const route of EXECUTABLE_ROUTES){
+  for(const route of ROUTE_CATALOG){
    const [approvedRaw,targetFeedRaw,quoteFeedRaw]=await Promise.all([
     client.call({to:ROUTY_DEPLOYMENT.assetRegistry,data:encodeFunctionData({abi:registryAbi,functionName:"approved",args:[route.target]})}),
     client.call({to:ROUTY_DEPLOYMENT.oracleRegistry,data:encodeFunctionData({abi:oracleAbi,functionName:"feedForAsset",args:[route.target]})}),
@@ -22,6 +22,7 @@ export async function GET(){
    const quoteFeed=decodeFunctionResult({abi:oracleAbi,functionName:"feedForAsset",data:quoteFeedRaw.data!}) as Address;
    rows.push({
     symbol:route.symbol,
+    launchEnabled:route.launchEnabled,
     approved,
     targetFeed,
     quoteFeed,
