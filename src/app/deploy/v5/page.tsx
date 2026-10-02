@@ -1,31 +1,22 @@
 "use client";
 
 import {useCallback, useEffect, useRef, useState} from "react";
-import {decodeFunctionResult, encodeFunctionData, type Address, type Hex} from "viem";
+import {type Hex} from "viem";
 import Nav from "@/components/Nav";
 import {DEPLOY_BYTECODE} from "@/lib/deploy-artifacts";
-import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
-import {PONS_V2} from "@/lib/pons";
+import {V5_CONFIG as CONFIG} from "@/lib/v5-deployment-config";
 import {
   getInjectedProvider, walletErrorMessage,
-  type EthereumProvider, type EthereumTransaction, type EthereumTransactionReceipt,
+  type EthereumProvider, type EthereumRequest,
 } from "@/lib/ethereum-provider";
 import {
-  V5_STEPS, assertV5Transaction, buildV5Transaction, parseV5Progress,
-  validV5Address, v5StepReady, type V5Configuration, type V5Progress, type V5StepId,
+  V5_STEPS, buildV5Transaction, parseV5Progress, readV5Receipt, receiptFailure, v5GasLimit,
+  v5StepReady, type V5ReceiptCheck, type V5Progress, type V5StepId,
 } from "@/lib/v5-deployment";
 
-const OWNER = ROUTY_DEPLOYMENT.automationOperatorV4 as Address;
+const OWNER = CONFIG.owner;
 const CHAIN = "0x1237";
 const KEY = "routy-v5-deployment-v1";
-const CONFIG: V5Configuration = {
-  owner: OWNER, operator: OWNER, treasury: ROUTY_DEPLOYMENT.treasury as Address,
-  registry: ROUTY_DEPLOYMENT.assetRegistry as Address, ponsFactory: PONS_V2.factory,
-  escrow: PONS_V2.feeEscrow, oracleRegistry: ROUTY_DEPLOYMENT.oracleRegistry as Address,
-  oracleGuard: ROUTY_DEPLOYMENT.oracleGuard as Address,
-  quoter: ROUTY_DEPLOYMENT.swapOracleQuoter as Address, adapter: ROUTY_DEPLOYMENT.swapRouterAdapter as Address,
-};
-const launcherReadAbi = [{type: "function", name: "launcher", stateMutability: "view", inputs: [], outputs: [{type: "address"}]}] as const;
 type LiveConfig = {generation?: string; launchReady?: boolean; deployment?: {missing?: string[]}};
 type Busy = V5StepId | "connect" | "restore" | "";
 
@@ -35,35 +26,37 @@ function save(progress: V5Progress) {
 async function guardedProvider(): Promise<EthereumProvider> {
   const provider = getInjectedProvider();
   if (!provider) throw new Error("Open this page in your EVM wallet browser.");
+  const reader = walletReadProvider(provider);
   const [accounts, chain] = await Promise.all([
-    provider.request<string[]>({method: "eth_accounts"}),
-    provider.request<string>({method: "eth_chainId"}),
+    reader.request<string[]>({method: "eth_accounts"}),
+    reader.request<string>({method: "eth_chainId"}),
   ]);
   if (accounts?.[0]?.toLowerCase() !== OWNER.toLowerCase()) throw new Error("Connect the Routy deployment wallet shown above.");
   if (chain.toLowerCase() !== CHAIN) throw new Error("Switch to Robinhood Chain (4663).");
   return provider;
 }
-async function verifyReceipt(provider: EthereumProvider, id: V5StepId, progress: V5Progress): Promise<Address> {
-  const hash = progress[id]?.hash;
-  if (!hash) throw new Error("No transaction hash saved.");
-  const receipt = await provider.request<EthereumTransactionReceipt | null>({method: "eth_getTransactionReceipt", params: [hash]});
-  if (!receipt) throw new Error("Transaction is pending. Check its receipt again after confirmation.");
-  if (receipt.status !== "0x1" && receipt.status !== "0x01") throw new Error("Transaction reverted. Retry this step after checking the explorer.");
-  const expected = buildV5Transaction(id, progress, CONFIG, DEPLOY_BYTECODE);
-  const transaction = await provider.request<EthereumTransaction | null>({method: "eth_getTransactionByHash", params: [hash]});
-  if (!transaction) throw new Error("Transaction could not be read.");
-  assertV5Transaction(expected, transaction);
-  const address = expected.to || receipt.contractAddress;
-  if (!validV5Address(address)) throw new Error("The receipt has no valid contract address.");
-  const code = await provider.request<string>({method: "eth_getCode", params: [address, "latest"]});
-  if (!code || code === "0x" || code === "0x0") throw new Error("No deployed contract found.");
-  if (id.startsWith("bind")) {
-    const data = encodeFunctionData({abi: launcherReadAbi, functionName: "launcher"});
-    const result = await provider.request<Hex>({method: "eth_call", params: [{to: address, data}, "latest"]});
-    const launcher = decodeFunctionResult({abi: launcherReadAbi, functionName: "launcher", data: result});
-    if (launcher.toLowerCase() !== progress.launcher?.address?.toLowerCase()) throw new Error("On-chain launcher binding does not match.");
-  }
-  return address;
+function walletReadProvider(provider: EthereumProvider): EthereumProvider {
+  return {
+    request: async <T,>(args: EthereumRequest): Promise<T> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          provider.request<T>(args),
+          new Promise<never>((_, reject) => {timer = setTimeout(() => reject(new Error("Wallet read timed out. Check your wallet connection and try again.")), 10000);}),
+        ]);
+      } finally {clearTimeout(timer);}
+    },
+  };
+}
+async function checkReceipt(provider: EthereumProvider, id: V5StepId, progress: V5Progress): Promise<V5ReceiptCheck> {
+  try {
+    const response = await fetch("/api/deploy/v5/receipt", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({id, progress}), signal: AbortSignal.timeout(12000), cache: "no-store",
+    });
+    if (response.ok) return await response.json() as V5ReceiptCheck;
+  } catch { /* A wallet read can still work when the server RPC is unavailable. */ }
+  return readV5Receipt(walletReadProvider(provider), id, progress, CONFIG, DEPLOY_BYTECODE);
 }
 
 export default function V5DeploymentPage() {
@@ -75,6 +68,9 @@ export default function V5DeploymentPage() {
   const [loaded, setLoaded] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [noticeStep, setNoticeStep] = useState<V5StepId | "">("");
+  const [receipts, setReceipts] = useState<Partial<Record<V5StepId, V5ReceiptCheck>>>({});
+  const [gasLimits, setGasLimits] = useState<Partial<Record<V5StepId, string>>>({});
   const [backup, setBackup] = useState("");
   const [live, setLive] = useState<LiveConfig | null>(null);
   const working = useRef(false);
@@ -111,11 +107,18 @@ export default function V5DeploymentPage() {
   async function run(id: Busy, action: () => Promise<void>) {
     if (working.current) return;
     working.current = true; setBusy(id); setError(""); setMessage("");
+    setNoticeStep(V5_STEPS.some(step => step.id === id) ? id as V5StepId : "");
     try {await action();}
     catch (cause) {setError(walletErrorMessage(cause, "Could not complete this step."));}
     finally {working.current = false; setBusy("");}
   }
   function persist(next: V5Progress) {save(next); setProgress(next);}
+  async function verifyReceipt(provider: EthereumProvider, id: V5StepId, next: V5Progress) {
+    const check = await checkReceipt(provider, id, next);
+    setReceipts(current => ({...current, [id]: check}));
+    if (check.status !== "verified" || !check.address) throw new Error(receiptFailure(check));
+    return check.address;
+  }
   async function connect() {
     await run("connect", async () => {
       const provider = getInjectedProvider();
@@ -134,24 +137,18 @@ export default function V5DeploymentPage() {
       const provider = await guardedProvider();
       const transaction = buildV5Transaction(id, progress, CONFIG, DEPLOY_BYTECODE);
       const estimate = await provider.request<Hex>({method: "eth_estimateGas", params: [transaction]});
-      // Robinhood Chain can consume materially more gas for contract creation than eth_estimateGas reports.
-      // Use a larger deployment buffer so large V5 factories do not fail by exhausting the exact gas limit.
-      const estimatedGas = BigInt(estimate);
-      const deployStep = !transaction.to;
-      const bufferedGas = deployStep ? estimatedGas * 250n / 100n : estimatedGas * 150n / 100n;
-      const minimumDeployGas = 3_000_000n;
-      const gasLimit = deployStep && bufferedGas < minimumDeployGas ? minimumDeployGas : bufferedGas;
-      const gas = ("0x" + gasLimit.toString(16)) as Hex;
+      const gas = v5GasLimit(estimate, !transaction.to);
+      setGasLimits(current => ({...current, [id]: BigInt(gas).toString()}));
       const hash = await provider.request<Hex>({method: "eth_sendTransaction", params: [{...transaction, gas}]});
       if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new Error("Wallet returned an invalid transaction hash.");
-      const next = {...progress, [id]: {hash}};
+      const next = {...progress, [id]: {hash, requestedGas: gas}};
       setProgress(next);
       try {save(next);} catch {throw new Error("Transaction submitted: " + hash + ". Save this hash; browser storage is unavailable.");}
       setMessage("Transaction saved. Waiting for its receipt…");
       for (let attempt = 0; attempt < 20; attempt++) {
         try {
           const address = await verifyReceipt(provider, id, next);
-          persist({...next, [id]: {hash, address}});
+          persist({...next, [id]: {...next[id]!, address}});
           setVerified(current => ({...current, [id]: true}));
           setMessage("Confirmed on-chain. Continue to the next step.");
           return;
@@ -165,11 +162,17 @@ export default function V5DeploymentPage() {
   }
   async function verify(id: V5StepId) {
     await run(id, async () => {
-      if (!v5StepReady(id, verified)) throw new Error("Verify all earlier steps first.");
       const provider = await guardedProvider();
-      const address = await verifyReceipt(provider, id, progress);
-      persist({...progress, [id]: {...progress[id]!, address}});
-      setVerified(current => ({...current, [id]: true}));
+      let next = {...progress};
+      for (const step of V5_STEPS) {
+        if (!verified[step.id] || step.id === id) {
+          if (!next[step.id]?.hash) throw new Error("Complete earlier steps first.");
+          const address = await verifyReceipt(provider, step.id, next);
+          next = {...next, [step.id]: {...next[step.id]!, address}};
+          persist(next); setVerified(current => ({...current, [step.id]: true}));
+        }
+        if (step.id === id) break;
+      }
       setMessage("Transaction and deployed contract verified.");
     });
   }
@@ -188,6 +191,7 @@ export default function V5DeploymentPage() {
     });
   }
   function importBackup() {
+    setNoticeStep("");
     try {
       const next = parseV5Progress(JSON.parse(backup));
       if (Object.keys(next).length === 0) throw new Error("The backup has no deployment transactions.");
@@ -200,10 +204,11 @@ export default function V5DeploymentPage() {
   async function retryReverted(id: V5StepId) {
     await run(id, async () => {
       const provider = await guardedProvider();
-      const receipt = await provider.request<EthereumTransactionReceipt | null>({method: "eth_getTransactionReceipt", params: [progress[id]!.hash]});
-      if (!receipt || BigInt(receipt.status || "0x1") !== 0n) throw new Error("Only a confirmed reverted transaction can be retried.");
+      const receipt = await checkReceipt(provider, id, progress);
+      setReceipts(current => ({...current, [id]: receipt}));
+      if (receipt.status !== "reverted") throw new Error("Only a confirmed reverted transaction can be retried. Keep the saved hash until its receipt is confirmed.");
       const next = {...progress}; delete next[id]; persist(next);
-      setVerified(current => ({...current, [id]: false})); setMessage("Reverted transaction cleared. This step can be retried.");
+      setVerified(current => ({...current, [id]: false})); setMessage("Failed transaction cleared. Earlier deployments are saved. Submit this step again and check Gas limit in the wallet before signing.");
     });
   }
 
@@ -236,18 +241,25 @@ export default function V5DeploymentPage() {
       <button className="primary" disabled={Boolean(busy)} onClick={() => void connect()}>{authorized ? "Refresh wallet" : "Connect wallet and switch network"}</button>
       {Object.keys(progress).length > 0 && <button className="secondary" disabled={!authorized || Boolean(busy)} onClick={() => void restore()}>Check saved receipts</button>}
     </div></section>
-    {message && <div className="notice" role="status">{message}</div>}
-    {error && <div className="notice danger" role="alert">{error}</div>}
+    {!noticeStep && message && <div className="notice" role="status">{message}</div>}
+    {!noticeStep && error && <div className="notice danger" role="alert">{error}</div>}
     <section className="section"><div className="section-head"><div><span className="micro">V5 CONTRACTS</span><h2>Deploy and connect.</h2></div><p className="section-copy">Approve each wallet transaction. Progress is verified against its sender, destination, constructor data and receipt.</p></div>
       {V5_STEPS.map((step, index) => {
         const record = progress[step.id];
         const ready = v5StepReady(step.id, verified);
+        const receipt = receipts[step.id];
+        const gasLimit = gasLimits[step.id] || (record?.requestedGas ? BigInt(record.requestedGas).toString() : "3000000");
         return <div className="form-card" key={step.id} style={{marginBottom: 8}}>
           <span className="micro">STEP {index + 1}</span><h3>{step.title}</h3>
           {record?.address && <code style={{overflowWrap: "anywhere"}}>{record.address}</code>}
+          {record?.hash && <p className="muted">Transaction: <code style={{overflowWrap: "anywhere"}}>{record.hash}</code></p>}
+          {receipt && <p role="status">Receipt: <strong>{receipt.status.toUpperCase()}</strong>{receipt.gasUsed && receipt.gasLimit && <> · Gas used {Number(receipt.gasUsed).toLocaleString("en-US")} / {Number(receipt.gasLimit).toLocaleString("en-US")}</>}</p>}
+          {step.contract && !verified[step.id] && <p className="muted">{record?.requestedGas ? "Requested" : "Minimum"} gas limit: <strong>{Number(gasLimit).toLocaleString("en-US")}</strong>. Check the wallet’s Gas limit before signing; some wallets change it.</p>}
+          {noticeStep === step.id && message && <div className="notice" role="status">{message}</div>}
+          {noticeStep === step.id && error && <div className="notice danger" role="alert">{error}</div>}
           {record?.hash && <a className="secondary" href={"https://robinhoodchain.blockscout.com/tx/" + record.hash} target="_blank" rel="noreferrer">View transaction ↗</a>}
           {verified[step.id] ? <span className="pill">Verified</span> : record?.hash
-            ? <><button className="primary" disabled={Boolean(busy) || !authorized || !ready} onClick={() => void verify(step.id)}>Check receipt</button><button className="secondary" disabled={Boolean(busy) || !authorized || !ready} onClick={() => void retryReverted(step.id)}>Retry reverted transaction</button></>
+            ? <><button className="primary" disabled={Boolean(busy) || !authorized} onClick={() => void verify(step.id)}>{busy === step.id ? "Checking receipt…" : "Check receipt"}</button><button className="secondary" disabled={Boolean(busy) || !authorized} onClick={() => void retryReverted(step.id)}>Retry reverted transaction</button></>
             : <button className="primary" disabled={!loaded || Boolean(busy) || !authorized || !ready} onClick={() => void submit(step.id)}>{busy === step.id ? "Waiting for wallet or confirmation…" : ready ? "Submit transaction" : "Complete earlier steps"}</button>}
         </div>;
       })}
