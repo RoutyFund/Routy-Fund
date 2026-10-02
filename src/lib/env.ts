@@ -16,7 +16,7 @@ export function protocolReadiness(){
   generation:"v4",
   launcher:Boolean(launcherV4()),
   registry:Boolean(process.env.NEXT_PUBLIC_ROUTY_ASSET_REGISTRY_ADDRESS||ROUTY_DEPLOYMENT.assetRegistry),
-  executor:Boolean(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS||ROUTY_DEPLOYMENT.swapExecutorV4),
-  rewardController:Boolean(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS||ROUTY_DEPLOYMENT.rewardAutomationControllerV4)
+  executor:Boolean(executorV4()),
+  rewardController:Boolean(rewardControllerV4())
  }
 }
