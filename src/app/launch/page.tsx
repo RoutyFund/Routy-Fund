@@ -23,6 +23,7 @@ export default function Launch(){
  const routeConfigured=Boolean(routeStatusLoaded&&selectedRoute&&routeStatus.find(s=>s.symbol===selectedRoute.symbol)?.configurationComplete);
  const valid=name.trim()&&symbol.trim()&&description.trim()&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
  function file(e:React.ChangeEvent<HTMLInputElement>){const f=e.target.files?.[0];if(!f)return; if(f.size>500000){setStatus("Logo must be under 500 KB.");return} const r=new FileReader();r.onload=()=>setLogo(String(r.result||""));r.readAsDataURL(f)}
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any -- injected wallets expose receipt payloads without a stable TS type.
  async function waitReceipt(hash:string,provider:ReturnType<typeof getInjectedProvider>){if(!provider)return null;for(let i=0;i<40;i++){const r=await provider.request<any>({method:"eth_getTransactionReceipt",params:[hash]});if(r)return r;await new Promise(x=>setTimeout(x,1500))}return null}
  async function launch(){
   if(!valid||busy)return; const provider=getInjectedProvider(); if(!provider){setStatus("Connect an EVM wallet first.");return}
@@ -47,7 +48,14 @@ export default function Launch(){
    if(!receipt){setStatus("Launch is still pending. Do not resubmit.");return}
    if(receipt.status!=="0x1"&&receipt.status!=="0x01")throw new Error("Pons launch failed on-chain.");
    let tokenAddress="";
-   for(const log of receipt.logs||[]){try{const decoded=decodeEventLog({abi:factoryLaunchAbi,data:log.data as Hex,topics:log.topics as any});if(decoded.eventName==="TokenLaunched"){tokenAddress=String((decoded.args as any).token||"");break}}catch{}}
+   for(const log of receipt.logs||[]){try{
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wallet log topics are untyped EIP-1193 data.
+    const decoded=decodeEventLog({abi:factoryLaunchAbi,data:log.data as Hex,topics:log.topics as any});
+    if(decoded.eventName==="TokenLaunched"){
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem event args are narrowed at runtime by eventName.
+     tokenAddress=String((decoded.args as any).token||"");break
+    }
+   }catch{}}
    if(tokenAddress){setLaunchedToken(tokenAddress);setStatus("Launch confirmed. Continue to Routy provisioning.");}
    else setStatus("Launch confirmed, but the token address could not be decoded automatically. Check the transaction on the explorer.");
   }catch(e){setStatus(e instanceof Error?e.message:"Launch cancelled or failed.");}finally{setBusy(false)}
