@@ -4,6 +4,7 @@ export type RewardPlanRow = {address: Address; cumulativeAmount: string};
 export type RewardPlan = {
   version: 1; token: Address; distributor: Address; controller: Address;
   snapshotBlock: string; fundedBalance: string; allocations: RewardPlanRow[];
+  nextIndex?: number;
 };
 export function readRewardPlan(value: unknown, expected: {token: Address; distributor: Address; controller: Address}): RewardPlan | null {
   if (value === null || value === undefined) return null;
@@ -11,6 +12,7 @@ export function readRewardPlan(value: unknown, expected: {token: Address; distri
   const plan = value as RewardPlan;
   if (plan.version !== 1 || !/^\d+$/.test(plan.snapshotBlock) || !/^\d+$/.test(plan.fundedBalance)
     || !Array.isArray(plan.allocations) || !plan.allocations.length) throw new Error("INVALID_REWARD_PLAN");
+  if (plan.nextIndex !== undefined && (!Number.isInteger(plan.nextIndex) || plan.nextIndex < 0 || plan.nextIndex > plan.allocations.length)) throw new Error("INVALID_REWARD_PLAN_CURSOR");
   for (const key of ["token", "distributor", "controller"] as const) {
     if (typeof plan[key] !== "string" || plan[key].toLowerCase() !== expected[key].toLowerCase()) throw new Error("REWARD_PLAN_ROUTE_MISMATCH");
   }
