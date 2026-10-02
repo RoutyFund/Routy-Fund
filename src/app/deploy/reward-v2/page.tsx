@@ -527,21 +527,23 @@ export default function RewardV2Deploy() {
                   )}
                 </>
               ) : (
-                <button
-                  className="primary"
-                  disabled={!!busy || !ready || !authorized || !correctChain}
-                  title={!ready ? "Verify step sebelumnya dulu" : !authorized ? "Gunakan wallet owner Routy" : !correctChain ? "Gunakan Robinhood Chain" : ""}
-                  onClick={() => submit(step, index)}
-                >
-                  {busy === step.id
-                    ? "Awaiting wallet…"
-                    : !ready
-                      ? "Locked — verify previous step"
-                      : step.kind === "deploy"
-                        ? `Deploy ${step.title.replace("Deploy ", "")}`
-                        : "Submit transaction"}
-                </button>
-                {!ready && <p className="muted">Step ini terbuka otomatis setelah step sebelumnya berstatus Verified.</p>}
+                <>
+                  <button
+                    className="primary"
+                    disabled={!!busy || !ready || !authorized || !correctChain}
+                    title={!ready ? "Verify step sebelumnya dulu" : !authorized ? "Gunakan wallet owner Routy" : !correctChain ? "Gunakan Robinhood Chain" : ""}
+                    onClick={() => submit(step, index)}
+                  >
+                    {busy === step.id
+                      ? "Awaiting wallet…"
+                      : !ready
+                        ? "Locked — verify previous step"
+                        : step.kind === "deploy"
+                          ? `Deploy ${step.title.replace("Deploy ", "")}`
+                          : "Submit transaction"}
+                  </button>
+                  {!ready && <p className="muted">Step ini terbuka otomatis setelah step sebelumnya berstatus Verified.</p>}
+                </>
               )}
             </section>
           );
