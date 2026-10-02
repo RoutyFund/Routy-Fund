@@ -1,7 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {isAddress} from "viem";
 import {snapshotTokenHolders} from "@/lib/holder-snapshot";
-import {PONS_V2,factoryReadAbi} from "@/lib/pons";
+import {PONS_V2,factoryReadAbi,factoryLaunchAbi} from "@/lib/pons";
 import {createPublicClient,http,type Address} from "viem";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 
@@ -22,7 +22,11 @@ export async function GET(req:NextRequest){
   if(vault==="0x0000000000000000000000000000000000000000")return NextResponse.json({ok:false,error:"ROUTE_NOT_PROVISIONED"},{status:409});
   const block=await client.getBlock({blockTag:"latest"});
   const snapshotBlock=block.number>2n?block.number-2n:block.number;
-  const fromBlock=snapshotBlock>500_000n?snapshotBlock-500_000n:0n;
+  const launchEvent=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched");
+  if(!launchEvent)throw new Error("PONS_LAUNCH_EVENT_ABI_MISSING");
+  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:snapshotBlock}).catch(()=>[]);
+  const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
+  const fromBlock=launchBlock??(snapshotBlock>500_000n?snapshotBlock-500_000n:0n);
   const holders=await snapshotTokenHolders({token,fromBlock,toBlock:snapshotBlock,excluded:[creator,vault,router,distributor,PONS_V2.factory,PONS_V2.feeEscrow],rpcUrl:rpc});
   const total=holders.reduce((n,h)=>n+h.balance,0n);
   return NextResponse.json({ok:true,token,policy:Number(policy),createdAt:Number(createdAt),snapshotBlock:snapshotBlock.toString(),snapshotFromBlock:fromBlock.toString(),holderCount:holders.length,totalEligibleBalance:total.toString(),holders:holders.map(h=>({address:h.address,balance:h.balance.toString()}))});
