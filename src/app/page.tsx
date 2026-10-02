@@ -1,11 +1,8 @@
 import Nav from "@/components/Nav";
 import TokenLogo from "@/components/TokenLogo";
+import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
-const markets=[
- ["AAPL","Apple","READY","USDG","3000","60"],
- ["TSLA","Tesla","READY","USDG","3000","60"],
- ["NVDA","NVIDIA","READY","USDG","100","1"],
-];
+const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"READY",r.quoteSymbol,String(r.poolKey.fee),String(r.poolKey.tickSpacing)]);
 
 export default function Home(){
  return <main className="shell"><Nav/><div className="wrap terminal-home">
@@ -36,9 +33,9 @@ export default function Home(){
      <div className="terminal-window">
       <div className="terminal-window-head"><span>EXECUTION GUARDS</span><span>SECURITY</span></div>
       <div className="terminal-log">
-       <p><time>[OK]</time><span>AssetRegistry</span><b>3 assets approved</b></p>
+       <p><time>[OK]</time><span>AssetRegistry</span><b>{EXECUTABLE_ROUTES.length} assets approved</b></p>
        <p><time>[OK]</time><span>OracleRegistry</span><b>feeds configured</b></p>
-       <p><time>[OK]</time><span>PoolKey verification</span><b>3 / 3 matched</b></p>
+       <p><time>[OK]</time><span>PoolKey verification</span><b>{EXECUTABLE_ROUTES.length} / {EXECUTABLE_ROUTES.length} matched</b></p>
        <p><time>[SAFE]</time><span>SwapExecutor</span><b>paused pre-live-test</b></p>
       </div>
      </div>
@@ -58,7 +55,7 @@ export default function Home(){
      <div className="terminal-window-head"><span>SYSTEM</span><span>PROD</span></div>
      <div className="terminal-kpis">
       <div><span>NETWORK</span><strong>RH 4663</strong></div>
-      <div><span>ROUTES</span><strong>3 / 3</strong></div>
+      <div><span>ROUTES</span><strong>{EXECUTABLE_ROUTES.length} / {EXECUTABLE_ROUTES.length}</strong></div>
       <div><span>QUOTE</span><strong>USDG</strong></div>
       <div><span>CUSTODY</span><strong>WALLET</strong></div>
      </div>
