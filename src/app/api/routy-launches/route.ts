@@ -21,7 +21,8 @@ export async function GET(){
    try{configured=BigInt(configuredRaw)}catch{configured=null}
   }
   const historyComplete=configured!==null&&configured>=0n&&configured<=latest;
-  const fromBlock=historyComplete?configured!:(latest>50000n?latest-50000n:0n);
+  const fallbackWindow=500000n;
+  const fromBlock=historyComplete?configured!:(latest>fallbackWindow?latest-fallbackWindow:0n);
   const logs=[];
   const chunk=10000n;
   for(let start=fromBlock;start<=latest;start+=chunk){
@@ -56,6 +57,7 @@ export async function GET(){
     creatorTaxBps:pons?Number(pons.creatorTaxBps):null,
     createdAt:block?Number(block.timestamp):null,
     blockNumber:Number(log.blockNumber),
+    launchBlock:Number(log.blockNumber),
     transactionHash:log.transactionHash,
    };
   }));
