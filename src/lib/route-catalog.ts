@@ -46,6 +46,23 @@ export const ROUTE_CATALOG:ProductionRoute[]=[
  poolKey:{currency0:USDG,currency1:"0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",fee:100,tickSpacing:1,hooks:NO_HOOK},
  source:"verified",launchEnabled:true
 }
+,{
+ symbol:"AMD",name:"AMD",target:"0x86923f96303D656E4aa86D9d42D1e57ad2023fdC",quoteSymbol:"USDG",quote:USDG,targetFeed:"0x943A29E7ae51A4798823ca9eEd2ed533B2A22C72",quoteFeed:USDG_FEED,poolId:"0xde9f85fdd9e05a943a52f2c69ffafe3064a3287df03d02c9b431bc92d4781274",poolKey:{currency0:USDG,currency1:"0x86923f96303D656E4aa86D9d42D1e57ad2023fdC",fee:10000,tickSpacing:200,hooks:NO_HOOK},source:"verified",launchEnabled:false
+},{
+ symbol:"MSFT",name:"Microsoft",target:"0xe93237C50D904957Cf27E7B1133b510C669c2e74",quoteSymbol:"USDG",quote:USDG,targetFeed:"0x45C3C877C15E6BA2EBB19eA114Ea508d14C1Af2E",quoteFeed:USDG_FEED,poolId:"0x9194a557b6a6bb2236b49ea7e2bbccec5d3eeb705aef00903be4b3de1d949579",poolKey:{currency0:USDG,currency1:"0xe93237C50D904957Cf27E7B1133b510C669c2e74",fee:3000,tickSpacing:60,hooks:NO_HOOK},source:"verified",launchEnabled:false
+},{
+ symbol:"AMZN",name:"Amazon",target:"0x12f190a9F9d7D37a250758b26824B97CE941bF54",quoteSymbol:"USDG",quote:USDG,targetFeed:"0xD5a1508ceD74c084eBf3cBe853e2C968fB2a651C",quoteFeed:USDG_FEED,poolId:"0xd32646872e6712af8cf778e34b6bbef1d2ae0bddd83764e1b07333518ad59333",poolKey:{currency0:"0x12f190a9F9d7D37a250758b26824B97CE941bF54",currency1:USDG,fee:3000,tickSpacing:60,hooks:NO_HOOK},source:"verified",launchEnabled:false
+},{
+ symbol:"GOOGL",name:"Alphabet Class A",target:"0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3",quoteSymbol:"USDG",quote:USDG,targetFeed:"0xF6f373a037c30F0e5010d854385cA89185AE638b",quoteFeed:USDG_FEED,poolId:"0xd4ecb79fdc521d7725d22b33ed43cb4e47aa96bfad76aa29577e3151f723ac5e",poolKey:{currency0:"0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3",currency1:USDG,fee:3000,tickSpacing:60,hooks:NO_HOOK},source:"verified",launchEnabled:false
+},{
+ symbol:"META",name:"Meta Platforms",target:"0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35",quoteSymbol:"USDG",quote:USDG,targetFeed:"0x7C38C00C30BEe9378381E7B6135d7283356D71b1",quoteFeed:USDG_FEED,poolId:"0x5875d407a42965b0e768c8925cea290e06fa50603ef34fc99eb92a1050e6ae36",poolKey:{currency0:USDG,currency1:"0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35",fee:3000,tickSpacing:60,hooks:NO_HOOK},source:"verified",launchEnabled:false
+},{
+ symbol:"COIN",name:"Coinbase",target:"0x6330D8C3178a418788dF01a47479c0ce7CCF450b",quoteSymbol:"USDG",quote:USDG,targetFeed:"0xA3a468A452940B7D6b69991207B508c609a98Ef2",quoteFeed:USDG_FEED,poolId:"0x007a13fa152f6dc383cad20a8eaab4e1e2538b606936eae2a424f8aa47d6db31",poolKey:{currency0:USDG,currency1:"0x6330D8C3178a418788dF01a47479c0ce7CCF450b",fee:10000,tickSpacing:200,hooks:NO_HOOK},source:"verified",launchEnabled:false
+},{
+ symbol:"INTC",name:"Intel",target:"0xc72b96e0E48ecd4DC75E1e45396e26300BC39681",quoteSymbol:"USDG",quote:USDG,targetFeed:"0x3f390C5C24628Ac7C489515402235FeAD71D1913",quoteFeed:USDG_FEED,poolId:"0xf2e329e631d0fb315a5c563ee3a9120f24822b5ef6c502a91cb56b174d5d8c22",poolKey:{currency0:USDG,currency1:"0xc72b96e0E48ecd4DC75E1e45396e26300BC39681",fee:10000,tickSpacing:200,hooks:NO_HOOK},source:"verified",launchEnabled:false
+},{
+ symbol:"GME",name:"GameStop",target:"0x1b0E319c6A659F002271B69dB8A7df2F911c153E",quoteSymbol:"USDG",quote:USDG,targetFeed:"0x27C71df6A64fB476468EdF256CF72c038baB5B67",quoteFeed:USDG_FEED,poolId:"0x3d436b4fdc532c61a0bf15d6cae80a66eb8f28ee9daec34dbec4b5bc9964063b",poolKey:{currency0:"0x1b0E319c6A659F002271B69dB8A7df2F911c153E",currency1:USDG,fee:10000,tickSpacing:200,hooks:NO_HOOK},source:"verified",launchEnabled:false
+}
 ];
 
 export const EXECUTABLE_ROUTES=ROUTE_CATALOG.filter(r=>r.launchEnabled);
