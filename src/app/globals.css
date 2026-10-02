@@ -710,3 +710,7 @@ a.terminal-event-row:hover{background:#0b1c23}.terminal-event-row b{color:var(--
 .token-logo{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--term-line);border-radius:10px;background:#0d2028}
 .token-logo-fallback{color:var(--term-cyan);font:800 12px ui-monospace,SFMono-Regular,Menlo,monospace}
 .token-detail-logo{margin-bottom:12px;border-radius:14px}
+
+.terminal-market-symbol{display:flex;align-items:center;gap:9px;min-width:0}
+.terminal-market-symbol .token-logo{border-radius:7px}
+@media(max-width:760px){.terminal-market-symbol{gap:7px}.terminal-market-symbol .token-logo{width:26px!important;height:26px!important}}
