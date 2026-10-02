@@ -555,3 +555,84 @@ a.terminal-table:hover{background:#0c1d25;color:#dcebef}
  .terminal-actions-panel{grid-column:auto}
  .terminal-bottomline{flex-direction:column}
 }
+
+
+/* Shared terminal structure for every application surface */
+.console-page{max-width:1440px;padding-top:18px}
+.console-page>.page-head{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:end;
+ margin:0 0 8px;padding:14px 14px 16px;border:1px solid var(--term-line);background:#08151b
+}
+.console-page>.page-head:before{
+ content:"ROUTY FUND / CONSOLE";grid-column:1/-1;margin:-14px -14px 2px;padding:8px 11px;
+ border-bottom:1px solid var(--term-line);background:#0c1a21;color:#587581;
+ font:700 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em
+}
+.console-page>.page-head h1{font-size:clamp(28px,4vw,46px);margin:4px 0 5px}
+.console-page>.page-head .lead{max-width:760px;font:500 11px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace}
+.console-page>.proof-grid{
+ display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:0 0 8px;border:1px solid var(--term-line);border-right:0
+}
+.console-page>.proof-grid .proof-card{
+ min-height:104px;border:0;border-right:1px solid var(--term-line);border-radius:0;padding:13px
+}
+.console-page>.proof-grid .proof-card strong{font-size:20px;margin:14px 0 5px}
+.console-page>.section{
+ margin-top:8px;border:1px solid var(--term-line);background:rgba(7,18,24,.88);padding:0
+}
+.console-page>.section>.section-head{
+ margin:0;padding:10px 12px;border-bottom:1px solid var(--term-line);background:#0b1920;align-items:center
+}
+.console-page>.section>.section-head h2{font:700 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;margin:3px 0 0}
+.console-page>.section>.section-head .section-copy{font:500 9px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;max-width:560px}
+.console-page .list-toolbar{
+ margin:0;padding:8px 10px;border:0;border-bottom:1px solid var(--term-line);background:#08151b;border-radius:0
+}
+.console-page .tabs{gap:4px}
+.console-page .tab{padding:7px 10px;text-transform:uppercase;font-size:8px;letter-spacing:.07em}
+.console-page .market-directory{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.console-page .market-directory article{border:0;border-right:1px solid var(--term-line);border-bottom:1px solid var(--term-line);border-radius:0;background:#08161d}
+.console-page .market-directory article:nth-child(3n){border-right:0}
+.console-page .data-list{border:0;border-radius:0}
+.console-page .data-row{border-radius:0;background:#08151b}
+.console-page .empty-state{margin:12px;border-radius:0;background:#071219}
+.console-page .feature-grid{gap:0}
+.console-page .feature-card{border-radius:0;border:0;border-right:1px solid var(--term-line);border-bottom:1px solid var(--term-line)}
+.console-page .flow{gap:0}
+.console-page .flow-step{border-radius:0;border:0;border-right:1px solid var(--term-line);min-height:128px}
+.console-page .flow-step:last-child{border-right:0}
+.console-page .analytics-grid{gap:0}
+.console-page .analytics-grid article{border-radius:0;border:0;border-right:1px solid var(--term-line)}
+.console-page .chart-shell{border:0;border-radius:0;min-height:310px}
+.console-page .portfolio-layout{gap:0}
+.console-page .portfolio-layout>.empty-state{margin:0;border:0;border-right:1px solid var(--term-line)}
+.console-page .portfolio-side{border:0;border-radius:0}
+.console-page .form-card{border-radius:0;background:#08151b}
+.console-page .launch-form{gap:8px}
+.console-page .route-summary{border-radius:0;background:#071219}
+.console-page>span.kicker:first-child{
+ display:block;border:1px solid var(--term-line);border-bottom:0;background:#0b1920;padding:9px 12px;margin:0;
+ color:#587581
+}
+.console-page>span.kicker:first-child+h1{
+ margin:0;padding:16px 12px 6px;border-left:1px solid var(--term-line);border-right:1px solid var(--term-line);
+ background:#08151b;font-size:clamp(28px,4vw,46px)!important
+}
+.console-page>span.kicker:first-child+h1+p{
+ margin:0 0 8px;padding:0 12px 16px;border:1px solid var(--term-line);border-top:0;background:#08151b
+}
+.console-page .activity-shell{padding:0}
+.console-page .activity-rail{display:none}
+.console-page a,.console-page button{transition:background .12s,border-color .12s,color .12s}
+@media(max-width:900px){
+ .console-page>.proof-grid{grid-template-columns:repeat(2,1fr)}
+ .console-page .market-directory{grid-template-columns:1fr}
+ .console-page .market-directory article{border-right:0}
+}
+@media(max-width:620px){
+ .console-page>.page-head{grid-template-columns:1fr}
+ .console-page>.proof-grid{grid-template-columns:1fr}
+ .console-page>.proof-grid .proof-card{border-bottom:1px solid var(--term-line)}
+ .console-page .flow{grid-template-columns:1fr}
+ .console-page .flow-step{border-right:0;border-bottom:1px solid var(--term-line)}
+}
