@@ -115,19 +115,19 @@ const STEPS: Step[] = [
     id: "rewardFactoryLauncher",
     title: "Bind RewardDistributorFactory V2",
     kind: "call",
-    details: "Set launcher satu kali ke ProtocolLauncherV2.",
+    details: "Set the launcher once to ProtocolLauncherV2.",
   },
   {
     id: "vaultFactoryLauncher",
     title: "Bind AssetVaultV2Factory",
     kind: "call",
-    details: "Set launcher satu kali ke ProtocolLauncherV2.",
+    details: "Set the launcher once to ProtocolLauncherV2.",
   },
   {
     id: "routerFactoryLauncher",
     title: "Bind FeeRouterFactory V2",
     kind: "call",
-    details: "Set launcher satu kali ke ProtocolLauncherV2.",
+    details: "Set the launcher once to ProtocolLauncherV2.",
   },
   {
     id: "executorLauncher",
@@ -482,7 +482,7 @@ export default function RewardV2Deploy() {
           <h1>Complete Reward V2 infrastructure</h1>
           <p>
             The V2 reward and vault factories are already deployed. This wizard completes the router factory,
-            executor, launcher, dan binding yang diperlukan. SwapExecutor V2 tetap paused setelah
+            executor, launcher, and required bindings. SwapExecutor V2 remains paused after
             all steps are complete.
           </p>
         </section>
@@ -547,7 +547,7 @@ export default function RewardV2Deploy() {
                   <button
                     className="primary"
                     disabled={!!busy || !ready || !authorized || !correctChain}
-                    title={!ready ? "Verify the previous step first" : !authorized ? "Gunakan wallet owner Routy" : !correctChain ? "Gunakan Robinhood Chain" : ""}
+                    title={!ready ? "Verify the previous step first" : !authorized ? "Use the Routy owner wallet" : !correctChain ? "Use Robinhood Chain" : ""}
                     onClick={() => submit(step, index)}
                   >
                     {busy === step.id
