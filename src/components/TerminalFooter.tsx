@@ -7,7 +7,7 @@ export default function TerminalFooter(){
   <div className="terminal-footer-cta">
    <div className="terminal-footer-prompt"><span>routy@fund:~$</span><b>start --route</b><i>█</i></div>
    <div className="terminal-footer-copy">
-    <div><span className="micro">ROUTY FUND</span><h2>Route creator fees into verified markets.</h2><p>Launch through Routy. Automatic V5 setup connects creator fees to the selected Stock Token market and holder reward policy.</p></div>
+    <div><span className="micro">ROUTY FUND</span><h2>Route creator fees into verified markets.</h2><p>Launch through Routy. Automatic setup connects creator fees to the selected Stock Token market and holder reward policy.</p></div>
     <div className="terminal-footer-actions"><Link className="primary" href="/launch">+ Launch route</Link><Link className="secondary" href="/explore">Explore Routy</Link></div>
    </div>
    <div className="terminal-footer-stats">
