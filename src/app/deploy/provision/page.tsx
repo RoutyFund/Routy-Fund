@@ -47,8 +47,8 @@ export default function ProvisionPage(){
  async function readRoute(){
   const p=getInjectedProvider();if(!p||!isAddress(token)){setRouteState(null);setPonsLaunch(null);return}
   const raw=await call(p,ROUTY_DEPLOYMENT.protocolLauncherV2,encodeFunctionData({abi:launcherAbi,functionName:"routes",args:[token as Address]}));
-  const d=decodeFunctionResult({abi:launcherAbi,functionName:"routes",data:raw}) as readonly [Address,Address,Address,Address,Address,number,bigint];
-  const next={creator:d[0],targetAsset:d[1],quoteToken:d[2],vault:d[3],router:d[4],policy:d[5],createdAt:d[6]};setRouteState(next);
+  const d=decodeFunctionResult({abi:launcherAbi,functionName:"routes",data:raw}) as readonly [Address,Address,Address,Address,Address,Address,number,bigint];
+  const next={creator:d[0],targetAsset:d[1],quoteToken:d[2],vault:d[3],router:d[4],distributor:d[5],policy:d[6],createdAt:d[7]};setRouteState(next);
   if(next.targetAsset!==ZERO){const matched=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===next.targetAsset.toLowerCase());if(matched)setSelectedSymbol(matched.symbol)}
   if(next.vault!==ZERO){
    const pk=await call(p,ROUTY_DEPLOYMENT.swapExecutorV2,encodeFunctionData({abi:executorAbi,functionName:"poolKeyForVault",args:[next.vault]}));
