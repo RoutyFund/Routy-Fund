@@ -15,14 +15,17 @@ async function image(url:string,source:string){
  return new NextResponse(await upstream.arrayBuffer(),{status:200,headers:{"Content-Type":type,"X-Logo-Source":source,...HEADERS}});
 }
 
-// Preferred source: the live Robinhood registry. The logo is matched by the Stock Token's Robinhood Chain contract address.
+// Secondary source: the live Robinhood registry. The logo is matched by the Stock Token's Robinhood Chain contract address.
 async function liveLogo(symbol:string){
  try{
   const route=EXECUTABLE_ROUTES.find(r=>r.symbol===symbol);
   if(!route)return null;
-  const asset=(await canonicalAssets()).find(a=>deployment4663(a)?.toLowerCase()===route.target.toLowerCase());
+  const assets=await canonicalAssets();
+  const asset=assets.find(a=>deployment4663(a)?.toLowerCase()===route.target.toLowerCase());
   const url=asset?.logoUrl;
   if(!url)return null;
+  // A logo shared by several assets is the registry's generic placeholder (the Robinhood mark), not the company logo.
+  if(assets.filter(a=>a.logoUrl===url).length>1)return null;
   const parsed=new URL(url);
   if(parsed.protocol!=="https:"||!(parsed.hostname==="robinhood.com"||parsed.hostname.endsWith(".robinhood.com")))return null;
   return await image(parsed.toString(),"robinhood");
@@ -32,11 +35,11 @@ async function liveLogo(symbol:string){
 export async function GET(req:Request){
  const symbol=(new URL(req.url).searchParams.get("symbol")||"").trim().toUpperCase();
  if(!/^[A-Z0-9.\-]{1,16}$/.test(symbol))return new NextResponse(null,{status:400});
- const live=await liveLogo(symbol);
- if(live)return live;
- // Fallback: public company logo by ticker.
+ // Primary: the public company logo by ticker, so every Stock Token shows its own brand.
  try{
-  const fallback=await image("https://financialmodelingprep.com/image-stock/"+encodeURIComponent(symbol)+".png","fallback");
-  return fallback??new NextResponse(null,{status:404});
- }catch{return new NextResponse(null,{status:502})}
+  const company=await image("https://financialmodelingprep.com/image-stock/"+encodeURIComponent(symbol)+".png","company");
+  if(company)return company;
+ }catch{}
+ // Secondary: the live Robinhood registry (ignored when it only has a shared placeholder).
+ return (await liveLogo(symbol))??new NextResponse(null,{status:404});
 }
