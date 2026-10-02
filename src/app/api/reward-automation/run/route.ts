@@ -116,7 +116,7 @@ async function handle(req:NextRequest){
     const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
     const route=await publicClient.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token]});
     const [,,,vault,router,distributor]=route;
-    if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);continue}
+    if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);if(!single)await touchReadyToken(token);continue}
 
     // 1. Harvest creator fees (permissionless).
     try{
@@ -135,13 +135,14 @@ async function handle(req:NextRequest){
     }else out.swap="disabled";
 
     // 3. Distribute whatever the distributor holds, using the allocation endpoint as the single source of truth.
-    const paused=await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"paused"}).catch(()=>false);
-    if(paused){out.distribution="DISTRIBUTOR_PAUSED";results.push(out);continue}
+    const paused=await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"paused"}).catch(()=>null);
+    if(paused===null){out.distribution="DISTRIBUTOR_STATUS_UNAVAILABLE";results.push(out);if(!single)await touchReadyToken(token);continue}
+    if(paused){out.distribution="DISTRIBUTOR_PAUSED";results.push(out);if(!single)await touchReadyToken(token);continue}
     const allocationUrl=new URL("/api/rewards/allocation",req.url);allocationUrl.searchParams.set("token",token);
     const allocationRes=await fetch(allocationUrl,{cache:"no-store"});
     const allocation=await allocationRes.json();
-    if(!allocationRes.ok||!allocation.ok){out.distribution="ALLOCATION_UNAVAILABLE";out.error=String(allocation?.error||allocationRes.status);results.push(out);continue}
-    if(!allocation.batches?.length){out.distribution=allocation.reason||"NO_REWARDS";results.push(out);continue}
+    if(!allocationRes.ok||!allocation.ok){out.distribution="ALLOCATION_UNAVAILABLE";out.error=String(allocation?.error||allocationRes.status);results.push(out);if(!single)await touchReadyToken(token);continue}
+    if(!allocation.batches?.length){out.distribution=allocation.reason||"NO_REWARDS";results.push(out);if(!single)await touchReadyToken(token);continue}
 
     let recipients=0;
     for(const batch of allocation.batches as {accounts:Address[];cumulativeAmounts:string[]}[]){
