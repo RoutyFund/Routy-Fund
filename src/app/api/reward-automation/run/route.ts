@@ -112,7 +112,8 @@ async function handle(req:NextRequest){
    if(Date.now()-started>TIME_BUDGET_MS){results.push({token,harvest:"skipped",distribution:"TIME_BUDGET_EXCEEDED"});continue}
    const out:TokenResult={token,harvest:"skipped",distribution:"skipped"};
    try{
-    const route=await publicClient.readContract({address:ROUTY_DEPLOYMENT.protocolLauncherV4 as Address,abi:launcherAbi,functionName:"routes",args:[token]});
+    const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
+    const route=await publicClient.readContract({address:launcher,abi:launcherAbi,functionName:"routes",args:[token]});
     const [,,,vault,router,distributor]=route;
     if(vault===ZERO||distributor===ZERO){out.distribution="ROUTE_NOT_PROVISIONED";results.push(out);continue}
 
