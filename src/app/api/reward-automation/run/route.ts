@@ -103,7 +103,8 @@ async function handle(req:NextRequest){
 
  const started=Date.now();
  try{
-  const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const rpc=process.env.RPC_URL?.trim();
+  if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
   const publicClient=createPublicClient({chain,transport:http(rpc)}) as PublicClient;
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
   const controller=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4) as Address;
@@ -115,7 +116,7 @@ async function handle(req:NextRequest){
   const results:TokenResult[]=[];
 
   for(const token of tokens){
-   if(Date.now()-started>TIME_BUDGET_MS){results.push({token,harvest:"skipped",distribution:"TIME_BUDGET_EXCEEDED"});continue}
+   if(Date.now()-started>TIME_BUDGET_MS)break;
    const out:TokenResult={token,harvest:"skipped",distribution:"skipped"};
    try{
     const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
