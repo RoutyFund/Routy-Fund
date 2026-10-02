@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
-import {createPublicClient,decodeFunctionResult,encodeFunctionData,http,isAddress,type Address} from "viem";
+import {createPublicClient,http,isAddress,type Address} from "viem";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
@@ -40,7 +40,7 @@ export async function GET(request:NextRequest){
   const pons=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]});
   if(!pons.exists)return NextResponse.json({ok:true,stage:"not-launched",launched:false,provisioned:false,poolKeyConfigured:false,rewardsActive:false,ready:false});
 
-  const route=await client.readContract({address:ROUTY_DEPLOYMENT.protocolLauncherV3,abi:launcherAbi,functionName:"routes",args:[token as Address]});
+  const route=await client.readContract({address:ROUTY_DEPLOYMENT.protocolLauncherV4,abi:launcherAbi,functionName:"routes",args:[token as Address]});
   const [creator,targetAsset,quoteToken,vault,router,distributor,policy]=route;
   const provisioned=vault!==ZERO&&router!==ZERO&&distributor!==ZERO;
   if(!provisioned){
@@ -53,7 +53,7 @@ export async function GET(request:NextRequest){
   const expected=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===targetAsset.toLowerCase());
   let poolKeyConfigured=false;
   if(expected){
-   const key=await client.readContract({address:ROUTY_DEPLOYMENT.swapExecutorV3,abi:executorAbi,functionName:"poolKeyForVault",args:[vault]});
+   const key=await client.readContract({address:ROUTY_DEPLOYMENT.swapExecutorV4,abi:executorAbi,functionName:"poolKeyForVault",args:[vault]});
    poolKeyConfigured=
     key[0].toLowerCase()===expected.poolKey.currency0.toLowerCase()&&
     key[1].toLowerCase()===expected.poolKey.currency1.toLowerCase()&&
