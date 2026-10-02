@@ -22,7 +22,9 @@ const executorAbi=[
 const controllerAbi=[{type:"function",name:"setDistributorPaused",stateMutability:"nonpayable",inputs:[{name:"distributor",type:"address"},{name:"next",type:"bool"}],outputs:[]}] as const;
 const distributorAbi=[{type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]}] as const;
 
-type Job={id:string;token_address:string;creator_address:string;target_asset:string;target_symbol:string;reward_policy:number;status:string;attempts:number;updated_at?:string};\nconst STALE_JOB_MS=4*60*1000;\nconst MAX_ATTEMPTS=12;
+type Job={id:string;token_address:string;creator_address:string;target_asset:string;target_symbol:string;reward_policy:number;status:string;attempts:number;updated_at?:string};
+const STALE_JOB_MS=4*60*1000;
+const MAX_ATTEMPTS=12;
 function dbHeaders():Record<string,string>{
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!key)throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
@@ -64,7 +66,10 @@ async function handle(req:NextRequest){
   if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller)){console.error("[auto-setup] ADDRESS_CHECK_FAILED");throw new Error("V4_ADDRESSES_INVALID");}
   console.info("[auto-setup] ADDRESS_CHECK_OK");
 
-  console.info("[auto-setup] SUPABASE_KEY_CONFIGURED",Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()));\n  const staleBefore=new Date(Date.now()-STALE_JOB_MS).toISOString();\n  const recovery=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=in.(provisioning,poolkey,rewards)&updated_at=lt."+encodeURIComponent(staleBefore),{method:"PATCH",headers:{...dbHeaders(),Prefer:"return=minimal"},body:JSON.stringify({status:"queued",last_error:"STALE_JOB_RECOVERED",updated_at:new Date().toISOString()}),cache:"no-store"});\n  if(!recovery.ok)console.error("[auto-setup] STALE_RECOVERY_FAILED",recovery.status);
+  console.info("[auto-setup] SUPABASE_KEY_CONFIGURED",Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()));
+  const staleBefore=new Date(Date.now()-STALE_JOB_MS).toISOString();
+  const recovery=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=in.(provisioning,poolkey,rewards)&updated_at=lt."+encodeURIComponent(staleBefore),{method:"PATCH",headers:{...dbHeaders(),Prefer:"return=minimal"},body:JSON.stringify({status:"queued",last_error:"STALE_JOB_RECOVERED",updated_at:new Date().toISOString()}),cache:"no-store"});
+  if(!recovery.ok)console.error("[auto-setup] STALE_RECOVERY_FAILED",recovery.status);
   const q=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?status=eq.queued&order=created_at.asc&limit=1",{headers:{...dbHeaders(),Accept:"application/json"},cache:"no-store"});
   if(!q.ok){console.error("[auto-setup] QUEUE_READ_FAILED",q.status);throw new Error("QUEUE_READ_FAILED");}
   console.info("[auto-setup] QUEUE_READ_OK");
@@ -72,7 +77,8 @@ async function handle(req:NextRequest){
   console.info("[auto-setup] QUEUE_JOB_COUNT",jobs.length);
   if(!jobs.length)return NextResponse.json({ok:true,processed:false,reason:"EMPTY_QUEUE"});
   const job=jobs[0];
-  if((job.attempts||0)>=MAX_ATTEMPTS){await patchJob(job.id,{status:"failed",last_error:"MAX_ATTEMPTS_EXCEEDED"});return NextResponse.json({ok:false,error:"MAX_ATTEMPTS_EXCEEDED",token:job.token_address},{status:409});}\n  const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===job.target_asset.toLowerCase());
+  if((job.attempts||0)>=MAX_ATTEMPTS){await patchJob(job.id,{status:"failed",last_error:"MAX_ATTEMPTS_EXCEEDED"});return NextResponse.json({ok:false,error:"MAX_ATTEMPTS_EXCEEDED",token:job.token_address},{status:409});}
+  const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===job.target_asset.toLowerCase());
   if(!route||job.reward_policy<0||job.reward_policy>2){console.error("[auto-setup] INVALID_QUEUED_JOB",{routeFound:Boolean(route),policyValid:job.reward_policy>=0&&job.reward_policy<=2});throw new Error("INVALID_QUEUED_JOB");}
   console.info("[auto-setup] JOB_VALID");
 
@@ -96,7 +102,12 @@ async function handle(req:NextRequest){
    await patchJob(job.id,{status:"poolkey",provisioned:true,vault_address:vault,router_address:router,distributor_address:distributor,last_error:null});
 
    const configuredKey=await publicClient.readContract({address:executor as Address,abi:executorAbi,functionName:"poolKeyForVault",args:[vault]});
-   const poolConfigured=\n    configuredKey[0].toLowerCase()===route.poolKey.currency0.toLowerCase()&&\n    configuredKey[1].toLowerCase()===route.poolKey.currency1.toLowerCase()&&\n    Number(configuredKey[2])===route.poolKey.fee&&\n    Number(configuredKey[3])===route.poolKey.tickSpacing&&\n    configuredKey[4].toLowerCase()===route.poolKey.hooks.toLowerCase();
+   const poolConfigured=
+    configuredKey[0].toLowerCase()===route.poolKey.currency0.toLowerCase()&&
+    configuredKey[1].toLowerCase()===route.poolKey.currency1.toLowerCase()&&
+    Number(configuredKey[2])===route.poolKey.fee&&
+    Number(configuredKey[3])===route.poolKey.tickSpacing&&
+    configuredKey[4].toLowerCase()===route.poolKey.hooks.toLowerCase();
    if(!poolConfigured){
     const wasPaused=await publicClient.readContract({address:executor as Address,abi:executorAbi,functionName:"paused"});
     if(!wasPaused){
