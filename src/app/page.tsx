@@ -36,15 +36,15 @@ export default function Home(){
        <p><time>[OK]</time><span>AssetRegistry</span><b>approval required</b></p>
        <p><time>[OK]</time><span>OracleRegistry</span><b>fresh feeds required</b></p>
        <p><time>[OK]</time><span>PoolKey catalog</span><b>{EXECUTABLE_ROUTES.length} pinned routes</b></p>
-       <p><time>[V5]</time><span>SwapExecutor</span><b>guarded route execution</b></p>
+       <p><time>[OK]</time><span>SwapExecutor</span><b>guarded route execution</b></p>
       </div>
      </div>
      <div className="terminal-window">
       <div className="terminal-window-head"><span>REWARD MODES</span><span>POLICY</span></div>
       <div className="terminal-log">
-       <p><time>00</time><span>Weighted raffle</span><b>Automatic V5 push</b></p>
-       <p><time>01</time><span>Equal lottery</span><b>Automatic V5 push</b></p>
-       <p><time>02</time><span>Pro-rata</span><b>Automatic V5 push</b></p>
+       <p><time>00</time><span>Weighted raffle</span><b>Automatic push</b></p>
+       <p><time>01</time><span>Equal lottery</span><b>Automatic push</b></p>
+       <p><time>02</time><span>Pro-rata</span><b>Automatic push</b></p>
       </div>
      </div>
     </div>
