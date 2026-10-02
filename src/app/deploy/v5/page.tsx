@@ -243,9 +243,9 @@ export default function V5DeploymentPage() {
   }
 
   return <main className="shell"><Nav/><div className="wrap console-page">
-    <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Routy deployment</span><h1>Activate direct fee routing.</h1><p className="lead">Deploy V5 from your wallet. Pons fees go directly to each route’s FeeRouter. Each transaction is saved so you can resume after closing this page.</p></div><a className="secondary" href="/deploy/release">Release status →</a></header>
+    <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Routy deployment</span><h1>Activate direct fee routing.</h1><p className="lead">Deploy the active protocol contracts from your wallet. Pons fees go directly to each route’s FeeRouter. Each transaction is saved so you can resume after closing this page.</p></div><a className="secondary" href="/deploy/release">Release status →</a></header>
     <div className="proof-grid">
-      <article className="proof-card"><span className="micro">PRODUCTION</span><strong>{live ? live.generation?.toUpperCase() || "Unknown" : "Checking…"}</strong><p>{live?.launchReady ? "Direct fee launches activated" : "V5 activation pending"}</p></article>
+      <article className="proof-card"><span className="micro">PRODUCTION</span><strong>{live?.launchReady ? "ACTIVE" : "PENDING"}</strong><p>{live?.launchReady ? "Direct fee launches activated" : "Protocol activation pending"}</p></article>
       <article className="proof-card"><span className="micro">DEPLOYMENT</span><strong>{completed}/{V5_STEPS.length}</strong><p>Receipts verified in this session</p></article>
     </div>
     <section className="section"><div className="section-head"><div><span className="micro">WALLET</span><h2>Deployment wallet.</h2></div></div><div className="form-card">
@@ -256,7 +256,7 @@ export default function V5DeploymentPage() {
     </div></section>
     {!noticeStep && message && <div className="notice" role="status">{message}</div>}
     {!noticeStep && error && <div className="notice danger" role="alert">{error}</div>}
-    <section className="section"><div className="section-head"><div><span className="micro">V5 CONTRACTS</span><h2>Deploy and connect.</h2></div><p className="section-copy">Approve each wallet transaction. Progress is verified against its sender, destination, constructor data and receipt.</p></div>
+    <section className="section"><div className="section-head"><div><span className="micro">PROTOCOL CONTRACTS</span><h2>Deploy and connect.</h2></div><p className="section-copy">Approve each wallet transaction. Progress is verified against its sender, destination, constructor data and receipt.</p></div>
       {V5_STEPS.map((step, index) => {
         const record = progress[step.id];
         const ready = v5StepReady(step.id, verified);
@@ -277,7 +277,7 @@ export default function V5DeploymentPage() {
         </div>;
       })}
     </section>
-    {complete && <section className="section"><div className="section-head"><div><span className="micro">CONFIGURATION</span><h2>Verified V5 addresses.</h2></div></div><div className="form-card">
+    {complete && <section className="section"><div className="section-head"><div><span className="micro">CONFIGURATION</span><h2>Verified protocol addresses.</h2></div></div><div className="form-card">
       <p>All deployment receipts are verified. Add these addresses to Vercel and redeploy. The first four are required together for runtime. Include the two factory addresses for the readiness report.</p>
       <label>Vercel environment variables<textarea readOnly rows={8} value={envText}/></label>
       <button className="primary" disabled={Boolean(busy)} onClick={() => void copy(envText)}>Copy Vercel env</button>
