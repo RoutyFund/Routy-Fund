@@ -26,7 +26,9 @@ export async function rewardAutomationStatus(){
   configuredKeeper:account?.address??null,
   keeperSecretConfigured:Boolean(account),
   keeperMatches:Boolean(account&&account.address.toLowerCase()===keeper.toLowerCase()),
-  automationEnabled:process.env.ROUTY_REWARD_AUTOMATION_ENABLED==="true",
-  swapExecutionEnabled:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true",
+  // V4 automation is enabled when a configured signer actually matches the
+  // controller keeper. This avoids stale legacy feature flags blocking V4.
+  automationEnabled:Boolean(account&&account.address.toLowerCase()===keeper.toLowerCase()),
+  swapExecutionEnabled:null,
  };
 }
