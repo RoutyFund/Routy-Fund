@@ -1,6 +1,6 @@
 import Nav from "@/components/Nav";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
-export default function Explore(){return <main className="shell"><Nav/><div className="wrap">
+export default function Explore(){return <main className="shell"><Nav/><div className="wrap console-page">
 <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Routed launches</span><h1>Explore.</h1><p className="lead">Discover tokens whose creator-fee flow is connected to transparent Stock Token routes on Robinhood Chain.</p></div><a className="primary" href="/launch">Launch route</a></header>
 <section className="proof-grid">{EXECUTABLE_ROUTES.map(r=><article className="proof-card" key={r.symbol}><span className="micro">VERIFIED MARKET</span><strong>{r.symbol} / USDG</strong><p>{r.name} route · PoolKey verified</p></article>)}</section>
 <section className="section"><div className="section-head"><div><span className="micro">MARKET DISCOVERY</span><h2>Verified markets first.</h2></div><p className="section-copy">Routy only surfaces launch targets backed by a verified route configuration. More markets can be added without changing the public launch flow.</p></div>
