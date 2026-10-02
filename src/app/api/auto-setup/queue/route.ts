@@ -23,7 +23,9 @@ export async function POST(req:NextRequest){
   const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===body.targetAsset!.toLowerCase());
   if(!route)return NextResponse.json({ok:false,error:"UNVERIFIED_ROUTE"},{status:400});
 
-  const client=createPublicClient({chain,transport:http(process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0])});
+  const rpc=process.env.RPC_URL?.trim();
+  if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
+  const client=createPublicClient({chain,transport:http(rpc)});
   const launch=await client.readContract({address:PONS_V2.factory,abi:factoryReadAbi,functionName:"getLaunchedToken",args:[body.token as Address]});
   if(!launch.exists)return NextResponse.json({ok:false,error:"NOT_PONS_TOKEN"},{status:400});
   if(launch.creatorFeeRecipient.toLowerCase()!==body.creator.toLowerCase())return NextResponse.json({ok:false,error:"CREATOR_MISMATCH"},{status:403});
