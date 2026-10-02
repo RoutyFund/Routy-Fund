@@ -9,12 +9,13 @@ const abi=[{type:"function",name:"paused",stateMutability:"view",inputs:[],outpu
 export const dynamic="force-dynamic";
 
 export async function GET(){
- const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
- const client=createPublicClient({chain,transport:http(rpc)});
- const paused=await client.readContract({address:ROUTY_DEPLOYMENT.swapExecutorV4,abi,functionName:"paused"}).catch(()=>null);
+ const rpc=process.env.RPC_URL?.trim();
+ const executor=(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4) as `0x${string}`;
+ const client=rpc?createPublicClient({chain,transport:http(rpc)}):null;
+ const paused=client?await client.readContract({address:executor,abi,functionName:"paused"}).catch(()=>null):null;
  return NextResponse.json({
   chainId:4663,
   pons:{factory:PONS_V2.factory,feeEscrow:PONS_V2.feeEscrow,launchAndBuy:PONS_V2.launchAndBuy,poolManager:PONS_V2.poolManager},
-  routy:{...protocolReadiness(),deployment:ROUTY_DEPLOYMENT,...ROUTY_RELEASE_STATE,swapExecutionEnabled:paused===false,swapExecutorPaused:paused}
+  routy:{...protocolReadiness(),deployment:ROUTY_DEPLOYMENT,...ROUTY_RELEASE_STATE,rpcConfigured:Boolean(rpc),effectiveSwapExecutor:executor,swapExecutionEnabled:paused===false,swapExecutorPaused:paused}
  });
 }
