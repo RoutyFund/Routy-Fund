@@ -2,8 +2,7 @@ import {NextResponse} from "next/server";
 import {createPublicClient,http,keccak256,encodeAbiParameters,parseAbiParameters,getAddress,type Address} from "viem";
 import {ROUTE_CANDIDATES} from "@/lib/route-candidates";
 
-const CHAIN={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:[process.env.RPC_URL||process.env.NEXT_PUBLIC_RPC_URL||"https://rpc.mainnet.chain.robinhood.com"]}}} as const;
-const client=createPublicClient({chain:CHAIN,transport:http(CHAIN.rpcUrls.default.http[0])});
+const CHAIN={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 const USDG=getAddress("0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168");
 const STATE_VIEW=getAddress("0xf3334192d15450cdd385c8b70e03f9a6bd9e673b");
 const abi=[
@@ -16,6 +15,9 @@ function poolId(currency0:Address,currency1:Address,fee:number,tickSpacing:numbe
  return keccak256(encodeAbiParameters(parseAbiParameters("address,address,uint24,int24,address"),[currency0,currency1,fee,tickSpacing,"0x0000000000000000000000000000000000000000"]));
 }
 export async function GET(){
+ const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim();
+ if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
+ const client=createPublicClient({chain:CHAIN,transport:http(rpc)});
  const rows=await Promise.all(ROUTE_CANDIDATES.map(async c=>{
   const target=getAddress(c.target);const currency0=target.toLowerCase()<USDG.toLowerCase()?target:USDG;const currency1=currency0===target?USDG:target;
   const combos=feeTiers.flatMap(fee=>spacings.map(tickSpacing=>({fee,tickSpacing,poolId:poolId(currency0,currency1,fee,tickSpacing)})));
