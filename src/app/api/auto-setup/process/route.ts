@@ -28,7 +28,7 @@ function dbHeaders(){
 }
 async function patchJob(id:string,patch:Record<string,unknown>){
  const r=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{...dbHeaders(),Prefer:"return=minimal"},body:JSON.stringify({...patch,updated_at:new Date().toISOString()}),cache:"no-store"});
- if(!r.ok)throw new Error("QUEUE_UPDATE_FAILED");
+ if(!r.ok){const detail=(await r.text()).slice(0,500);console.error("[auto-setup] QUEUE_UPDATE_FAILED",r.status,detail);throw new Error(`QUEUE_UPDATE_FAILED_${r.status}`);}
 }
 function authorized(req:NextRequest){
  const secret=process.env.CRON_SECRET?.trim();
