@@ -12,7 +12,8 @@ export async function GET(){
  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4);
  const executor=(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4);
  const rewardController=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
- const enabled=Boolean(requested&&keyValid&&serviceRoleConfigured&&cronSecretConfigured&&launcher&&executor&&rewardController);
+ const rpcConfigured=Boolean(process.env.RPC_URL?.trim());
+ const enabled=Boolean(requested&&keyValid&&serviceRoleConfigured&&cronSecretConfigured&&rpcConfigured&&launcher&&executor&&rewardController);
  return NextResponse.json({
   ok:true,
   enabled,
@@ -23,11 +24,11 @@ export async function GET(){
    automationKeyLength:rawKey.length,
    supabaseServiceRoleConfigured:serviceRoleConfigured,
    cronSecretConfigured:cronSecretConfigured,
-   rpcConfigured:Boolean(process.env.RPC_URL?.trim()),
+   rpcConfigured,
    swapExecutionRequested:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true",
-   launcherV4Configured:Boolean(ROUTY_DEPLOYMENT.protocolLauncherV4),
-   executorV4Configured:Boolean(ROUTY_DEPLOYMENT.swapExecutorV4),
-   rewardControllerV4Configured:Boolean(ROUTY_DEPLOYMENT.rewardAutomationControllerV4)
+   launcherV4Configured:Boolean(launcher),
+   executorV4Configured:Boolean(executor),
+   rewardControllerV4Configured:Boolean(rewardController)
   }
  });
 }
