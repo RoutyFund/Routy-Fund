@@ -29,6 +29,8 @@ export async function rewardAutomationStatus(){
   // V4 automation is enabled when a configured signer actually matches the
   // controller keeper. This avoids stale legacy feature flags blocking V4.
   automationEnabled:Boolean(account&&account.address.toLowerCase()===keeper.toLowerCase()),
-  swapExecutionEnabled:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true",\n  rpcConfigured:Boolean(process.env.RPC_URL?.trim()),\n  cronSecretConfigured:Boolean(process.env.CRON_SECRET?.trim()),
+  swapExecutionEnabled:process.env.ROUTY_SWAP_EXECUTION_ENABLED==="true",
+  rpcConfigured:Boolean(process.env.RPC_URL?.trim()),
+  cronSecretConfigured:Boolean(process.env.CRON_SECRET?.trim()),
  };
 }
