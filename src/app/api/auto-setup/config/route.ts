@@ -9,7 +9,10 @@ export async function GET(){
  const keyValid=/^0x[0-9a-fA-F]{64}$/.test(rawKey);
  const serviceRoleConfigured=Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
  const cronSecretConfigured=Boolean(process.env.CRON_SECRET?.trim());
- const enabled=Boolean(requested&&keyValid&&serviceRoleConfigured&&cronSecretConfigured&&ROUTY_DEPLOYMENT.protocolLauncherV4&&ROUTY_DEPLOYMENT.swapExecutorV4&&ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
+ const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4);
+ const executor=(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4);
+ const rewardController=(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
+ const enabled=Boolean(requested&&keyValid&&serviceRoleConfigured&&cronSecretConfigured&&launcher&&executor&&rewardController);
  return NextResponse.json({
   ok:true,
   enabled,
