@@ -27,7 +27,7 @@ export default function RewardV2Deploy(){
  useEffect(()=>{setSaved(read());refresh().catch(()=>{})},[]);
  async function refresh(){const p=getInjectedProvider();if(!p)return;const[a,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);setAccount(a?.[0]||"");setChain(c||"")}
  async function connect(){const p=getInjectedProvider();if(!p){setErr("Wallet EVM tidak ditemukan.");return}await p.request({method:"eth_requestAccounts"});await refresh()}
- async function assertWallet(){const p=getInjectedProvider();if(!p)throw Error("Wallet EVM tidak ditemukan.");const[a,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);if(a?.[0]?.toLowerCase()!==OWNER.toLowerCase())throw Error("Gunakan wallet owner Routy.");if(c?.toLowerCase()!==CHAIN_ID)throw Error("Gunakan Robinhood Chain (4663).");return p}
+ async function assertWallet(){const p=getInjectedProvider();if(!p)throw Error("Wallet EVM tidak ditemukan.");const[a,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);setAccount(a?.[0]||"");setChain(c||"");if(a?.[0]?.toLowerCase()!==OWNER.toLowerCase())throw Error("Gunakan wallet owner Routy.");if(c?.toLowerCase()!==CHAIN_ID)throw Error("Gunakan Robinhood Chain (4663).");return p}
  async function deploy(kind:"rewardFactory"|"vaultFactory"){
   setBusy(kind);setErr("");setMsg("");
   try{
