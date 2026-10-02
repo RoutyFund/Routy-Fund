@@ -16,7 +16,7 @@ export async function snapshotTokenHolders(input:{
 }):Promise<HolderRow[]>{
  if(!isAddress(input.token))throw new Error("INVALID_TOKEN");
  const client=createPublicClient({chain,transport:http(input.rpcUrl?.trim()||chain.rpcUrls.default.http[0])});
- const latest=await client.getBlockNumber();
+ const chainLatest=await client.getBlockNumber();\n const latest=input.toBlock!==undefined&&input.toBlock<chainLatest?input.toBlock:chainLatest;\n if(input.fromBlock>latest)return [];
  const balances=new Map<string,{address:Address;balance:bigint}>();
  const blocked=new Set([ZERO,...(input.excluded||[])].map(x=>x.toLowerCase()));
  const chunk=20_000n;
