@@ -4,6 +4,7 @@ import Link from "next/link";
 import {usePathname} from "next/navigation";
 import { useEffect, useState } from "react";
 import { getInjectedProvider } from "@/lib/ethereum-provider";
+import { EXECUTABLE_ROUTES } from "@/lib/route-catalog";
 
 export default function Nav() {
   const pathname=usePathname();
@@ -50,7 +51,7 @@ export default function Nav() {
         <span>RH CHAIN 4663</span>
       </div>
       <div className="terminal-status-right">
-        <span>3 VERIFIED ROUTES</span>
+        <span>{EXECUTABLE_ROUTES.length} VERIFIED ROUTES</span>
         <span className="terminal-sep">/</span>
         <span>NON-CUSTODIAL</span>
       </div>
