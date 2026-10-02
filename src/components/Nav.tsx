@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
 import { useEffect, useState } from "react";
 import { getInjectedProvider, walletErrorCode, walletErrorMessage } from "@/lib/ethereum-provider";
-import { EXECUTABLE_ROUTES } from "@/lib/route-catalog";
 
 export default function Nav() {
   const pathname=usePathname();
@@ -49,26 +49,13 @@ export default function Nav() {
   const links=[["/explore","Explore"],["/assets","Assets"],["/rewards","Rewards"],["/analytics","Analytics"],["/activity","Activity"],["/portfolio","Portfolio"],["/docs","Docs"]];
 
   return <header className="terminal-header">
-    <div className="terminal-statusbar">
-      <div className="terminal-status-left">
-        <span className="terminal-led"/>
-        <span>ROUTY FUND</span>
-        <span className="terminal-sep">/</span>
-        <span>RH CHAIN 4663</span>
-      </div>
-      <div className="terminal-status-right">
-        <span>{EXECUTABLE_ROUTES.length} VERIFIED ROUTES</span>
-        <span className="terminal-sep">/</span>
-        <span>NON-CUSTODIAL</span>
-      </div>
-    </div>
     <nav className="nav">
-      <Link className="brand" href="/"><span className="logo">R</span><span>routy.</span><small>fund console</small></Link>
+      <Link className="brand" href="/"><Image className="logo-img" src="/logo.png" alt="" width={32} height={32} priority/><span>routy.</span></Link>
       <div id="routy-navigation" className={"navlinks "+(open?"navlinks-open":"")}>
         {links.map(([href,label])=><Link className={pathname===href||pathname.startsWith(href+"/")?"nav-active":""} key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
       </div>
       <div className="nav-actions">
-        <Link className="secondary terminal-launch" href="/launch">+ Launch</Link>
+        <Link className="secondary terminal-launch" href="/launch">Launch</Link>
         <button className="menu" aria-label="Toggle navigation" aria-expanded={open} aria-controls="routy-navigation" onClick={()=>setOpen(v=>!v)}>{open?"Close":"Menu"}</button>
         <button className="wallet" onClick={connect}>{account ? chainId&&BigInt(chainId)!==4663n?"Switch network":account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
       </div>

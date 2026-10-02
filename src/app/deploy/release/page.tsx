@@ -2,6 +2,7 @@
 
 import {useCallback,useEffect,useState} from "react";
 import Nav from "@/components/Nav";
+import TokenLogo from "@/components/TokenLogo";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 import {fetchJson} from "@/lib/fetch-json";
 
@@ -66,7 +67,7 @@ export default function ReleasePage(){
    <article className="proof-card"><span className="micro">POOLKEYS</span><strong>{!loaded?"—":matchedPools+"/"+totalRoutes}</strong><p>Verified route hashes matched</p></article>
    <article className="proof-card"><span className="micro">SWAP EXECUTION</span><strong>{!loaded?"Checking…":data?.config.routy?.swapExecutorPaused===null?"Unavailable":swapEnabled?"Enabled":"Paused"}</strong><p>Active on-chain SwapExecutor state</p></article><article className="proof-card"><span className="micro">REWARD AUTOMATION</span><strong>{!loaded?"Checking…":automationReady?"Configured":"Pending"}</strong><p>{automationReady?"Keeper + cron + swap worker configured":"Keeper/controller/worker check required"}</p></article>
   </div>
-  <section className="section"><div className="section-head"><div><span className="micro">VERIFIED MARKETS</span><h2>Route-by-route status.</h2></div></div><div className="market-directory">{EXECUTABLE_ROUTES.map(({symbol})=>{const route=routeRows.find(r=>r.symbol===symbol);const pool=poolRows.find(r=>r.symbol===symbol);const ok=route?.configurationComplete===true&&pool?.poolKeyMatches===true;return <article key={symbol}><div className="market-icon">{symbol[0]}</div><div><b>{symbol}</b><span>{!loaded?"Checking…":ok?"Registry + oracle + PoolKey verified":"Action required"}</span></div><span className="pill">{!loaded?"Checking":ok?"Ready":"Pending"}</span></article>})}</div></section>
+  <section className="section"><div className="section-head"><div><span className="micro">VERIFIED MARKETS</span><h2>Route-by-route status.</h2></div></div><div className="market-directory">{EXECUTABLE_ROUTES.map(({symbol})=>{const route=routeRows.find(r=>r.symbol===symbol);const pool=poolRows.find(r=>r.symbol===symbol);const ok=route?.configurationComplete===true&&pool?.poolKeyMatches===true;return <article key={symbol}><div className="market-icon"><TokenLogo src={"/api/company-logo?symbol="+symbol} symbol={symbol} size={38}/></div><div><b>{symbol}</b><span>{!loaded?"Checking…":ok?"Registry + oracle + PoolKey verified":"Action required"}</span></div><span className="pill">{!loaded?"Checking":ok?"Ready":"Pending"}</span></article>})}</div></section>
   <section className="section">
    <div className="section-head"><div><span className="micro">FINAL CHECKLIST</span><h2>Deployment and automation.</h2></div><p className="section-copy">This console never signs transactions. It only reports state and links to explicit owner or user steps.</p></div>
    <a className="secondary" href="/deploy/v5">Deploy direct fee routing →</a>

@@ -23,7 +23,7 @@ export default function Assets(){
   </section>
   <section className="section">
    <div className="section-head"><div><span className="micro">ROUTY MARKETS</span><h2>Verified routing targets.</h2></div><p className="section-copy">Only these markets are currently executable by Routy. Registry-only assets below are reference assets, not active Routy routes.</p></div>
-   <div className="market-directory">{EXECUTABLE_ROUTES.map(r=><article key={r.symbol}><div className="market-icon">{assets.find(a=>a.contractAddress?.toLowerCase()===r.target.toLowerCase())?.logoUrl?<TokenLogo src={"/api/company-logo?symbol="+r.symbol} symbol={r.symbol} size={38}/>:r.symbol[0]}</div><div><b>{r.symbol}</b><span>{r.name} · {r.quoteSymbol}</span></div><span className="pill">Routable</span></article>)}</div>
+   <div className="market-directory">{EXECUTABLE_ROUTES.map(r=><article key={r.symbol}><div className="market-icon"><TokenLogo src={"/api/company-logo?symbol="+r.symbol} symbol={r.symbol} size={38}/></div><div><b>{r.symbol}</b><span>{r.name} · {r.quoteSymbol}</span></div><span className="pill">Routable</span></article>)}</div>
   </section>
   <section className="section">
    <div className="terminal-filterbar">
