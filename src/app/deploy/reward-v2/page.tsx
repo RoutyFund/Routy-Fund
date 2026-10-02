@@ -484,9 +484,9 @@ export default function RewardV2Deploy() {
           <p>Connected: <code>{account || "not connected"}</code> · chain <code>{chain || "-"}</code></p>
           <p>Gas balance: <b>{balance} ETH</b></p>
           {!account ? (
-            <button onClick={connect}>Connect wallet</button>
+            <button className="primary" onClick={connect}>Connect wallet</button>
           ) : !correctChain ? (
-            <button onClick={switchChain}>Switch to Robinhood Chain</button>
+            <button className="primary" onClick={switchChain}>Switch to Robinhood Chain</button>
           ) : !authorized ? (
             <p className="error">Wallet aktif bukan owner Routy.</p>
           ) : (
@@ -521,18 +521,27 @@ export default function RewardV2Deploy() {
                       </a>
                     </p>
                   ) : (
-                    <button disabled={!!busy} onClick={() => verify(step)}>
+                    <button className="primary" disabled={!!busy} onClick={() => verify(step)}>
                       Verify receipt
                     </button>
                   )}
                 </>
               ) : (
                 <button
+                  className="primary"
                   disabled={!!busy || !ready || !authorized || !correctChain}
+                  title={!ready ? "Verify step sebelumnya dulu" : !authorized ? "Gunakan wallet owner Routy" : !correctChain ? "Gunakan Robinhood Chain" : ""}
                   onClick={() => submit(step, index)}
                 >
-                  {busy === step.id ? "Awaiting wallet…" : step.kind === "deploy" ? "Deploy" : "Submit transaction"}
+                  {busy === step.id
+                    ? "Awaiting wallet…"
+                    : !ready
+                      ? "Locked — verify previous step"
+                      : step.kind === "deploy"
+                        ? `Deploy ${step.title.replace("Deploy ", "")}`
+                        : "Submit transaction"}
                 </button>
+                {!ready && <p className="muted">Step ini terbuka otomatis setelah step sebelumnya berstatus Verified.</p>}
               )}
             </section>
           );
