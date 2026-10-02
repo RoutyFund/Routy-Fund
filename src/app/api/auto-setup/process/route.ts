@@ -64,7 +64,7 @@ async function handle(req:NextRequest){
   if(!rpc)throw new Error("RPC_URL_MISSING");
   const rawKey=process.env.ROUTY_AUTOMATION_PRIVATE_KEY?.trim();
   const useV5=Boolean(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||"");
-  const launcher=useV5?(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV5):(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4);
+  const launcher=useV5?(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||""):(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4);
   const executor=useV5?(process.env.ROUTY_SWAP_EXECUTOR_V5_ADDRESS?.trim()||""):(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4);
   const controller=useV5?(process.env.ROUTY_REWARD_CONTROLLER_V5_ADDRESS?.trim()||""):(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
   const routerFactoryV5=process.env.ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS?.trim()||"";
