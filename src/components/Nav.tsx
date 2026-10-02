@@ -39,7 +39,7 @@ export default function Nav() {
     }catch{}
   }
 
-  const links=[["/explore","Explore"],["/assets","Assets"],["/rewards","Rewards"],["/analytics","Analytics"],["/activity","Activity"],["/portfolio","Portfolio"]];
+  const links=[["/explore","Explore"],["/assets","Assets"],["/rewards","Rewards"],["/analytics","Analytics"],["/activity","Activity"],["/portfolio","Portfolio"],["/docs","Docs"]];
 
   return <header className="terminal-header">
     <div className="terminal-statusbar">
