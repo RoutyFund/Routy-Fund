@@ -181,20 +181,26 @@ async function handle(req:NextRequest){
     }
     let recipients=0;
     let interrupted=false;
-    for(let index=0;index<plan.allocations.length;index+=200){
+    for(let index=plan.nextIndex??0;index<plan.allocations.length;index+=200){
      if(Date.now()-started>TIME_BUDGET_MS){out.distribution="TIME_BUDGET_EXCEEDED";interrupted=true;break}
      const batch=plan.allocations.slice(index,index+200);
      const balances=await Promise.all(batch.map(async row=>[
       row.address.toLowerCase(),await publicClient.readContract({address:distributor,abi:distributorAbi,functionName:"distributedTo",args:[row.address]})
      ] as const));
      const unpaid=unpaidRewardRows({...plan,allocations:batch},new Map(balances));
-     if(!unpaid.length)continue;
+     if(!unpaid.length){
+      plan={...plan,nextIndex:Math.min(index+200,plan.allocations.length)};
+      await patchRewardJob(token,lease,{reward_plan:plan});
+      continue;
+     }
      const {request}=await publicClient.simulateContract({account,address:controller,abi:controllerAbi,functionName:"distribute",args:[distributor,unpaid.map(row=>row.address),unpaid.map(row=>BigInt(row.cumulativeAmount))]});
      const hash=await walletClient.writeContract(request);
      const receipt=await publicClient.waitForTransactionReceipt({hash,timeout:20_000});
      if(receipt.status!=="success")throw new Error("DISTRIBUTE_REVERTED "+hash);
      recipients+=unpaid.length;
      out.batches=(out.batches??0)+1;
+     plan={...plan,nextIndex:Math.min(index+200,plan.allocations.length)};
+     await patchRewardJob(token,lease,{reward_plan:plan});
     }
     out.recipients=recipients;
     out.amount=plan.fundedBalance;

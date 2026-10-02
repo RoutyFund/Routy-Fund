@@ -75,6 +75,13 @@ test('a resumed 450-holder distribution pays the remaining 250 holders once',()=
  assert.equal(unpaidRewardRows(restored,paid).length,0);
  assert.equal([...paid.values()].reduce((sum,value)=>sum+value,0n),4500n);
 });
+test('saved reward cursor resumes beyond earlier batches and rejects invalid offsets',()=>{
+ const allocations=Array.from({length:10000},(_,i)=>({address:'0x'+(i+1).toString(16).padStart(40,'0'),cumulativeAmount:'10'}));
+ const saved=readRewardPlan({...plan,allocations,nextIndex:9000},expected);
+ assert.equal(saved.allocations.slice(saved.nextIndex).length,1000);
+ assert.equal(saved.allocations[saved.nextIndex].address,allocations[9000].address);
+ for(const nextIndex of [-1,10001,0.5,'9000'])assert.throws(()=>readRewardPlan({...plan,allocations,nextIndex},expected),/CURSOR/);
+});
 test('public RPC errors do not disclose provider URL or secret API keys',()=>{
  assert.equal(publicErrorMessage(new Error('RPC_URL_MISSING')),'RPC_URL_MISSING');
  const error=new Error('HTTP request failed. URL: https://rpc.example/v2/private-api-key');
