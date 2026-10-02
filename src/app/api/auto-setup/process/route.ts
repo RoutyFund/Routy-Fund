@@ -19,10 +19,14 @@ const executorAbi=[
  {type:"function",name:"setPoolKey",stateMutability:"nonpayable",inputs:[{name:"vault",type:"address"},{name:"key",type:"tuple",components:[{name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}]}],outputs:[]},
  {type:"function",name:"poolKeyForVault",stateMutability:"view",inputs:[{name:"vault",type:"address"}],outputs:[{name:"currency0",type:"address"},{name:"currency1",type:"address"},{name:"fee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"hooks",type:"address"}]}
 ] as const;
+const routerFactoryV5Abi=[
+ {type:"function",name:"predictRouter",stateMutability:"view",inputs:[{name:"creator",type:"address"},{name:"salt",type:"bytes32"}],outputs:[{type:"address"}]},
+ {type:"function",name:"prepare",stateMutability:"nonpayable",inputs:[{name:"creator",type:"address"},{name:"salt",type:"bytes32"}],outputs:[{type:"address"}]}
+] as const;
 const controllerAbi=[{type:"function",name:"setDistributorPaused",stateMutability:"nonpayable",inputs:[{name:"distributor",type:"address"},{name:"next",type:"bool"}],outputs:[]}] as const;
 const distributorAbi=[{type:"function",name:"paused",stateMutability:"view",inputs:[],outputs:[{type:"bool"}]}] as const;
 
-type Job={id:string;token_address:string;creator_address:string;target_asset:string;target_symbol:string;reward_policy:number;status:string;attempts:number;updated_at?:string};
+type Job={id:string;token_address:string;creator_address:string;target_asset:string;target_symbol:string;reward_policy:number;status:string;attempts:number;updated_at?:string;setup_nonce?:string|null;router_address?:string|null};
 const STALE_JOB_MS=4*60*1000;
 const MAX_ATTEMPTS=12;
 function dbHeaders():Record<string,string>{
@@ -59,12 +63,14 @@ async function handle(req:NextRequest){
   const rpc=process.env.RPC_URL?.trim();
   if(!rpc)throw new Error("RPC_URL_MISSING");
   const rawKey=process.env.ROUTY_AUTOMATION_PRIVATE_KEY?.trim();
-  const launcher=process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4;
-  const executor=process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4;
-  const controller=process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4;
+  const useV5=Boolean(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV5);
+  const launcher=useV5?(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV5):(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4);
+  const executor=useV5?(process.env.ROUTY_SWAP_EXECUTOR_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV5):(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4);
+  const controller=useV5?(process.env.ROUTY_REWARD_CONTROLLER_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV5):(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
+  const routerFactoryV5=process.env.ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.feeRouterFactoryV5;
   if(!rawKey||!/^0x[0-9a-fA-F]{64}$/.test(rawKey)){console.error("[auto-setup] KEY_CHECK_FAILED");throw new Error("AUTOMATION_KEY_INVALID");}
   console.info("[auto-setup] KEY_CHECK_OK");
-  if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller)){console.error("[auto-setup] ADDRESS_CHECK_FAILED");throw new Error("V4_ADDRESSES_INVALID");}
+  if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller)||(useV5&&(!routerFactoryV5||!isAddress(routerFactoryV5)))){console.error("[auto-setup] ADDRESS_CHECK_FAILED");throw new Error(useV5?"V5_ADDRESSES_INVALID":"V4_ADDRESSES_INVALID");}
   console.info("[auto-setup] ADDRESS_CHECK_OK");
 
   console.info("[auto-setup] SUPABASE_KEY_CONFIGURED",Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()));
@@ -89,6 +95,17 @@ async function handle(req:NextRequest){
   const walletClient=createWalletClient({account,chain,transport:http(rpc)});
 
   try{
+   if(useV5){
+    if(!job.setup_nonce||!/^0x[0-9a-fA-F]{64}$/.test(job.setup_nonce)||!job.router_address||!isAddress(job.router_address))throw new Error("V5_ROUTER_JOB_INVALID");
+    const predicted=await publicClient.readContract({address:routerFactoryV5 as Address,abi:routerFactoryV5Abi,functionName:"predictRouter",args:[job.creator_address as Address,job.setup_nonce as Hex]});
+    if(predicted.toLowerCase()!==job.router_address.toLowerCase())throw new Error("V5_ROUTER_PREDICTION_MISMATCH");
+    const code=await publicClient.getCode({address:predicted});
+    if(!code||code==="0x"){
+     const prepareHash=await walletClient.writeContract({address:routerFactoryV5 as Address,abi:routerFactoryV5Abi,functionName:"prepare",args:[job.creator_address as Address,job.setup_nonce as Hex],account});
+     const prepareReceipt=await publicClient.waitForTransactionReceipt({hash:prepareHash});
+     if(prepareReceipt.status!=="success")throw new Error("V5_ROUTER_PREPARE_FAILED");
+    }
+   }
    let state=await publicClient.readContract({address:launcher as Address,abi:launcherAbi,functionName:"routes",args:[job.token_address as Address]});
    let vault=state[3],router=state[4],distributor=state[5];
    if(vault==="0x0000000000000000000000000000000000000000"){
