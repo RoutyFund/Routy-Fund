@@ -26,12 +26,6 @@ contract AutomatedRewardDistributor {
         rootPublisher=publisher;
     }
 
-    function recordFunding(uint256 previousBalance) external {
-        uint256 current=IERC20RewardFunding(rewardAsset).balanceOf(address(this));
-        require(current>previousBalance,"NO_NEW_REWARDS");
-        emit Funded(msg.sender,current-previousBalance,current);
-    }
-
     function publishRoot(bytes32 root) external {
         require(msg.sender==rootPublisher,"NOT_PUBLISHER");
         require(root!=bytes32(0)&&root!=merkleRoot,"BAD_ROOT");
