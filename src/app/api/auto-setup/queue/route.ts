@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
-import {createPublicClient,http,isAddress,type Address,type Hex} from "viem";
+import {createPublicClient,http,isAddress,type Address} from "viem";
 import {PONS_V2,factoryReadAbi} from "@/lib/pons";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
