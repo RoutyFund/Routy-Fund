@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,createWalletClient,http,isAddress,type Address,type Hex} from "viem";
 import {privateKeyToAccount} from "viem/accounts";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
+import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 
 export const dynamic="force-dynamic";
 export const maxDuration=60;
@@ -31,15 +32,15 @@ function authorized(req:NextRequest){
  return req.headers.get("authorization")===`Bearer ${secret}`;
 }
 
-export async function POST(req:NextRequest){
+async function handle(req:NextRequest){
  if(!authorized(req))return NextResponse.json({ok:false,error:"UNAUTHORIZED"},{status:401});
  if(process.env.ROUTY_AUTO_SETUP_ENABLED!=="true")return NextResponse.json({ok:false,error:"AUTOMATION_DISABLED"},{status:409});
  try{
   const rpc=process.env.RPC_URL?.trim()||chain.rpcUrls.default.http[0];
   const rawKey=process.env.ROUTY_AUTOMATION_PRIVATE_KEY?.trim();
-  const launcher=process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim();
-  const executor=process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim();
-  const controller=process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim();
+  const launcher=process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4;
+  const executor=process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4;
+  const controller=process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4;
   if(!rawKey||!/^0x[0-9a-fA-F]{64}$/.test(rawKey))throw new Error("ROUTY_AUTOMATION_PRIVATE_KEY is missing or invalid");
   if(!launcher||!isAddress(launcher)||!executor||!isAddress(executor)||!controller||!isAddress(controller))throw new Error("V4 automation contract addresses are not configured");
 
@@ -86,3 +87,7 @@ export async function POST(req:NextRequest){
   return NextResponse.json({ok:false,error:"PROCESSOR_UNAVAILABLE",message:error instanceof Error?error.message:"unknown"},{status:503});
  }
 }
+
+
+export async function GET(req:NextRequest){return handle(req)}
+export async function POST(req:NextRequest){return handle(req)}
