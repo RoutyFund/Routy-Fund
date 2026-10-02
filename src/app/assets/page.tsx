@@ -5,15 +5,15 @@ import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
 type Asset={id:string;tokenSymbol:string;tokenName:string;currentMultiplier?:string;logoUrl?:string;contractAddress?:string};
 export default function Assets(){
- const[assets,setAssets]=useState<Asset[]>([]);const[loaded,setLoaded]=useState(false);const[query,setQuery]=useState("");const[mode,setMode]=useState<"all"|"routable"|"registry">("all");const[page,setPage]=useState(1);const pageSize=10;const[candidateCount,setCandidateCount]=useState(0);
- useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets(d.assets||[])).catch(()=>setAssets([])).finally(()=>setLoaded(true));fetch("/api/route-candidates").then(r=>r.json()).then(d=>setCandidateCount((d.rows||[]).filter((x:{status:string})=>x.status==="pool_found").length)).catch(()=>{})},[]);
+ const[assets,setAssets]=useState<Asset[]>([]);const[loaded,setLoaded]=useState(false);const[query,setQuery]=useState("");const[mode,setMode]=useState<"all"|"routable"|"registry">("all");const[page,setPage]=useState(1);const pageSize=10;
+ useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets(d.assets||[])).catch(()=>setAssets([])).finally(()=>setLoaded(true))},[]);
  const rows=useMemo(()=>assets.filter(a=>{const routable=EXECUTABLE_ROUTES.some(r=>r.target.toLowerCase()===(a.contractAddress||"").toLowerCase());const q=query.trim().toLowerCase();const matches=!q||a.tokenSymbol?.toLowerCase().includes(q)||a.tokenName?.toLowerCase().includes(q)||a.contractAddress?.toLowerCase().includes(q);return matches&&(mode==="all"||(mode==="routable"?routable:!routable))}),[assets,query,mode]);
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize);
  useEffect(()=>{setPage(1)},[query,mode]);
  return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Underlying market registry</span><h1>Assets.</h1><p className="lead">Stock Tokens available on Robinhood Chain. This registry is separate from tokens launched through Routy Fund.</p></div><span className="pill">{loaded?assets.length+" canonical":"Loading registry"}</span></header>
   <section className="proof-grid">
-   <article className="proof-card"><span className="micro">ROUTY MARKETS</span><strong>{EXECUTABLE_ROUTES.length}</strong><p>AAPL · TSLA · NVDA{candidateCount?` · ${candidateCount} candidate${candidateCount===1?"":"s"} verifying`:""}</p></article>
+   <article className="proof-card"><span className="micro">ROUTY MARKETS</span><strong>{EXECUTABLE_ROUTES.length}</strong><p>{EXECUTABLE_ROUTES.map(r=>r.symbol).join(" · ")}</p></article>
    <article className="proof-card"><span className="micro">REGISTRY</span><strong>{loaded?assets.length:"—"}</strong><p>Robinhood Chain Stock Tokens</p></article>
    <article className="proof-card"><span className="micro">QUOTE</span><strong>USDG</strong><p>Current Routy route pair</p></article>
    <article className="proof-card"><span className="micro">NETWORK</span><strong>4663</strong><p>Robinhood Chain</p></article>
