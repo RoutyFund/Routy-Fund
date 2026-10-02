@@ -9,11 +9,11 @@ export async function GET(){
  const keyValid=/^0x[0-9a-fA-F]{64}$/.test(rawKey);
  const serviceRoleConfigured=Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
  const cronSecretConfigured=Boolean(process.env.CRON_SECRET?.trim());
- const v5Requested=Boolean(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV5);
+ const v5Requested=Boolean(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||"");
  const launcher=v5Requested?(process.env.ROUTY_LAUNCHER_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV5):(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4);
- const executor=v5Requested?(process.env.ROUTY_SWAP_EXECUTOR_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV5):(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4);
- const rewardController=v5Requested?(process.env.ROUTY_REWARD_CONTROLLER_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV5):(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
- const feeRouterFactoryV5=process.env.ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.feeRouterFactoryV5;
+ const executor=v5Requested?(process.env.ROUTY_SWAP_EXECUTOR_V5_ADDRESS?.trim()||""):(process.env.ROUTY_SWAP_EXECUTOR_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.swapExecutorV4);
+ const rewardController=v5Requested?(process.env.ROUTY_REWARD_CONTROLLER_V5_ADDRESS?.trim()||""):(process.env.ROUTY_REWARD_CONTROLLER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.rewardAutomationControllerV4);
+ const feeRouterFactoryV5=process.env.ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS?.trim()||"";
  const rpcConfigured=Boolean(process.env.RPC_URL?.trim());
  const enabled=Boolean(requested&&keyValid&&serviceRoleConfigured&&cronSecretConfigured&&rpcConfigured&&launcher&&executor&&rewardController&&(!v5Requested||feeRouterFactoryV5));
  return NextResponse.json({
