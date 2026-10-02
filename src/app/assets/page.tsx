@@ -18,7 +18,7 @@ export default function Assets(){
   </section>
   <section className="section">
    <div className="section-head"><div><span className="micro">ROUTY MARKETS</span><h2>Verified routing targets.</h2></div><p className="section-copy">Only these markets are currently executable by Routy. Registry-only assets below are reference assets, not active Routy routes.</p></div>
-   <div className="market-directory">{EXECUTABLE_ROUTES.map(r=><article key={r.symbol}><div className="market-icon">{assets.find(a=>a.contractAddress?.toLowerCase()===r.target.toLowerCase())?.logoUrl?<img src={"/api/asset-logo?address="+r.target} alt={r.symbol+" logo"}/>:r.symbol[0]}</div><div><b>{r.symbol}</b><span>{r.name} · {r.quoteSymbol}</span></div><span className="pill">Routable</span></article>)}</div>
+   <div className="market-directory">{EXECUTABLE_ROUTES.map(r=><article key={r.symbol}><div className="market-icon">{assets.find(a=>a.contractAddress?.toLowerCase()===r.target.toLowerCase())?.logoUrl?<img src={"/api/company-logo?symbol="+r.symbol} alt={r.symbol+" logo"}/>:r.symbol[0]}</div><div><b>{r.symbol}</b><span>{r.name} · {r.quoteSymbol}</span></div><span className="pill">Routable</span></article>)}</div>
   </section>
   <section className="section">
    <div className="terminal-filterbar">
@@ -28,7 +28,7 @@ export default function Assets(){
    </div>
    <div className="asset-terminal-head"><span>ASSET</span><span>CLASS</span><span>MULTIPLIER</span><span>ADDRESS</span><span>STATUS</span></div>
    <div className="data-list">{rows.slice(0,194).map(a=>{const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===(a.contractAddress||"").toLowerCase());return <article className="asset-terminal-row" key={a.id}>
-    <div className="asset-terminal-name"><div className="asset-logo">{a.logoUrl&&a.contractAddress?<img src={"/api/asset-logo?address="+a.contractAddress} alt={a.tokenSymbol+" logo"}/>:a.tokenSymbol?.[0]||"R"}</div><div><b>{a.tokenSymbol}</b><span>{a.tokenName}</span></div></div>
+    <div className="asset-terminal-name"><div className="asset-logo">{a.logoUrl&&a.contractAddress?<img src={"/api/company-logo?symbol="+a.tokenSymbol} alt={a.tokenSymbol+" logo"}/>:a.tokenSymbol?.[0]||"R"}</div><div><b>{a.tokenSymbol}</b><span>{a.tokenName}</span></div></div>
     <span>STOCK TOKEN</span><strong>{Number(a.currentMultiplier||1).toFixed(4)}</strong>
     <code title={a.contractAddress}>{a.contractAddress?a.contractAddress.slice(0,8)+"…"+a.contractAddress.slice(-6):"—"}</code>
     <span className={route?"terminal-ok":"terminal-registry"}>{route?"● ROUTABLE":"○ REGISTRY"}</span>
