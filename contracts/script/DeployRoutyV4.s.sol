@@ -48,7 +48,7 @@ contract DeployRoutyV4 {
         RewardDistributorFactory rewardFactory=new RewardDistributorFactory(deployer,address(controller));
         AssetVaultV2Factory vaultFactory=new AssetVaultV2Factory(deployer);
         FeeRouterFactory routerFactory=new FeeRouterFactory(deployer);
-        SwapExecutor executor=new SwapExecutor(operator);
+        SwapExecutor executor=new SwapExecutor(deployer);
         SwapOracleQuoter quoter=new SwapOracleQuoter();
         SwapRouterAdapter adapter=new SwapRouterAdapter();
 
@@ -61,10 +61,8 @@ contract DeployRoutyV4 {
         rewardFactory.setLauncher(address(launcher));
         vaultFactory.setLauncher(address(launcher));
         routerFactory.setLauncher(address(launcher));
-
-        // setLauncher is owner-only; operator owns executor by design, therefore
-        // it must be set after deployment by the operator wallet. Keeping this
-        // explicit prevents silently granting broader deployer authority.
+        executor.setLauncher(address(launcher));
+        executor.transferOwnership(operator);
         emit RoutyV4Deployment(address(launcher),address(executor),address(controller),address(rewardFactory),address(vaultFactory),address(routerFactory),operator);
         vm.stopBroadcast();
     }
