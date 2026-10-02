@@ -1,7 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createPublicClient,http,isAddress,type Address} from "viem";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
-import {PONS_V2,factoryReadAbi} from "@/lib/pons";
+import {PONS_V2,factoryReadAbi,factoryLaunchAbi} from "@/lib/pons";
 import {snapshotTokenHolders} from "@/lib/holder-snapshot";
 
 export const dynamic="force-dynamic";
@@ -44,7 +44,7 @@ export async function GET(req:NextRequest){
    policy:Number(policy),policyName,createdAt:Number(createdAt),
    fundedBalance:funded.toString(),totalDistributed:totalDistributed.toString(),
    batchNonce:batchNonce.toString(),eligibleHolders:holders.length,
-   snapshotBlock:latest.number.toString()
+   snapshotBlock:snapshotBlock.toString(),snapshotFromBlock:fromBlock.toString()
   });
  }catch(error){
   return NextResponse.json({ok:false,error:"REWARD_STATUS_FAILED",message:error instanceof Error?error.message:"unknown"},{status:503});
