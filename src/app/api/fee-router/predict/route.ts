@@ -11,7 +11,7 @@ export async function POST(req:NextRequest){
   const body=await req.json() as {creator?:string;salt?:string};
   if(!body.creator||!isAddress(body.creator)||!body.salt||!/^0x[0-9a-fA-F]{64}$/.test(body.salt))return NextResponse.json({ok:false,error:"INVALID_REQUEST"},{status:400});
   const rpc=process.env.RPC_URL?.trim();
-  const factory=process.env.ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS?.trim()||ROUTY_DEPLOYMENT.feeRouterFactoryV5;
+  const factory=process.env.ROUTY_FEE_ROUTER_FACTORY_V5_ADDRESS?.trim()||"";
   if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
   if(!factory||!isAddress(factory))return NextResponse.json({ok:false,error:"V5_FACTORY_NOT_CONFIGURED"},{status:503});
   const client=createPublicClient({chain,transport:http(rpc)});
