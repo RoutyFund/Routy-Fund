@@ -25,7 +25,7 @@ const valid=(v:unknown):v is Address=>typeof v==="string"&&isAddress(v,{strict:f
 const read=():Saved=>{try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch{return{}}}; const write=(v:Saved)=>localStorage.setItem(KEY,JSON.stringify(v));
 export default function Page(){
  const[account,setAccount]=useState(""),[chain,setChain]=useState(""),[saved,setSaved]=useState<Saved>({}),[busy,setBusy]=useState<Id|"">(""),[msg,setMsg]=useState(""),[err,setErr]=useState("");
- useEffect(()=>{setSaved(read());refresh().catch(()=>{})},[]);
+ useEffect(()=>{const id=window.setTimeout(()=>{setSaved(read());refresh().catch(()=>{})},0);return()=>window.clearTimeout(id)},[]);
  const a=useMemo(()=>({controller:saved.controller?.address,reward:saved.rewardFactory?.address,vault:saved.vaultFactory?.address,router:saved.routerFactory?.address,executor:saved.executor?.address,launcher:saved.launcher?.address}),[saved]);
  async function refresh(){const p=getInjectedProvider();if(!p)return;const[x,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);setAccount(x?.[0]||"");setChain(c||"")}
  async function wallet(){const p=getInjectedProvider();if(!p)throw Error("EVM wallet not found.");const[x,c]=await Promise.all([p.request<string[]>({method:"eth_accounts"}),p.request<string>({method:"eth_chainId"})]);if(x?.[0]?.toLowerCase()!==OWNER.toLowerCase())throw Error("Use the Routy owner wallet.");if(c?.toLowerCase()!==CHAIN)throw Error("Use Robinhood Chain (4663).");return p}
