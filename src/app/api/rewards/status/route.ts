@@ -36,7 +36,11 @@ export async function GET(req:NextRequest){
    client.getBlock({blockTag:"latest"})
   ]);
   const snapshotBlock=latest.number>2n?latest.number-2n:latest.number;
-  const fromBlock=snapshotBlock>500_000n?snapshotBlock-500_000n:0n;
+  const launchEvent=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched");
+  if(!launchEvent)throw new Error("PONS_LAUNCH_EVENT_ABI_MISSING");
+  const launchLogs=await client.getLogs({address:PONS_V2.factory,event:launchEvent,args:{token:token as Address},fromBlock:0n,toBlock:snapshotBlock}).catch(()=>[]);
+  const launchBlock=launchLogs.length?launchLogs[0].blockNumber:null;
+  const fromBlock=launchBlock??(snapshotBlock>500_000n?snapshotBlock-500_000n:0n);
   const holders=await snapshotTokenHolders({token,fromBlock,toBlock:snapshotBlock,excluded:[creator,vault,router,distributor,PONS_V2.factory,PONS_V2.feeEscrow],rpcUrl:rpc});
   const policyName=Number(policy)===0?"weighted-raffle":Number(policy)===1?"equal-lottery":"pro-rata";
   return NextResponse.json({
