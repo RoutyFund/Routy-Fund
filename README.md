@@ -20,7 +20,7 @@ Launch token → Pons V2 → creator fees → permissionless harvest → FeeRout
 
 - Next.js App Router
 - TypeScript
-- viem / wagmi
+- viem
 - Solidity
 - Robinhood Chain
 - Pons V2
