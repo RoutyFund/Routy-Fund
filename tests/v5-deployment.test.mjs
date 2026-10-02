@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {decodeFunctionData} from "viem";
 import {DEPLOY_BYTECODE} from "../src/lib/deploy-artifacts.ts";
-import {V5_STEPS, assertV5Transaction, buildV5Transaction, parseV5Progress, v5StepReady} from "../src/lib/v5-deployment.ts";
+import {V5_STEPS, assertV5Transaction, buildV5Transaction, parseV5Progress, readV5Receipt, receiptFailure, v5GasLimit, v5StepReady} from "../src/lib/v5-deployment.ts";
 
 const a = Array.from({length: 12}, (_, i) => "0x" + (i + 1).toString(16).padStart(40, "0"));
 const config = {owner:a[0], operator:a[1], treasury:a[2], registry:a[3], ponsFactory:a[4], escrow:a[5], oracleRegistry:a[6], oracleGuard:a[7], quoter:a[8], adapter:a[9]};
@@ -47,4 +47,51 @@ test("legacy and structured backups restore hashes but malformed entries fail", 
   assert.throws(()=>parseV5Progress({controller:{hash:"broken"}}),/Invalid transaction hash/);
   assert.throws(()=>parseV5Progress({controller:{hash:"0x"+"11".repeat(32),address:"0x"+"0".repeat(40)}}),/Invalid contract address/);
   assert.throws(()=>parseV5Progress({steps:[]}),/Invalid deployment steps/);
+});
+
+const hash = "0x" + "22".repeat(32);
+function receiptProvider(receipt, overrides = {}) {
+  const tx = buildV5Transaction("routerFactory", progress, config, DEPLOY_BYTECODE);
+  const calls = [];
+  return {calls, request: async ({method}) => {
+    calls.push(method);
+    if (method === "eth_getTransactionReceipt") return receipt;
+    if (method === "eth_getTransactionByHash") return {from: tx.from, to: null, input: tx.data, gas: "0x124f80", ...overrides};
+    if (method === "eth_getCode") return "0x6000";
+    throw new Error("Unexpected RPC method " + method);
+  }};
+}
+test("failed factory receipts expose exhausted gas and wallet-reduced limits without verifying", async () => {
+  const provider = receiptProvider({status: "0x0", gasUsed: "0x124f80", contractAddress: a[7]});
+  const next = {...progress, routerFactory: {hash, requestedGas: "0x2dc6c0"}};
+  const check = await readV5Receipt(provider, "routerFactory", next, config, DEPLOY_BYTECODE);
+  assert.equal(check.status, "reverted");
+  assert.equal(check.gasLimit, "1200000");
+  assert.equal(check.exhaustedGas, true);
+  assert.equal(check.walletReducedGas, true);
+  assert.equal(check.address, undefined);
+  assert.match(receiptFailure(check), /100%/);
+  assert.match(receiptFailure(check), /wallet sent a lower gas limit/);
+  assert.equal(provider.calls.includes("eth_getCode"), false);
+});
+test("pending receipts stay pending and do not read or verify a contract", async () => {
+  const provider = receiptProvider(null);
+  const check = await readV5Receipt(provider, "routerFactory", progress, config, DEPLOY_BYTECODE);
+  assert.equal(check.status, "pending");
+  assert.deepEqual(provider.calls, ["eth_getTransactionReceipt"]);
+});
+test("a receipt verifies only matching deployment data with confirmed success", async () => {
+  const receipt = {status: "0x01", gasUsed: "0x100000", contractAddress: a[7]};
+  assert.equal((await readV5Receipt(receiptProvider(receipt), "routerFactory", progress, config, DEPLOY_BYTECODE)).address, a[7]);
+  await assert.rejects(readV5Receipt(receiptProvider(receipt, {from: a[3]}), "routerFactory", progress, config, DEPLOY_BYTECODE), /does not match/);
+  await assert.rejects(readV5Receipt(receiptProvider({...receipt, status: undefined}), "routerFactory", progress, config, DEPLOY_BYTECODE), /no confirmed success/);
+});
+test("deployment gas keeps the minimum and scales above it; saved requests survive restore", () => {
+  assert.equal(BigInt(v5GasLimit("0x124f80", true)), 3_000_000n);
+  assert.equal(BigInt(v5GasLimit("0x1e8480", true)), 5_000_000n);
+  assert.equal(BigInt(v5GasLimit("0x186a0", false)), 150_000n);
+  assert.throws(() => v5GasLimit("0x0", true), /Invalid gas estimate/);
+  const next = {...progress, routerFactory: {hash, requestedGas: "0x2dc6c0"}};
+  assert.deepEqual(parseV5Progress({version: 1, steps: next}), next);
+  assert.throws(() => parseV5Progress({routerFactory: {hash, requestedGas: "bad"}}), /Invalid gas limit/);
 });

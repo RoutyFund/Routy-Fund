@@ -1,4 +1,5 @@
-import {encodeDeployData, encodeFunctionData, isAddress, type Address, type Hex} from "viem";
+import {decodeFunctionResult, encodeDeployData, encodeFunctionData, isAddress, type Address, type Hex} from "viem";
+import type {EthereumProvider, EthereumTransaction, EthereumTransactionReceipt} from "./ethereum-provider";
 
 export const V5_STEPS = [
   {id: "controller", title: "Deploy reward controller", contract: "RewardAutomationController"},
@@ -14,7 +15,7 @@ export const V5_STEPS = [
   {id: "configure", title: "Configure swap dependencies", contract: null},
 ] as const;
 export type V5StepId = typeof V5_STEPS[number]["id"];
-export type V5Record = {hash: Hex; address?: Address};
+export type V5Record = {hash: Hex; address?: Address; requestedGas?: Hex};
 export type V5Progress = Partial<Record<V5StepId, V5Record>>;
 export type V5Configuration = {
   owner: Address; operator: Address; treasury: Address; registry: Address;
@@ -44,7 +45,8 @@ export function parseV5Progress(value: unknown): V5Progress {
     if (record === undefined) continue;
     if (!record || typeof record.hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(record.hash)) throw new Error(`Invalid transaction hash for ${id}.`);
     if (record.address !== undefined && !validV5Address(record.address)) throw new Error(`Invalid contract address for ${id}.`);
-    result[id] = {hash: record.hash, ...(record.address ? {address: record.address} : {})};
+    if (record.requestedGas !== undefined && !/^0x[0-9a-fA-F]+$/.test(record.requestedGas)) throw new Error(`Invalid gas limit for ${id}.`);
+    result[id] = {hash: record.hash, ...(record.address ? {address: record.address} : {}), ...(record.requestedGas ? {requestedGas: record.requestedGas} : {})};
   }
   return result;
 }
@@ -88,4 +90,65 @@ export function assertV5Transaction(expected: V5Transaction, actual: {from: stri
     || actual.input?.toLowerCase() !== expected.data.toLowerCase()) {
     throw new Error("Transaction does not match this deployment step. Check wallet, recipient and transaction data.");
   }
+}
+
+export function v5GasLimit(estimate: Hex, deployment: boolean): Hex {
+  const gas = BigInt(estimate);
+  if (gas <= 0n) throw new Error("Invalid gas estimate.");
+  const buffered = deployment ? gas * 250n / 100n : gas * 150n / 100n;
+  return ("0x" + (deployment && buffered < 3_000_000n ? 3_000_000n : buffered).toString(16)) as Hex;
+}
+
+export type V5ReceiptCheck = {
+  status: "pending" | "reverted" | "verified";
+  hash: Hex; address?: Address; gasUsed?: string; gasLimit?: string;
+  exhaustedGas?: boolean; walletReducedGas?: boolean;
+};
+const launcherReadAbi = [{type: "function", name: "launcher", stateMutability: "view", inputs: [], outputs: [{type: "address"}]}] as const;
+const quantity = (value?: string) => value && /^0x[0-9a-fA-F]+$/.test(value) ? BigInt(value) : undefined;
+
+export async function readV5Receipt(
+  provider: EthereumProvider, id: V5StepId, progress: V5Progress,
+  config: V5Configuration, bytecodes: Record<string, string>,
+): Promise<V5ReceiptCheck> {
+  const record = progress[id];
+  if (!record) throw new Error("No transaction hash saved.");
+  const receipt = await provider.request<EthereumTransactionReceipt | null>({method: "eth_getTransactionReceipt", params: [record.hash]});
+  if (!receipt) return {status: "pending", hash: record.hash};
+  const transaction = await provider.request<EthereumTransaction | null>({method: "eth_getTransactionByHash", params: [record.hash]});
+  if (!transaction) throw new Error("Transaction could not be read. Check its receipt again.");
+  const expected = buildV5Transaction(id, progress, config, bytecodes);
+  assertV5Transaction(expected, transaction);
+  const gasUsed = quantity(receipt.gasUsed);
+  const gasLimit = quantity(transaction.gas);
+  const requested = quantity(record.requestedGas);
+  const details = {
+    hash: record.hash,
+    gasUsed: gasUsed?.toString(), gasLimit: gasLimit?.toString(),
+    exhaustedGas: gasLimit !== undefined && gasLimit > 0n && gasUsed === gasLimit,
+    walletReducedGas: gasLimit !== undefined && requested !== undefined && gasLimit < requested,
+  };
+  const status = quantity(receipt.status);
+  if (status === 0n) return {status: "reverted", ...details};
+  if (status !== 1n) throw new Error("Receipt has no confirmed success status. Check again before continuing.");
+  const address = expected.to || receipt.contractAddress;
+  if (!validV5Address(address)) throw new Error("The receipt has no valid contract address.");
+  const code = await provider.request<string>({method: "eth_getCode", params: [address, "latest"]});
+  if (!code || code === "0x" || code === "0x0") throw new Error("No deployed contract found.");
+  if (id.startsWith("bind")) {
+    const data = encodeFunctionData({abi: launcherReadAbi, functionName: "launcher"});
+    const result = await provider.request<Hex>({method: "eth_call", params: [{to: address, data}, "latest"]});
+    const launcher = decodeFunctionResult({abi: launcherReadAbi, functionName: "launcher", data: result});
+    if (launcher.toLowerCase() !== progress.launcher?.address?.toLowerCase()) throw new Error("On-chain launcher binding does not match.");
+  }
+  return {status: "verified", address, ...details};
+}
+
+export function receiptFailure(check: V5ReceiptCheck): string {
+  if (check.status === "pending") return "Transaction is pending. Check its receipt again after confirmation.";
+  if (check.status !== "reverted") return "";
+  const gas = check.exhaustedGas
+    ? ` Gas used ${Number(check.gasUsed).toLocaleString("en-US")} / ${Number(check.gasLimit).toLocaleString("en-US")} (100%); the gas limit may be too low.` : "";
+  const wallet = check.walletReducedGas ? " The wallet sent a lower gas limit than Routy requested." : "";
+  return "Transaction failed on-chain and cannot be verified." + gas + wallet + " Use Retry reverted transaction, then review Gas limit in the wallet before signing.";
 }

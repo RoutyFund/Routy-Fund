@@ -15,12 +15,14 @@ export type EthereumProvider = {
 export type EthereumTransactionReceipt = {
   status?: string;
   contractAddress?: string | null;
+  gasUsed?: string;
 };
 
 export type EthereumTransaction = {
   from: string;
   to?: string | null;
   input: string;
+  gas?: string;
 };
 
 function errorRecord(value: unknown): Record<string, unknown> | undefined {
