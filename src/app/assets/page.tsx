@@ -5,9 +5,11 @@ import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
 type Asset={id:string;tokenSymbol:string;tokenName:string;currentMultiplier?:string;logoUrl?:string;contractAddress?:string};
 export default function Assets(){
- const[assets,setAssets]=useState<Asset[]>([]);const[loaded,setLoaded]=useState(false);const[query,setQuery]=useState("");const[mode,setMode]=useState<"all"|"routable"|"registry">("all");
+ const[assets,setAssets]=useState<Asset[]>([]);const[loaded,setLoaded]=useState(false);const[query,setQuery]=useState("");const[mode,setMode]=useState<"all"|"routable"|"registry">("all");const[page,setPage]=useState(1);const pageSize=10;
  useEffect(()=>{fetch("/api/assets").then(r=>r.json()).then(d=>setAssets(d.assets||[])).catch(()=>setAssets([])).finally(()=>setLoaded(true))},[]);
  const rows=useMemo(()=>assets.filter(a=>{const routable=EXECUTABLE_ROUTES.some(r=>r.target.toLowerCase()===(a.contractAddress||"").toLowerCase());const q=query.trim().toLowerCase();const matches=!q||a.tokenSymbol?.toLowerCase().includes(q)||a.tokenName?.toLowerCase().includes(q)||a.contractAddress?.toLowerCase().includes(q);return matches&&(mode==="all"||(mode==="routable"?routable:!routable))}),[assets,query,mode]);
+ const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize);
+ useEffect(()=>{setPage(1)},[query,mode]);
  return <main className="shell"><Nav/><div className="wrap console-page">
   <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Underlying market registry</span><h1>Assets.</h1><p className="lead">Stock Tokens available on Robinhood Chain. This registry is separate from tokens launched through Routy Fund.</p></div><span className="pill">{loaded?assets.length+" canonical":"Loading registry"}</span></header>
   <section className="proof-grid">
@@ -27,13 +29,14 @@ export default function Assets(){
     <span className="terminal-count">{rows.length} RESULTS</span>
    </div>
    <div className="asset-terminal-head"><span>ASSET</span><span>CLASS</span><span>MULTIPLIER</span><span>ADDRESS</span><span>STATUS</span></div>
-   <div className="data-list">{rows.slice(0,194).map(a=>{const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===(a.contractAddress||"").toLowerCase());return <article className="asset-terminal-row" key={a.id}>
+   <div className="data-list">{pagedRows.map(a=>{const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===(a.contractAddress||"").toLowerCase());return <article className="asset-terminal-row" key={a.id}>
     <div className="asset-terminal-name"><div className="asset-logo">{a.logoUrl&&a.contractAddress?<img src={"/api/company-logo?symbol="+a.tokenSymbol} alt={a.tokenSymbol+" logo"}/>:a.tokenSymbol?.[0]||"R"}</div><div><b>{a.tokenSymbol}</b><span>{a.tokenName}</span></div></div>
     <span>STOCK TOKEN</span><strong>{Number(a.currentMultiplier||1).toFixed(4)}</strong>
     <code title={a.contractAddress}>{a.contractAddress?a.contractAddress.slice(0,8)+"…"+a.contractAddress.slice(-6):"—"}</code>
     <span className={route?"terminal-ok":"terminal-registry"}>{route?"● ROUTABLE":"○ REGISTRY"}</span>
    </article>})}</div>
    {loaded&&!rows.length&&<div className="empty-state"><h3>No matching assets.</h3><p className="muted">Try another symbol, company name, address or filter.</p></div>}
+   {loaded&&rows.length>0&&<div className="terminal-pagination"><span>{(safePage-1)*pageSize+1}-{Math.min(safePage*pageSize,rows.length)} OF {rows.length}</span><div><button className="tab" disabled={safePage<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>← PREV</button><span>PAGE {safePage} / {totalPages}</span><button className="tab" disabled={safePage>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}>NEXT →</button></div></div>}
   </section>
  </div></main>
 }
