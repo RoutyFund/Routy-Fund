@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useMemo,useState} from "react";
-import {decodeEventLog,decodeFunctionResult,encodeFunctionData,isAddress,type Address,type Hex} from "viem";
+import {decodeFunctionResult,encodeFunctionData,isAddress,type Address,type Hex} from "viem";
 import Nav from "@/components/Nav";
 import {ROUTY_DEPLOYMENT} from "@/lib/deployment";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
@@ -40,6 +40,7 @@ export default function ProvisionPage(){
  async function readPonsLaunch(){
   const p=getInjectedProvider();if(!p||!isAddress(token)){setPonsLaunch(null);return}
   const raw=await call(p,PONS_V2.factory,encodeFunctionData({abi:factoryReadAbi,functionName:"getLaunchedToken",args:[token as Address]}));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem returns this nested tuple shape correctly at runtime.
   const launch=decodeFunctionResult({abi:factoryReadAbi,functionName:"getLaunchedToken",data:raw}) as any;
   setPonsLaunch({exists:Boolean(launch.exists),creatorFeeRecipient:launch.creatorFeeRecipient as Address,pairToken:launch.pairToken as Address});
  }
@@ -63,7 +64,7 @@ export default function ProvisionPage(){
  }
 
  useEffect(()=>{const t=setTimeout(()=>{wallet().catch(()=>{});const q=new URLSearchParams(window.location.search);const qt=q.get("token");const qa=q.get("asset");const qp=q.get("policy");if(qt&&isAddress(qt))setToken(qt);if(qa){const found=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===qa.toLowerCase()||r.symbol.toLowerCase()===qa.toLowerCase());if(found)setSelectedSymbol(found.symbol)}if(qp&&["0","1","2"].includes(qp))setPolicy(Number(qp))},0);return()=>clearTimeout(t)},[]);
- useEffect(()=>{if(isAddress(token)){readPonsLaunch().catch(()=>setPonsLaunch(null));readRoute().catch(()=>{})}},[token,selectedSymbol]);
+ useEffect(()=>{if(!isAddress(token))return;const id=window.setTimeout(()=>{readPonsLaunch().catch(()=>setPonsLaunch(null));readRoute().catch(()=>{})},0);return()=>window.clearTimeout(id)},[token,selectedSymbol]);
 
  const provisioned=Boolean(routeState&&routeState.vault!==ZERO);
  const creatorMatches=Boolean(account&&routeState&&routeState.creator.toLowerCase()===account.toLowerCase());
