@@ -10,7 +10,22 @@ type Asset={tokenSymbol:string;tokenName:string;contractAddress:string};
 type Pons={launchFee:string;maxCreatorTaxBps:string;configs:Array<{id:number;enabled:boolean}>};
 type RouteStatus={symbol:string;configurationComplete:boolean};
 
+function extractHexData(value:unknown):Hex|undefined{
+ if(typeof value==="string"&&/^0x[0-9a-fA-F]+$/.test(value))return value as Hex;
+ if(value&&typeof value==="object"){
+  const v=value as Record<string,unknown>;
+  return extractHexData(v.data)||extractHexData(v.cause)||extractHexData(v.error);
+ }
+ return undefined;
+}
 function walletErrorMessage(error:unknown){
+ const revertData=extractHexData(error);
+ if(revertData){
+  try{
+   const decoded=decodeErrorResult({abi:factoryLaunchAbi,data:revertData});
+   return "Pons reverted: "+decoded.errorName;
+  }catch{}
+ }
  if(error instanceof Error)return error.message;
  if(typeof error==="string")return error;
  if(error&&typeof error==="object"){
@@ -54,21 +69,25 @@ export default function Launch(){
    const pairToken="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as const;
 
    const feeData=encodeFunctionData({abi:factoryReadAbi,functionName:"launchFee"});
+   const canLaunchData=encodeFunctionData({abi:factoryReadAbi,functionName:"canLaunch",args:[account as `0x${string}`]});
    const maxTaxData=encodeFunctionData({abi:factoryReadAbi,functionName:"maxCreatorTaxBps"});
    const approvedData=encodeFunctionData({abi:factoryReadAbi,functionName:"approvedPairTokens",args:[pairToken]});
    const econData=encodeFunctionData({abi:factoryReadAbi,functionName:"previewLaunchEconomics",args:[BigInt(config!.id),pairToken]});
 
-   const [feeRaw,maxTaxRaw,approvedRaw,economics]=await Promise.all([
+   const [feeRaw,maxTaxRaw,approvedRaw,economics,canLaunchRaw]=await Promise.all([
     provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:feeData},"latest"]}),
     provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:maxTaxData},"latest"]}),
     provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:approvedData},"latest"]}),
     provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:econData},"latest"]}),
+    provider.request<string>({method:"eth_call",params:[{to:PONS_V2.factory,data:canLaunchData},"latest"]}),
    ]);
 
    const freshLaunchFee=BigInt(feeRaw);
    const freshMaxTax=Number(BigInt(maxTaxRaw));
    const pairApproved=BigInt(approvedRaw)!==0n;
-   if(!pairApproved)throw new Error("USDG is not currently approved by the Pons V2 factory.");
+   const launchAllowed=BigInt(canLaunchRaw)!==0n;
+   if(!pairApproved)throw new Error("Pons preflight: PairTokenNotApproved.");
+   if(!launchAllowed)throw new Error("Pons preflight: canLaunch(account) returned false.");
 
    const salt=keccak256(toBytes(account+":"+Date.now().toString()));
    const creatorTax=Math.max(0,Math.min(Number(tax||0),freshMaxTax));
@@ -76,7 +95,7 @@ export default function Launch(){
     name:name.trim(),symbol:symbol.trim(),logo,description:description.trim(),
     socials:{twitter:x.trim(),telegram:telegram.trim(),discord:"",website:website.trim(),farcaster:""},
     creatorFeeRecipient:account as `0x${string}`,creatorTaxBps:creatorTax,buybackEnabled:true,expectedEconomics:economics as `0x${string}`,salt
-   },BigInt(config!.id),pairToken,[]]});
+   },BigInt(config!.id),pairToken]});
 
    const tx={from:account,to:PONS_V2.factory,data,value:"0x"+freshLaunchFee.toString(16)};
    setStatus("Running Pons preflight…");

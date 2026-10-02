@@ -13,6 +13,7 @@ export const factoryReadAbi=[
 {type:"function",name:"launchConfigCount",stateMutability:"view",inputs:[],outputs:[{type:"uint256"}]},
 {type:"function",name:"getLaunchConfig",stateMutability:"view",inputs:[{name:"id",type:"uint256"}],outputs:[{name:"config",type:"tuple",components:[{name:"supply",type:"uint256"},{name:"curveFeeBps",type:"uint256"},{name:"phantomQuote",type:"uint256"},{name:"graduationThreshold",type:"uint256"},{name:"poolFee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"enabled",type:"bool"}]}]},
 {type:"function",name:"approvedPairTokens",stateMutability:"view",inputs:[{name:"pairToken",type:"address"}],outputs:[{type:"bool"}]},
+{type:"function",name:"canLaunch",stateMutability:"view",inputs:[{name:"account",type:"address"}],outputs:[{type:"bool"}]},
 {type:"function",name:"previewLaunchEconomics",stateMutability:"view",inputs:[{name:"launchConfigId",type:"uint256"},{name:"pairToken",type:"address"}],outputs:[{name:"economics",type:"bytes32"}]},
 {type:"function",name:"getLaunchedToken",stateMutability:"view",inputs:[{name:"token",type:"address"}],outputs:[{name:"launch",type:"tuple",components:[{name:"token",type:"address"},{name:"curve",type:"address"},{name:"deployer",type:"address"},{name:"creatorFeeRecipient",type:"address"},{name:"pairToken",type:"address"},{name:"graduationThreshold",type:"uint256"},{name:"poolFee",type:"uint24"},{name:"tickSpacing",type:"int24"},{name:"creatorTaxBps",type:"uint16"},{name:"buybackEnabled",type:"bool"},{name:"phase",type:"uint8"},{name:"sweptQuote",type:"uint256"},{name:"sweptTokens",type:"uint256"},{name:"sweptAt",type:"uint256"},{name:"exists",type:"bool"}]}]}
 ] as const;
@@ -24,8 +25,16 @@ export const factoryLaunchAbi=[
 {name:"socials",type:"tuple",components:[{name:"twitter",type:"string"},{name:"telegram",type:"string"},{name:"discord",type:"string"},{name:"website",type:"string"},{name:"farcaster",type:"string"}]},
 {name:"creatorFeeRecipient",type:"address"},{name:"creatorTaxBps",type:"uint16"},{name:"buybackEnabled",type:"bool"},{name:"expectedEconomics",type:"bytes32"},{name:"salt",type:"bytes32"}
 ]},
-{name:"launchConfigId",type:"uint256"},{name:"pairToken",type:"address"},{name:"snipeTaxExemptions",type:"address[]"}
+{name:"launchConfigId",type:"uint256"},{name:"pairToken",type:"address"}
 ],outputs:[{name:"token",type:"address"},{name:"curve",type:"address"}]},
+{type:"error",name:"LaunchEconomicsMismatch",inputs:[]},
+{type:"error",name:"PairTokenNotApproved",inputs:[]},
+{type:"error",name:"PairTokenDecimalsMismatch",inputs:[]},
+{type:"error",name:"LaunchFeeNotPaid",inputs:[]},
+{type:"error",name:"CreatorTaxTooHigh",inputs:[]},
+{type:"error",name:"NotWhitelisted",inputs:[]},
+{type:"error",name:"UnexpectedNativeValue",inputs:[]},
+{type:"error",name:"NativeValueMismatch",inputs:[]},
 {type:"event",name:"TokenLaunched",anonymous:false,inputs:[
 {name:"token",type:"address",indexed:true},{name:"curve",type:"address",indexed:true},{name:"deployer",type:"address",indexed:true},
 {name:"pairToken",type:"address",indexed:false},{name:"launchConfigId",type:"uint256",indexed:false},{name:"graduationThreshold",type:"uint256",indexed:false}
