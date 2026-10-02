@@ -10,7 +10,8 @@ const oracleAbi=[{type:"function",name:"feedForAsset",stateMutability:"view",inp
 export const dynamic="force-dynamic";
 export async function GET(){
  try{
-  const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim();
+  if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING"},{status:503});
   const client=createPublicClient({chain,transport:http(rpc)});
   const rows=[];
   for(const route of ROUTE_CATALOG){

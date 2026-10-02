@@ -13,8 +13,10 @@ const erc20Abi=[
 
 export async function GET(){
  try{
-  const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim()||chain.rpcUrls.default.http[0];
+  const rpc=process.env.RPC_URL?.trim()||process.env.NEXT_PUBLIC_RPC_URL?.trim();
+  if(!rpc)return NextResponse.json({ok:false,error:"RPC_URL_MISSING",launches:[]},{status:503});
   const client=createPublicClient({chain,transport:http(rpc)});
+  const launcher=(process.env.ROUTY_LAUNCHER_V4_ADDRESS?.trim()||ROUTY_DEPLOYMENT.protocolLauncherV4) as Address;
   const latest=await client.getBlockNumber();
   const configuredRaw=process.env.ROUTY_EVENT_START_BLOCK?.trim();
   let configured:bigint|null=null;
@@ -28,7 +30,7 @@ export async function GET(){
   const chunk=10000n;
   for(let start=fromBlock;start<=latest;start+=chunk){
    const end=start+chunk-1n>latest?latest:start+chunk-1n;
-   const part=await client.getLogs({address:ROUTY_DEPLOYMENT.protocolLauncherV4,event:routeEvent,fromBlock:start,toBlock:end});
+   const part=await client.getLogs({address:launcher,event:routeEvent,fromBlock:start,toBlock:end});
    logs.push(...part);
   }
   const launches=await Promise.all(logs.reverse().map(async log=>{
@@ -62,7 +64,7 @@ export async function GET(){
     transactionHash:log.transactionHash,
    };
   }));
-  return NextResponse.json({ok:true,chainId:4663,count:launches.length,historyComplete,scannedFrom:Number(fromBlock),scannedTo:Number(latest),launches});
+  return NextResponse.json({ok:true,chainId:4663,launcher,count:launches.length,historyComplete,scannedFrom:Number(fromBlock),scannedTo:Number(latest),launches});
  }catch(error){
   return NextResponse.json({ok:false,error:"ROUTY_LAUNCHES_UNAVAILABLE",detail:error instanceof Error?error.message:"unknown",launches:[]},{status:503});
  }
