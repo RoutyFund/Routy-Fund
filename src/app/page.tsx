@@ -3,6 +3,7 @@ import Nav from "@/components/Nav";
 import TokenLogo from "@/components/TokenLogo";
 import LatestLaunches from "@/components/LatestLaunches";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
+import LiveTerminalStatus from "@/components/LiveTerminalStatus";
 
 const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"VERIFIED",r.quoteSymbol,String(r.poolKey.fee),String(r.poolKey.tickSpacing)]);
 
@@ -22,12 +23,7 @@ export default function Home(){
    </div>
   </section>
 
-  <div className="protocol-status-grid">
-   <div><span><i className="terminal-led"/> NETWORK</span><b>RH_CHAIN_4663</b><small>ONLINE</small></div>
-   <div><span>MARKET_REGISTRY</span><b>{EXECUTABLE_ROUTES.length} ROUTES</b><small>VERIFIED</small></div>
-   <div><span>FEE_ROUTER</span><b>80 / 20</b><small>VAULT / TREASURY</small></div>
-   <div><span>CUSTODY_MODE</span><b>NON-CUSTODIAL</b><small>PROTOCOL</small></div>
-  </div>
+  <LiveTerminalStatus marketCount={EXECUTABLE_ROUTES.length}/>
 
   <LatestLaunches/>
 
