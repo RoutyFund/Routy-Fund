@@ -9,7 +9,12 @@ export type EthereumProvider = {
   removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
 };
 
-// Keep wallet event methods optional so injected providers without EIP-1193 listeners still work.\n\nlet privyProvider: EthereumProvider | undefined;\nexport function setPrivyProvider(provider: EthereumProvider | undefined) { privyProvider = provider; }
+// Keep wallet event methods optional so injected providers without EIP-1193 listeners still work.
+
+let privyProvider: EthereumProvider | undefined;
+export function setPrivyProvider(provider: EthereumProvider | undefined) {
+  privyProvider = provider;
+}
 
 
 export type EthereumTransactionReceipt = {
