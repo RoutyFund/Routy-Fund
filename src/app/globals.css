@@ -1193,3 +1193,11 @@ h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-
 .official-ca-bar code{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0b172a}
 .official-ca-bar button{margin-left:auto;border:1px solid var(--line,#d9e2ec);background:transparent;padding:5px 8px;font:inherit;cursor:pointer;color:#1765ad}
 @media(max-width:640px){.official-ca-bar{margin-bottom:12px;padding:9px 10px;gap:7px}.official-ca-bar code{font-size:10px}.official-ca-bar button{padding:4px 6px;font-size:10px}}
+
+
+/* Mobile nav overlay: keep the opened menu isolated from page CTA/footer while scrolling. */
+@media(max-width:760px){
+ .terminal-header:has(.navlinks-open){position:sticky;top:0;z-index:1000;background:#fff}
+ .navlinks.navlinks-open{position:fixed!important;top:var(--routy-mobile-nav-top,136px)!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;max-height:calc(100dvh - var(--routy-mobile-nav-top,136px))!important;overflow-y:auto!important;overscroll-behavior:contain!important;z-index:999!important;margin:0!important;padding:6px 14px 18px!important;background:#f8fbfc!important}
+ .navlinks.navlinks-open a{flex:0 0 auto!important;width:100%!important}
+}
