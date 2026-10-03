@@ -863,3 +863,72 @@ body{
   .console-page>.proof-grid .proof-card:last-child{border-bottom:0}
   .console-page>.section{margin-top:7px}
 }
+
+
+/* Terminal identity lock */
+.shell,.terminal-footer{
+  font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+.shell h1,.shell h2,.shell h3,.shell p,.shell span,.shell b,.shell strong,
+.shell a,.shell button,.shell input,.shell select,.shell textarea,.shell label,
+.terminal-footer h2,.terminal-footer p,.terminal-footer span,.terminal-footer b,.terminal-footer a{
+  font-family:inherit;
+}
+.brand{font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.025em}
+.brand>span{font-weight:800}
+.terminal-statusbar{background:#eaf3ff;color:#4f6d8d;border-bottom:1px solid var(--term-line)}
+.terminal-header .nav{height:58px}
+.terminal-home,.console-page{padding-top:12px}
+.terminal-commandbar{
+  background:#0b1f36!important;color:#dbeaff!important;border-color:#0b1f36!important;
+  min-height:38px;padding:0 12px!important;display:flex;align-items:center;gap:9px;
+  font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,monospace!important
+}
+.terminal-commandbar .terminal-prompt{color:#78b5ff!important}
+.terminal-commandbar .terminal-cursor{color:#b9d7ff!important}
+.console-page>.page-head:before{content:"routy@fund:~$ view --protocol";}
+.console-page>.page-head,.console-page>.proof-grid,.console-page>.section,
+.terminal-window,.terminal-pipeline>div,.form-card,.proof-card,.feature-card,.flow-step,
+.empty-state,.table-shell,.pill,.verified-pill,.tab,.primary,.secondary,.wallet,.menu,
+.terminal-footer-cta,.terminal-footer-main,.terminal-footer-bottom,.terminal-doc-grid>a,
+.terminal-faq details,.asset-logo,.market-icon,.token-logo{
+  border-radius:0!important;
+}
+.console-page>.page-head{box-shadow:inset 3px 0 0 var(--term-cyan)}
+.console-page>.section>.section-head,.terminal-window-head,.terminal-table-head{
+  text-transform:uppercase;letter-spacing:.08em
+}
+.console-page>.page-head h1{font-weight:700;text-transform:uppercase}
+.console-page>.page-head .lead{font-size:11px;line-height:1.65}
+.console-page>.proof-grid .proof-card{padding:13px 14px;min-height:96px}
+.console-page>.proof-grid .proof-card strong{font-size:16px;margin:11px 0 4px}
+.console-page .section{margin-top:7px}
+.console-page .form-card{padding:14px;gap:12px}
+.console-page .form-card label{font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.console-page .form-card input,.console-page .form-card select,.console-page .form-card textarea{
+  min-height:40px;font-size:11px
+}
+.terminal-window-head{min-height:31px;background:#eaf3ff}
+.terminal-table,.asset-terminal-row,.terminal-event-row,.routy-launch-row{
+  font-size:11px
+}
+.terminal-pipeline>div{background:#fbfdff}
+.terminal-pipeline>div b{color:#0b1f36}
+.terminal-footer-prompt{
+  background:#0b1f36!important;color:#dbeaff!important;border-color:#0b1f36!important;
+  min-height:34px
+}
+.terminal-footer-prompt span,.terminal-footer-prompt i{color:#78b5ff!important}
+.terminal-footer-prompt b{color:#dbeaff!important;font-weight:600}
+body{
+  background:
+    linear-gradient(rgba(26,111,209,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(26,111,209,.055) 1px,transparent 1px),
+    #f7fbff;
+  background-size:24px 24px;
+}
+@media(max-width:760px){
+  .terminal-statusbar{height:24px;font-size:9px}
+  .terminal-header .nav{min-height:56px}
+  .console-page>.page-head h1{font-size:30px}
+}
