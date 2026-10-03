@@ -993,3 +993,5 @@ body{
 .metamask-logo .fox-face{width:29px;height:24px;margin-top:9px;display:grid;place-items:center;background:#e2761b;clip-path:polygon(0 0,50% 20%,100% 0,82% 70%,50% 100%,18% 70%);color:#fff;font-size:8px}
 .other-wallets-logo{border-radius:9px!important;background:#f2f4f8;display:flex!important;align-items:center;justify-content:center;gap:3px}
 .other-wallets-logo i{width:4px;height:4px;border-radius:50%!important;background:#202939}
+
+.logo-upload-preview{display:flex;align-items:center;gap:12px;margin-top:-6px}.logo-upload-preview img{width:56px;height:56px;object-fit:cover;border:1px solid var(--term-line);border-radius:8px}.logo-upload-preview span{font-size:12px;color:var(--term-muted)}
