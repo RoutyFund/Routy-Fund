@@ -972,3 +972,10 @@ body{
 .routy-wallet-protected{text-align:center;margin-top:28px;color:#969ab3;font:500 14px/1.2 Inter,Arial,sans-serif}
 .routy-wallet-protected b{font-size:18px}
 @media(max-width:560px){.routy-wallet-overlay{align-items:center!important;padding:16px}.routy-wallet-picker{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:34px 28px 24px;border-radius:20px!important}.routy-wallet-option{height:64px}}
+
+/* Consistent wallet marks; avoid platform-dependent emoji rendering */
+.routy-wallet-option .wallet-mark{width:38px;height:38px;border-radius:10px!important;display:grid;place-items:center;font:800 15px/1 Inter,Arial,sans-serif;letter-spacing:0}
+.routy-wallet-option .metamask-mark{background:#fff1e8;color:#e2761b;border:1px solid #ffd4b5}
+.routy-wallet-option .coinbase-mark{background:#1652f0;color:#fff;border-radius:50%!important}
+.routy-wallet-option .rainbow-mark{background:linear-gradient(135deg,#ff5f6d,#ffc371,#64d8cb,#6c63ff);color:#fff}
+.routy-wallet-option .other-mark{background:#f2f4f8;color:#202939;font-size:13px}
