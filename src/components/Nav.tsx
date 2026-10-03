@@ -31,7 +31,7 @@ export default function Nav() {
       setError("");
       try{
         if(authenticated){await logout();return}
-        connectWallet({walletChainType:"ethereum-only",walletList:["metamask","coinbase_wallet","rainbow","detected_ethereum_wallets","wallet_connect"]});
+        connectWallet({walletChainType:"ethereum-only",walletList:["metamask","coinbase_wallet","rainbow","wallet_connect"]});
       }catch(cause){setError(walletErrorMessage(cause,"Wallet connection failed."))}
       return;
     }
