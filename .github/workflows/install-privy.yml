@@ -19,4 +19,5 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add package.json package-lock.json
           git diff --cached --quiet || git commit -m "Add Privy React SDK"
-          git push
+          git pull --rebase origin main
+          git push origin main
