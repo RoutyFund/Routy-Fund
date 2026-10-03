@@ -7,7 +7,7 @@ const TITLE="Routy — Creator Fee Routing on Robinhood Chain";
 const DESCRIPTION="Routy is a non-custodial protocol on Robinhood Chain that routes token creator fees into verified Stock Tokens and distributes rewards to holders.";
 
 export const metadata:Metadata={
- metadataBase:new URL(process.env.NEXT_PUBLIC_SITE_URL||"https://routy-fund.vercel.app"),
+ metadataBase:new URL(process.env.NEXT_PUBLIC_SITE_URL||"https://routy.fund"),
  title:{default:TITLE,template:"%s · Routy"},
  description:DESCRIPTION,
  applicationName:"Routy",
