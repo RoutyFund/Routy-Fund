@@ -33,7 +33,7 @@ export default function Assets(){
    </div>
    <div className="asset-terminal-head"><span>ASSET</span><span>CLASS</span><span>MULTIPLIER</span><span>ADDRESS</span><span>STATUS</span></div>
    <div className="data-list">{pagedRows.map(a=>{const route=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===(a.contractAddress||"").toLowerCase());return <article className="asset-terminal-row" key={a.id}>
-    <div className="asset-terminal-name"><div className="asset-logo">{a.logoUrl&&a.contractAddress?<TokenLogo src={"/api/company-logo?symbol="+encodeURIComponent(a.tokenSymbol)} symbol={a.tokenSymbol} size={38}/>:a.tokenSymbol?.[0]||"R"}</div><div><b>{a.tokenSymbol}</b><span>{a.tokenName}</span></div></div>
+    <div className="asset-terminal-name"><div className="asset-logo"><TokenLogo src={"/api/company-logo?symbol="+encodeURIComponent(a.tokenSymbol)} symbol={a.tokenSymbol} size={38}/></div><div><b>{a.tokenSymbol}</b><span>{a.tokenName}</span></div></div>
     <span>STOCK TOKEN</span><strong>{a.currentMultiplier&&Number.isFinite(Number(a.currentMultiplier))?Number(a.currentMultiplier).toFixed(4):"—"}</strong>
     <code title={a.contractAddress}>{a.contractAddress?a.contractAddress.slice(0,8)+"…"+a.contractAddress.slice(-6):"—"}</code>
     <span className={route?"terminal-ok":"terminal-registry"}>{route?"● ROUTABLE":"○ REGISTRY"}</span>
