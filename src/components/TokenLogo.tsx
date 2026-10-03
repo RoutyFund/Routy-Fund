@@ -13,9 +13,8 @@ function displayUrl(value?:string){
 }
 export default function TokenLogo({src,token,symbol,size=38,className=""}:{src?:string;token?:string;symbol?:string;size?:number;className?:string}){
  const[dynamicLogo,setDynamicLogo]=useState({token:"",url:""});
- const[failedFor,setFailedFor]=useState("");
+ const[failedFor,setFailedFor]=useState<{key:string;url:string}>({key:"",url:""});
  useEffect(()=>{
-  setFailedFor("");
   if(src||!token)return;
   let live=true;
   fetch("/api/token-logo?token="+encodeURIComponent(token)).then(r=>r.json()).then(d=>{if(live&&d.logo)setDynamicLogo({token,url:d.logo})}).catch(()=>{});
@@ -23,6 +22,7 @@ export default function TokenLogo({src,token,symbol,size=38,className=""}:{src?:
  },[src,token]);
  const resolved=displayUrl(src||(dynamicLogo.token===token?dynamicLogo.url:""));
  const fallback=(symbol?.trim()?.[0]||"R").toUpperCase();
- if(!resolved||failedFor===resolved)return <span className={"token-logo token-logo-fallback "+className} style={{width:size,height:size}}>{fallback}</span>;
- return <span className={"token-logo "+className} style={{width:size,height:size}}><Image unoptimized src={resolved} width={size} height={size} alt={(symbol||"Token")+" logo"} onError={()=>setFailedFor(resolved)}/></span>;
+ const renderKey=(src||"")+"|"+(token||"");
+ if(!resolved||(failedFor.key===renderKey&&failedFor.url===resolved))return <span className={"token-logo token-logo-fallback "+className} style={{width:size,height:size}}>{fallback}</span>;
+ return <span className={"token-logo "+className} style={{width:size,height:size}}><Image unoptimized src={resolved} width={size} height={size} alt={(symbol||"Token")+" logo"} onError={()=>setFailedFor({key:renderKey,url:resolved})}/></span>;
 }
