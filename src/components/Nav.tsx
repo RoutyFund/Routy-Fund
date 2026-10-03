@@ -85,10 +85,10 @@ export default function Nav() {
         <button className="routy-wallet-close" aria-label="Close" onClick={()=>setWalletPicker(false)}>×</button>
         <div className="routy-wallet-icon">▱</div>
         <h2>Log in or sign up</h2>
-        <button className="routy-wallet-option" onClick={()=>openPrivy(["metamask"])}><span>🦊</span><b>MetaMask</b></button>
-        <button className="routy-wallet-option" onClick={()=>openPrivy(["coinbase_wallet"])}><span>◉</span><b>Coinbase Wallet</b></button>
-        <button className="routy-wallet-option" onClick={()=>openPrivy(["rainbow"])}><span>🌈</span><b>Rainbow</b></button>
-        <button className="routy-wallet-option" onClick={()=>openPrivy(["detected_ethereum_wallets","wallet_connect"])}><span>▣</span><b>Other wallets</b></button>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["metamask"])}><span className="wallet-mark metamask-mark" aria-hidden="true">M</span><b>MetaMask</b></button>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["coinbase_wallet"])}><span className="wallet-mark coinbase-mark" aria-hidden="true">C</span><b>Coinbase Wallet</b></button>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["rainbow"])}><span className="wallet-mark rainbow-mark" aria-hidden="true">R</span><b>Rainbow</b></button>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["detected_ethereum_wallets","wallet_connect"])}><span className="wallet-mark other-mark" aria-hidden="true">•••</span><b>Other wallets</b></button>
         <div className="routy-wallet-protected">Protected by <b>privy</b></div>
       </div>
     </div>}
