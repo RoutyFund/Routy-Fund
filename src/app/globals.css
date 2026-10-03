@@ -1088,3 +1088,29 @@ h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-
  .latest-launches{margin-bottom:5px}
  .terminal-dashboard{gap:5px}.terminal-main,.terminal-sidebar{gap:5px}
 }
+
+/* Terminal system V3 — apply console language across every route */
+.console-page,.wrap:not(.terminal-home){position:relative}
+.console-page:before,.wrap:not(.terminal-home):before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(0,97,138,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,97,138,.018) 1px,transparent 1px);background-size:24px 24px;mask-image:linear-gradient(to bottom,#000,transparent 78%)}
+.console-page>.page-head,.console-page>.section,.wrap:not(.terminal-home)>.section{position:relative;background:#fff;border-radius:0!important}
+.console-page>.page-head{border:1px solid var(--term-line);padding:13px!important;margin-bottom:6px!important}
+.console-page>.page-head h1{font-size:clamp(23px,3vw,34px)!important;line-height:1.05!important;margin:0 0 5px!important}
+.console-page>.page-head .lead{font-size:10px!important;max-width:760px}
+.console-page>.section{margin-top:6px!important}
+.section-head{min-height:30px!important;padding:0 10px!important;font-size:9px!important;letter-spacing:.1em!important}
+.card-grid,.metric-grid,.analytics-grid,.quick-grid{gap:6px!important}
+.card,.metric-card,.feature-card,.proof-card,.form-card{padding:12px!important}
+.card h3,.feature-card h3,.proof-card h3{font-size:14px!important}
+.terminal-ok,.verified,.status-ok,.live,.online{position:relative}
+.terminal-ok:before,.verified:before,.status-ok:before,.live:before,.online:before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;background:var(--term-green);border-radius:50%;vertical-align:1px;animation:terminal-beacon 1.25s steps(2,end) infinite;box-shadow:0 0 0 0 rgba(10,103,47,.45)}
+@keyframes terminal-beacon{0%,45%{opacity:1;box-shadow:0 0 0 0 rgba(10,103,47,.5),0 0 9px rgba(10,103,47,.55)}46%,72%{opacity:.28;box-shadow:0 0 0 4px rgba(10,103,47,.06)}73%,100%{opacity:1;box-shadow:0 0 0 0 rgba(10,103,47,.45)}}
+.terminal-led{animation:terminal-beacon 1.25s steps(2,end) infinite!important}
+.terminal-led:after{animation:terminal-live-ring 1.25s ease-out infinite!important}
+.protocol-livebar{justify-content:space-between}.protocol-livebar b{margin-left:auto}
+@media(max-width:700px){
+ .console-page>.page-head{padding:10px!important;margin-bottom:5px!important}
+ .console-page>.page-head h1{font-size:24px!important}
+ .console-page>.section{margin-top:5px!important}
+ .section-head{min-height:28px!important;padding:0 8px!important}
+ .card-grid,.metric-grid,.analytics-grid,.quick-grid{gap:5px!important}
+}
