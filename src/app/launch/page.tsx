@@ -53,7 +53,7 @@ function walletErrorMessage(error:unknown){
 
 export default function Launch(){
  const[name,setName]=useState(""); const[symbol,setSymbol]=useState(""); const[description,setDescription]=useState("");
- const[logo,setLogo]=useState(""); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
+ const[logo,setLogo]=useState(""); const[logoPreview,setLogoPreview]=useState(""); const[logoUploading,setLogoUploading]=useState(false); const[x,setX]=useState(""); const[website,setWebsite]=useState(""); const[telegram,setTelegram]=useState("");
  const[asset,setAsset]=useState<string>(EXECUTABLE_ROUTES[0].target); const[policy,setPolicy]=useState("0");
  const[tax,setTax]=useState("0");
  const assetResource=useApiResource<{assets:Asset[]}>("/api/assets");
@@ -108,12 +108,27 @@ export default function Launch(){
   return()=>{stopped=true;if(timer!==undefined)window.clearTimeout(timer)};
  },[pending,recoveryRetry,savePending]);
  useEffect(()=>{if(!launchedToken)return;let stopped=false;let timer:number|undefined;async function poll(){try{const d=await fetchJson<AutoSetup>("/api/auto-setup/status?token="+launchedToken);if(!stopped){setAutoSetup(d);if(d.ready){try{localStorage.removeItem(PENDING_LAUNCH_KEY)}catch{};return}}}catch(cause){if(!stopped)setStatus("Launch confirmed. Route status is temporarily unavailable: "+(cause instanceof Error?cause.message:"connection error"))}if(!stopped)timer=window.setTimeout(()=>void poll(),5000)}void poll();return()=>{stopped=true;if(timer!==undefined)window.clearTimeout(timer)}},[launchedToken]);
+ async function uploadLogo(file:File|undefined){
+  if(!file)return;
+  if(!["image/png","image/jpeg","image/webp","image/gif"].includes(file.type)){setStatus("Logo must be PNG, JPG, WEBP, or GIF.");return}
+  if(file.size>2*1024*1024){setStatus("Logo must be 2 MB or smaller.");return}
+  setLogoUploading(true);setStatus("Uploading logo…");
+  const preview=URL.createObjectURL(file);setLogoPreview(preview);
+  try{
+   const form=new FormData();form.append("logo",file);
+   const response=await fetch("/api/logo-upload",{method:"POST",body:form});
+   const data=await response.json() as {ok?:boolean;url?:string;error?:string};
+   if(!response.ok||!data.ok||!data.url)throw new Error(data.error||"Logo upload failed");
+   setLogo(data.url);setStatus("Logo uploaded.");
+  }catch(error){setLogo("");setStatus(error instanceof Error?error.message:"Logo upload failed");}
+  finally{setLogoUploading(false)}
+ }
  const config=useMemo(()=>pons?.configs?.find(c=>c.enabled),[pons]);
  const selectedRoute=EXECUTABLE_ROUTES.find(r=>r.target.toLowerCase()===asset.toLowerCase());
  const verifiedTarget=Boolean(selectedRoute);
  const routeConfigured=Boolean(routeStatusLoaded&&selectedRoute&&routeStatus.find(s=>s.symbol===selectedRoute.symbol)?.configurationComplete);
  const metadataError=launchMetadataError({logo,description,socials:[x,website,telegram],tax,maxTax:Number(pons?.maxCreatorTaxBps||1000)});
- const valid=recoveryLoaded&&!pending&&autoSetupEnabled&&name.trim()&&symbol.trim()&&description.trim()&&!metadataError&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
+ const valid=recoveryLoaded&&!pending&&!logoUploading&&autoSetupEnabled&&name.trim()&&symbol.trim()&&description.trim()&&!metadataError&&config&&verifiedTarget&&routeStatusLoaded&&routeConfigured;
  async function launch(){
   if(!valid||busy)return; const provider=getInjectedProvider(); if(!provider){setStatus("Connect an EVM wallet first.");return}
   setBusy(true);setStatus("Preparing launch…");
@@ -174,8 +189,9 @@ export default function Launch(){
   <DataNotice error={configurationError} retry={()=>{void setupResource.reload();void ponsResource.reload();void routesResource.reload()}}/>
   <div className="launch-form">
    <section className="form-card"><div><span className="micro">TOKEN</span><h3 style={{marginTop:8}}>Token details</h3></div>
-    <label>Logo URI<input value={logo} onChange={e=>setLogo(e.target.value)} placeholder="https://... or ipfs://..." maxLength={512}/></label>
-    <p className="muted" style={{fontSize:11,marginTop:-8}}>Pons V2 limits the on-chain logo field to 512 bytes. Use a short HTTPS or IPFS URI, not base64 image data.</p>
+    <label>Logo<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={logoUploading} onChange={e=>void uploadLogo(e.target.files?.[0])}/></label>
+    {logoPreview&&<div className="logo-upload-preview"><img src={logoPreview} alt="Token logo preview"/><span>{logoUploading?"Uploading…":logo?"Logo ready":"Upload failed"}</span></div>}
+    <p className="muted" style={{fontSize:11,marginTop:-8}}>PNG, JPG, WEBP, or GIF · maximum 2 MB. Routy uploads it automatically and stores a Pons-compatible logo URI.</p>
     <label>Name<input value={name} onChange={e=>setName(e.target.value)} placeholder="Token name"/></label>
     <label>Ticker<input value={symbol} onChange={e=>setSymbol(e.target.value)} placeholder="Ticker" maxLength={16}/></label>
     <label>Description<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Tell the community what this launch is about."/></label>
