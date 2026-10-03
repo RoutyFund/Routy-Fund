@@ -3,7 +3,8 @@ import Nav from "@/components/Nav";
 import TokenLogo from "@/components/TokenLogo";
 import LatestLaunches from "@/components/LatestLaunches";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
-import LiveTerminalStatus from "@/components/LiveTerminalStatus";\nimport OfficialTokenCA from "@/components/OfficialTokenCA";
+import LiveTerminalStatus from "@/components/LiveTerminalStatus";
+import OfficialTokenCA from "@/components/OfficialTokenCA";
 
 const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"VERIFIED",r.quoteSymbol,String(r.poolKey.fee),String(r.poolKey.tickSpacing)]);
 
@@ -11,7 +12,9 @@ export default function Home(){
  return <main className="shell"><Nav/><div className="wrap terminal-home">
   <div className="terminal-commandbar"><span className="terminal-prompt">routy@rh-4663:~$</span><span>protocol --overview --live</span><span className="terminal-cursor">█</span></div>
 
-  <OfficialTokenCA/>\n\n  <section className="protocol-console-head">
+  <OfficialTokenCA/>
+
+  <section className="protocol-console-head">
    <div className="protocol-console-title">
     <span className="micro">[ ROUTY PROTOCOL CONSOLE ]</span>
     <h1 id="hero-title">FEE ROUTING / STOCK TOKEN REWARDS</h1>
