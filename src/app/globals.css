@@ -960,8 +960,8 @@ body{
 .market-value{display:grid;gap:3px}
 
 /* Routy wallet chooser: primary wallets first, Privy catalog behind Other wallets */
-.routy-wallet-overlay{position:fixed;inset:0;z-index:10000;background:rgba(8,24,48,.28);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:16px}
-.routy-wallet-picker{position:relative;width:min(440px,100%);background:#fff;border:1px solid var(--term-line);padding:34px 28px 24px;box-shadow:0 18px 60px rgba(8,31,61,.18);font-family:Inter,Arial,sans-serif}
+.routy-wallet-overlay{position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw;height:100dvh;margin:0!important;background:rgba(8,24,48,.28);backdrop-filter:blur(5px);display:flex!important;align-items:center;justify-content:center;padding:16px;overflow:auto;overscroll-behavior:contain;isolation:isolate}
+.routy-wallet-picker{position:relative!important;z-index:1;flex:0 0 auto;width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;margin:auto!important;background:#fff;border:1px solid var(--term-line);padding:34px 28px 24px;box-shadow:0 18px 60px rgba(8,31,61,.18);font-family:Inter,Arial,sans-serif}
 .routy-wallet-picker h2{text-align:center;font:700 28px/1.2 Inter,Arial,sans-serif;margin:12px 0 26px;color:#0b1424;text-transform:none;letter-spacing:0}
 .routy-wallet-close{position:absolute;right:16px;top:14px;border:0;background:#f5f6fb;width:38px;height:38px;border-radius:50%!important;font-size:28px;line-height:32px;color:#606574;cursor:pointer}
 .routy-wallet-icon{margin:0 auto;width:68px;height:68px;border-radius:50%!important;background:#f3f3fb;display:grid;place-items:center;font-size:34px;color:#626887}
@@ -971,4 +971,4 @@ body{
 .routy-wallet-option b{font:500 18px/1.2 Inter,Arial,sans-serif}
 .routy-wallet-protected{text-align:center;margin-top:28px;color:#969ab3;font:500 14px/1.2 Inter,Arial,sans-serif}
 .routy-wallet-protected b{font-size:18px}
-@media(max-width:560px){.routy-wallet-overlay{align-items:flex-end;padding:0}.routy-wallet-picker{width:100%;padding:34px 28px 24px;border-radius:28px 28px 0 0!important}.routy-wallet-option{height:64px}}
+@media(max-width:560px){.routy-wallet-overlay{align-items:center!important;padding:16px}.routy-wallet-picker{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:34px 28px 24px;border-radius:20px!important}.routy-wallet-option{height:64px}}
