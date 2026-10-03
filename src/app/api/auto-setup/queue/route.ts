@@ -23,9 +23,10 @@ function dbHeaders():Record<string,string>{
 
 export async function POST(req:NextRequest){
  try{
-  const body=await req.json() as {token?:string;creator?:string;targetAsset?:string;policy?:number;launchTx?:string;setupNonce?:string;feeRouter?:string;intentNonce?:string};
+  const body=await req.json() as {token?:string;creator?:string;targetAsset?:string;policy?:number;launchTx?:string;setupNonce?:string;feeRouter?:string;intentNonce?:string;logo?:string};
   if(!body.token||!isAddress(body.token)||!body.creator||!isAddress(body.creator)||!body.targetAsset||!isAddress(body.targetAsset))return NextResponse.json({ok:false,error:"INVALID_REQUEST"},{status:400});
   if(!Number.isInteger(body.policy)||body.policy===undefined||body.policy<0||body.policy>2)return NextResponse.json({ok:false,error:"INVALID_POLICY"},{status:400});
+  if(body.logo!==undefined&&(typeof body.logo!=="string"||new TextEncoder().encode(body.logo).length>512))return NextResponse.json({ok:false,error:"INVALID_LOGO"},{status:400});
   const deployment=requireCurrentDeployment();
   if(deployment.version!=="V5")return NextResponse.json({ok:false,error:"V5_AUTOMATION_REQUIRED"},{status:409});
   if(!body.setupNonce||!/^0x[0-9a-fA-F]{64}$/.test(body.setupNonce)||!body.feeRouter||!isAddress(body.feeRouter)||body.feeRouter.toLowerCase()===ZERO)return NextResponse.json({ok:false,error:"INVALID_V5_ROUTER"},{status:400});
@@ -55,7 +56,8 @@ export async function POST(req:NextRequest){
    launch_tx:body.launchTx||null,
    status:"queued",
    setup_nonce:body.setupNonce,
-   router_address:body.feeRouter.toLowerCase()
+   router_address:body.feeRouter.toLowerCase(),
+   logo_url:body.logo?.trim()||null
   };
   const db=await fetch(SUPABASE_URL+"/rest/v1/route_setup_queue?on_conflict=token_address",{method:"POST",headers:dbHeaders(),body:JSON.stringify(payload),cache:"no-store"});
   const data=await db.json().catch(()=>null);
