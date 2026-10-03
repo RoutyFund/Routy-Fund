@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import TokenLogo from "@/components/TokenLogo";
+import LatestLaunches from "@/components/LatestLaunches";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 
 const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"VERIFIED",r.quoteSymbol,String(r.poolKey.fee),String(r.poolKey.tickSpacing)]);
@@ -31,7 +32,7 @@ export default function Home(){
    <div><span>Custody</span><b>Non-custodial</b></div>
   </div>
 
-  <section className="terminal-dashboard">
+  <LatestLaunches/>\n\n  <section className="terminal-dashboard">
    <div className="terminal-main">
     <div className="terminal-window">
      <div className="terminal-window-head"><span>Verified markets</span><span>Live catalog</span></div>
