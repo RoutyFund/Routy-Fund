@@ -1168,3 +1168,21 @@ h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-
  .terminal-footer-links{grid-template-columns:1fr 1fr!important;gap:10px!important}
  .terminal-footer-bottom{padding:6px 8px!important;gap:6px!important}
 }
+
+/* Terminal navigation controls */
+.nav-actions .menu,.nav-actions .wallet,.nav-actions .terminal-launch{border-radius:0!important;font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,monospace!important;font-weight:700!important;letter-spacing:.04em!important;text-transform:uppercase!important;box-shadow:none!important}
+.nav-actions .menu:before{content:"[ ";color:#68808a}.nav-actions .menu:after{content:" ]";color:#68808a}
+.nav-actions .wallet:before{content:"> ";color:currentColor}
+.nav-actions .terminal-launch:before{content:"+ "}
+.navlinks a{font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,monospace!important;text-transform:uppercase!important;letter-spacing:.06em!important;border-radius:0!important}
+@media(max-width:760px){
+ .navlinks-open{padding:6px!important;background:#f8fbfc!important;border-top:1px solid var(--term-line)!important;border-bottom:1px solid var(--term-line)!important;box-shadow:none!important}
+ .navlinks-open a{min-height:43px!important;padding:0 10px!important;border:1px solid var(--term-line)!important;border-bottom:0!important;display:flex!important;align-items:center!important;gap:8px!important;background:#fff!important;font-size:10px!important}
+ .navlinks-open a:last-child{border-bottom:1px solid var(--term-line)!important}
+ .navlinks-open a:before{content:"[";color:#78909a}.navlinks-open a:after{content:"]";margin-left:auto;color:#78909a}
+ .navlinks-open a .nav-prefix{color:var(--term-cyan)!important}
+ .navlinks-open a.nav-active{background:#edf6f8!important;box-shadow:inset 3px 0 0 var(--term-green)!important;color:#09232d!important}
+ .navlinks-open a.nav-active:after{content:"ACTIVE ]";color:var(--term-green);font-size:8px;letter-spacing:.08em}
+ .nav-actions .menu{min-width:76px!important;font-size:9px!important}
+ .nav-actions .wallet{font-size:9px!important}
+}
