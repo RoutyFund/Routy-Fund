@@ -6,6 +6,7 @@ export default function TerminalFooter(){
  const year=new Date().getUTCFullYear();
  return <footer className="terminal-footer">
   <div className="terminal-footer-cta">
+   <div className="terminal-footer-prompt"><span>routy@fund:~$</span><b>route --creator-fees --rewards</b><i>█</i></div>
    <div className="terminal-footer-copy">
     <div><span className="micro">Routy Fund</span><h2>Route creator fees into verified markets.</h2><p>Launch through Routy. Automatic setup connects creator fees to the selected Stock Token market and holder reward policy.</p></div>
     <div className="terminal-footer-actions"><Link className="primary" href="/launch">Launch a token</Link><Link className="secondary" href="/explore">Explore markets</Link></div>
