@@ -7,7 +7,7 @@ export function useMarketData(tokens:string[],refreshMs=3000){
  const key=useMemo(()=>[...new Set(tokens.map(x=>x.toLowerCase()).filter(Boolean))].join(","),[tokens]);
  const[data,setData]=useState<Record<string,TokenMarket>>({});
  useEffect(()=>{
-  if(!key){setData({});return}
+  if(!key)return
   let stopped=false;let timer:number|undefined;let controller:AbortController|undefined;
   async function load(){
    controller?.abort();controller=new AbortController();
