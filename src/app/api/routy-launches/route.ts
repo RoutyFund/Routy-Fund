@@ -33,7 +33,15 @@ export async function GET(){
    const part=await client.getLogs({address:launcher,event:routeEvent,fromBlock:start,toBlock:end});
    logs.push(...part);
   }
-  const logoRows=await fetch("https://hcwtwtvovdzfuugnjqyz.supabase.co/rest/v1/route_setup_queue?select=token_address,logo_url",{headers:(()=>{const key=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();return key?(key.startsWith("sb_")?{apikey:key}:{apikey:key,Authorization:"Bearer "+key}):{}})(),cache:"no-store"}).then(async r=>r.ok?await r.json() as Array<{token_address:string;logo_url:string|null}>:[]).catch(()=>[]);
+  const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const logoHeaders:Record<string,string>={};
+  if(serviceKey){
+   logoHeaders.apikey=serviceKey;
+   if(!serviceKey.startsWith("sb_"))logoHeaders.Authorization="Bearer "+serviceKey;
+  }
+  const logoRows=serviceKey
+   ?await fetch("https://hcwtwtvovdzfuugnjqyz.supabase.co/rest/v1/route_setup_queue?select=token_address,logo_url",{headers:logoHeaders,cache:"no-store"}).then(async r=>r.ok?await r.json() as Array<{token_address:string;logo_url:string|null}>:[]).catch(()=>[])
+   :[];
   const logos=new Map(logoRows.map(row=>[row.token_address.toLowerCase(),row.logo_url]));
   const launches=await Promise.all(logs.reverse().map(async log=>{
    const token=log.args.token as Address;
