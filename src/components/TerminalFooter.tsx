@@ -8,7 +8,7 @@ export default function TerminalFooter(){
   <div className="terminal-footer-cta">
    <div className="terminal-footer-prompt"><span>routy@fund:~$</span><b>route --creator-fees --rewards</b><i>█</i></div>
    <div className="terminal-footer-copy">
-    <div><span className="micro">Routy Fund</span><h2>Route creator fees into verified markets.</h2><p>Launch through Routy. Automatic setup connects creator fees to the selected Stock Token market and holder reward policy.</p></div>
+    <div><span className="micro">Routy Fund</span><h2>Route creator fees into verified markets</h2><p>Launch through Routy. Automatic setup connects creator fees to the selected Stock Token market and holder reward policy.</p></div>
     <div className="terminal-footer-actions"><Link className="primary" href="/launch">Launch a token</Link><Link className="secondary" href="/explore">Explore markets</Link></div>
    </div>
    <div className="terminal-footer-stats">
@@ -16,7 +16,7 @@ export default function TerminalFooter(){
    </div>
   </div>
   <div className="terminal-footer-main">
-   <div className="terminal-footer-brand"><Image className="logo-img" src="/logo.png" alt="" width={40} height={40}/><div><b>routy.</b><span>Creator fees, routed into Stock Tokens</span></div></div>
+   <div className="terminal-footer-brand"><Image className="logo-img" src="/logo.png" alt="" width={40} height={40}/><div><b>routy</b><span>Creator fees, routed into Stock Tokens</span></div></div>
    <div className="terminal-footer-links">
     <div><span>PROTOCOL</span><Link href="/explore">Explore</Link><Link href="/assets">Assets</Link><Link href="/rewards">Rewards</Link></div>
     <div><span>DATA</span><Link href="/analytics">Analytics</Link><Link href="/activity">Activity</Link><Link href="/portfolio">Portfolio</Link></div>
