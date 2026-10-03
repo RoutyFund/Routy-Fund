@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install @privy-io/react-auth@3.47.0 --save
+      - run: npm install @privy-io/react-auth@3.47.0 --save --legacy-peer-deps
       - run: |
           git config user.name "RoutyFund Bot"
           git config user.email "actions@users.noreply.github.com"
