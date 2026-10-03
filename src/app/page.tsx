@@ -32,7 +32,9 @@ export default function Home(){
    <div><span>Custody</span><b>Non-custodial</b></div>
   </div>
 
-  <LatestLaunches/>\n\n  <section className="terminal-dashboard">
+  <LatestLaunches/>
+
+  <section className="terminal-dashboard">
    <div className="terminal-main">
     <div className="terminal-window">
      <div className="terminal-window-head"><span>Verified markets</span><span>Live catalog</span></div>
