@@ -15,7 +15,7 @@ export default function Providers({children}:{children:React.ReactNode}){
  if(!appId)return <>{children}</>;
  return <PrivyProvider appId={appId} config={{
   loginMethods:["wallet"],
-  appearance:{theme:"light",accentColor:"#1a6fd1",walletChainType:"ethereum-only"},
+  appearance:{theme:"light",accentColor:"#1a6fd1",walletChainType:"ethereum-only",walletList:["metamask","coinbase_wallet","rainbow","bitget_wallet","detected_ethereum_wallets","wallet_connect"]},
   defaultChain:robinhood,
   supportedChains:[robinhood],
   embeddedWallets:{ethereum:{createOnLogin:"off"}}
