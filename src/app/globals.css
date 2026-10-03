@@ -1114,3 +1114,31 @@ h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-
  .section-head{min-height:28px!important;padding:0 8px!important}
  .card-grid,.metric-grid,.analytics-grid,.quick-grid{gap:5px!important}
 }
+
+/* Single live status beacon: never inject a second dot before status text */
+.terminal-ok:before,.verified:before,.status-ok:before,.live:before,.online:before{content:none!important}
+.terminal-ok{display:inline-flex!important;align-items:center;gap:7px}
+.terminal-ok::first-letter{color:var(--term-green)}
+/* Existing status dot glyph is the only beacon */
+.terminal-ok{animation:terminal-text-live 1.25s steps(2,end) infinite}
+@keyframes terminal-text-live{0%,45%,100%{opacity:1;text-shadow:0 0 7px rgba(10,103,47,.24)}46%,72%{opacity:.58;text-shadow:none}}
+/* CTA / footer are protocol console surfaces, not marketing landing sections */
+.closing-panel{padding:0!important;border:1px solid var(--term-line)!important;background:#fff!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+.closing-panel>div:first-child{padding:13px 14px}
+.closing-panel h2{font-size:16px!important;margin:3px 0 5px!important;letter-spacing:-.02em}
+.closing-panel p{font:500 10px/1.5 var(--font-mono),monospace!important;margin:0!important;max-width:680px}
+.closing-panel .hero-actions,.closing-panel .cta-actions{padding:10px;border-left:1px solid var(--term-line);display:flex!important;align-items:center!important;gap:5px!important;margin:0!important}
+.closing-panel .primary,.closing-panel .secondary{min-height:34px!important;padding:0 11px!important;font-size:9px!important}
+.footer{border-top:1px solid var(--term-line)!important;background:#f8fbfc!important}
+.footer-inner{padding-top:18px!important}
+.footer-brand p,.footer a{font-family:var(--font-mono),monospace!important}
+.footer-grid{gap:20px!important}
+.footer h4{font-size:9px!important;letter-spacing:.12em!important}
+.footer a{font-size:10px!important}
+.footer-bottom{font-family:var(--font-mono),monospace!important;font-size:9px!important}
+@media(max-width:700px){
+ .closing-panel{grid-template-columns:1fr!important}
+ .closing-panel>div:first-child{padding:10px!important}
+ .closing-panel .hero-actions,.closing-panel .cta-actions{border-left:0;border-top:1px solid var(--term-line);padding:8px!important}
+ .footer-inner{padding-top:12px!important}.footer-grid{gap:14px!important}
+}
