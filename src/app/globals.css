@@ -1186,3 +1186,10 @@ h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-
  .nav-actions .menu{min-width:76px!important;font-size:9px!important}
  .nav-actions .wallet{font-size:9px!important}
 }
+
+/* Official Pons token CA discovered from the Routy dev wallet. */
+.official-ca-bar{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:10px 14px;border:1px solid var(--line,#d9e2ec);font-family:var(--font-mono),monospace;font-size:12px;letter-spacing:.08em;background:#fff;overflow:hidden}
+.official-ca-bar span{font-weight:800;color:#1765ad}
+.official-ca-bar code{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0b172a}
+.official-ca-bar button{margin-left:auto;border:1px solid var(--line,#d9e2ec);background:transparent;padding:5px 8px;font:inherit;cursor:pointer;color:#1765ad}
+@media(max-width:640px){.official-ca-bar{margin-bottom:12px;padding:9px 10px;gap:7px}.official-ca-bar code{font-size:10px}.official-ca-bar button{padding:4px 6px;font-size:10px}}
