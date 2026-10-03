@@ -3,7 +3,7 @@ import {isAddress} from "viem";
 export const PENDING_LAUNCH_KEY = "routy:v5:pending-launch";
 export type PendingLaunch = {
   version: 1; chainId: 4663; creator: string; targetAsset: string; policy: number;
-  intentNonce: string; setupNonce: string; feeRouter: string; launchTx: string;
+  intentNonce: string; setupNonce: string; feeRouter: string; launchTx: string; logo?: string;
   token?: string; queued?: boolean;
 };
 export function readPendingLaunch(raw: string | null): PendingLaunch | null {
@@ -19,6 +19,7 @@ export function readPendingLaunch(raw: string | null): PendingLaunch | null {
       if (typeof value[key] !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(value[key])) return null;
     }
     if (value.token !== undefined && (typeof value.token !== "string" || !isAddress(value.token, {strict: false}))) return null;
+    if (value.logo !== undefined && (typeof value.logo !== "string" || new TextEncoder().encode(value.logo).length > 512)) return null;
     if (value.queued !== undefined && typeof value.queued !== "boolean") return null;
     return value as PendingLaunch;
   } catch { return null; }
