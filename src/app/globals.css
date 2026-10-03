@@ -995,3 +995,38 @@ body{
 .other-wallets-logo i{width:4px;height:4px;border-radius:50%!important;background:#202939}
 
 .logo-upload-preview{display:flex;align-items:center;gap:12px;margin-top:-6px}.logo-upload-preview img{width:56px;height:56px;object-fit:cover;border:1px solid var(--term-line);border-radius:8px}.logo-upload-preview span{font-size:12px;color:var(--term-muted)}
+
+/* Terminal Premium V2 — global interface lock */
+:root{--terminal-glow:rgba(0,122,174,.12);--terminal-green-glow:rgba(10,103,47,.28)}
+body,button,input,select,textarea{font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}
+body{font-variant-numeric:tabular-nums;letter-spacing:0}
+h1,h2,h3,h4,.brand,.wallet,.primary,.secondary{font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}
+h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-.025em}
+.lead,.hero-lead{font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.01em}
+.terminal-led,.status-dot{position:relative;animation:terminal-live-pulse 1.8s ease-in-out infinite}
+.terminal-led:after,.status-dot:after{content:"";position:absolute;inset:-5px;border:1px solid rgba(10,103,47,.28);border-radius:50%;animation:terminal-live-ring 1.8s ease-out infinite}
+@keyframes terminal-live-pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--terminal-green-glow)}50%{opacity:.58;box-shadow:0 0 14px rgba(10,103,47,.7)}}
+@keyframes terminal-live-ring{0%{transform:scale(.45);opacity:.7}100%{transform:scale(1.35);opacity:0}}
+.primary,.wallet,.secondary,.menu,.tab{border-radius:0!important;min-height:38px;position:relative}
+.primary,.wallet{background:#0b6ea8;color:#fff;border:1px solid #075e92;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 0 0 1px rgba(0,97,138,.08)}
+.primary:hover,.wallet:hover{background:#075f94;color:#fff;box-shadow:0 0 18px var(--terminal-glow)}
+.primary:after,.wallet:after{content:"";position:absolute;left:5px;right:5px;bottom:3px;height:1px;background:rgba(255,255,255,.22)}
+.secondary,.menu{background:#fff;border-color:var(--term-line-2)}
+.route-panel,.metric-card,.card,.form-card,.proof-card,.feature-card,.flow-step,.empty-state,.table-shell,.market-directory article,.analytics-grid article,.quick-grid article,.chart-shell,.portfolio-side,.token-main-card,.token-side-card,.closing-panel{border-radius:0!important;box-shadow:none!important;background:#fff}
+.route-panel,.form-card,.proof-card,.feature-card,.card,.table-shell,.token-main-card,.token-side-card{position:relative}
+.route-panel:before,.form-card:before,.proof-card:before,.feature-card:before,.card:before,.table-shell:before,.token-main-card:before,.token-side-card:before{content:"";position:absolute;left:-1px;top:-1px;width:10px;height:10px;border-left:2px solid var(--term-cyan);border-top:2px solid var(--term-cyan);pointer-events:none}
+.section-head,.terminal-window-head,.console-page>.page-head:before{background:#f4f8fa!important}
+.data-row,.terminal-table{transition:background .12s ease}
+.data-row:hover,.terminal-table:hover{background:#eef6f8!important}
+.data-row:hover:before{content:">";color:var(--term-green);margin-left:-7px}
+.table-shell{padding:0}
+.data-label,.micro,.eyebrow,.kicker{font-size:10px;letter-spacing:.14em}
+.form-card input,.form-card select,.form-card textarea{border-radius:0!important;background:#fbfdfe}
+.form-card input:focus,.form-card select:focus,.form-card textarea:focus{background:#fff;box-shadow:inset 3px 0 0 var(--term-cyan),0 0 0 1px rgba(0,97,138,.08)}
+.pill,.verified-pill,.tab,.market-strip span,.asset-logo,.token-disc,.market-icon{border-radius:0!important}
+.closing-panel{color:var(--term-text);background:#f7fafb;border-color:var(--term-line)}
+.closing-panel .primary{background:#0b6ea8;color:#fff}
+.terminal-window,.console-page>.section,.console-page>.page-head{box-shadow:inset 0 1px 0 #fff}
+.terminal-window-head:before,.section-head:before{content:"[ ";color:var(--term-green)}.terminal-window-head:after,.section-head:after{content:" ]";color:var(--term-green)}
+.terminal-actions-panel a:hover{box-shadow:inset 3px 0 0 var(--term-green)}
+@media(max-width:760px){.primary,.wallet{min-height:40px}.terminal-statusbar{font-size:10px}.lead,.hero-lead{letter-spacing:0}}
