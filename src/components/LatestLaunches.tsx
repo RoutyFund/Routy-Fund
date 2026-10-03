@@ -1,6 +1,8 @@
 "use client";
 import TokenLogo from "@/components/TokenLogo";
 import {useApiResource} from "@/lib/use-api-resource";
+import {useMarketData} from "@/lib/use-market-data";
+import {compactUsd} from "@/lib/market-format";
 
 type Launch={
  token:string;name:string;symbol:string;logo?:string|null;
@@ -14,6 +16,7 @@ export default function LatestLaunches(){
  const resource=useApiResource<{launches:Launch[]}>("/api/routy-launches");
  const rows=(resource.data?.launches||EMPTY).slice(0,6);
  const loaded=!resource.loading&&!resource.error;
+ const market=useMarketData(rows.map(row=>row.token));
 
  return <section className="terminal-window latest-launches">
   <div className="terminal-window-head">
@@ -26,6 +29,7 @@ export default function LatestLaunches(){
      <TokenLogo src={l.logo||undefined} token={l.token} symbol={l.symbol} size={42}/>
      <div><b>{"$"+l.symbol}</b><span>{l.name}</span></div>
     </div>
+    <div className="latest-launch-market"><span>MCAP</span><b>{compactUsd(market[l.token.toLowerCase()]?.marketCapUsd)}</b></div>
     <div className="latest-launch-route">
      <span>ROUTE</span>
      <div><TokenLogo src={"/api/company-logo?symbol="+l.targetSymbol} symbol={l.targetSymbol} size={24}/><b>→ {l.targetSymbol}</b></div>
