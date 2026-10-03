@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import TokenLogo from "@/components/TokenLogo";
@@ -9,27 +8,25 @@ const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"VERIFIED",r.quoteSymbol
 
 export default function Home(){
  return <main className="shell"><Nav/><div className="wrap terminal-home">
-  <section className="hero-pro" aria-labelledby="hero-title">
-   <div>
-    <span className="hero-pill"><i/>Live on Robinhood Chain</span>
-    <h1 id="hero-title">Route creator fees into <em>Stock Tokens.</em></h1>
-    <p className="hero-lead">Launch a token through Routy and its creator fees are routed into a verified Stock Token market. Rewards go straight to your holders, with every route pinned and non-custodial.</p>
-    <div className="hero-actions"><Link className="primary" href="/launch">Launch a token</Link><Link className="secondary" href="/explore">Explore markets</Link></div>
-    <div className="hero-trust"><span>Non-custodial</span><span>Verified routes only</span><span>Pushed to holder wallets</span></div>
+  <div className="terminal-commandbar"><span className="terminal-prompt">routy@rh-4663:~$</span><span>protocol --overview --live</span><span className="terminal-cursor">█</span></div>
+
+  <section className="protocol-console-head">
+   <div className="protocol-console-title">
+    <span className="micro">[ ROUTY PROTOCOL CONSOLE ]</span>
+    <h1 id="hero-title">FEE ROUTING / STOCK TOKEN REWARDS</h1>
+    <p>Creator fees → verified Stock Token markets → holder reward distribution.</p>
    </div>
-   <div className="hero-art" aria-hidden="true">
-    <Image className="hero-logo" src="/logo.png" alt="" width={300} height={300} priority/>
-    <div className="hero-chip c1"><b>80%</b><span>of fees fund the reward vault</span></div>
-    <div className="hero-chip c2"><b>{EXECUTABLE_ROUTES.length}</b><span>verified markets</span></div>
-    <div className="hero-chip c3"><b>USDG</b><span>quote asset</span></div>
+   <div className="protocol-console-actions">
+    <Link className="primary" href="/launch">&gt; LAUNCH_ROUTE</Link>
+    <Link className="secondary" href="/explore">LIST_MARKETS</Link>
    </div>
   </section>
 
-  <div className="stat-strip">
-   <div><span>Network</span><b>RH 4663</b></div>
-   <div><span>Verified markets</span><b>{EXECUTABLE_ROUTES.length}</b></div>
-   <div><span>Fee split</span><b>80 / 20</b></div>
-   <div><span>Custody</span><b>Non-custodial</b></div>
+  <div className="protocol-status-grid">
+   <div><span><i className="terminal-led"/> NETWORK</span><b>RH_CHAIN_4663</b><small>ONLINE</small></div>
+   <div><span>MARKET_REGISTRY</span><b>{EXECUTABLE_ROUTES.length} ROUTES</b><small>VERIFIED</small></div>
+   <div><span>FEE_ROUTER</span><b>80 / 20</b><small>VAULT / TREASURY</small></div>
+   <div><span>CUSTODY_MODE</span><b>NON-CUSTODIAL</b><small>PROTOCOL</small></div>
   </div>
 
   <LatestLaunches/>
