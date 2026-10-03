@@ -170,7 +170,7 @@ export default function Launch(){
   }catch(e){setStatus(walletErrorMessage(e)||"Launch cancelled or failed.");}finally{setBusy(false)}
  }
  return <main className="shell"><Nav/><div className="wrap console-page">
-  <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Launch on Routy</span><h1>Create your route.</h1><p className="lead">Launch through Routy with Pons infrastructure underneath. Choose the token identity, Stock Token target and community reward policy here.</p></div><span className="pill">Robinhood Chain</span></header>
+  <header className="page-head"><div className="page-head-copy"><span className="eyebrow">Launch on Routy</span><h1>Create your route</h1><p className="lead">Launch through Routy with Pons infrastructure underneath. Choose the token identity, Stock Token target and community reward policy here.</p></div><span className="pill">Robinhood Chain</span></header>
   <DataNotice error={configurationError} retry={()=>{void setupResource.reload();void ponsResource.reload();void routesResource.reload()}}/>
   <div className="launch-form">
    <section className="form-card"><div><span className="micro">TOKEN</span><h3 style={{marginTop:8}}>Token details</h3></div>
