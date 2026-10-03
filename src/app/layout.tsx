@@ -1,4 +1,4 @@
-import "./globals.css";import "./repair.css";import "./brand.css";import type {Metadata,Viewport} from "next";import {Inter,JetBrains_Mono} from "next/font/google";import TerminalFooter from "@/components/TerminalFooter";
+import "./globals.css";import "./repair.css";import "./brand.css";import type {Metadata,Viewport} from "next";import {Inter,JetBrains_Mono} from "next/font/google";import TerminalFooter from "@/components/TerminalFooter";import Providers from "@/components/Providers";import PrivyWalletBridge from "@/components/PrivyWalletBridge";
 
 const sans=Inter({subsets:["latin"],variable:"--font-sans",display:"swap"});
 const mono=JetBrains_Mono({subsets:["latin"],variable:"--font-mono",display:"swap"});
@@ -18,4 +18,4 @@ export const metadata:Metadata={
 };
 export const viewport:Viewport={themeColor:"#1a6fd1",width:"device-width",initialScale:1};
 
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en" className={sans.variable+" "+mono.variable}><body>{children}<TerminalFooter/></body></html>}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en" className={sans.variable+" "+mono.variable}><body><Providers><PrivyWalletBridge/>{children}<TerminalFooter/></Providers></body></html>}
