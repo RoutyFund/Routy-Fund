@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
 import { useEffect, useState } from "react";
-import {useConnectWallet,usePrivy,useWallets} from "@privy-io/react-auth";
+import {useConnectWallet,usePrivy,useWallets,type WalletListEntry} from "@privy-io/react-auth";
 import { getInjectedProvider, walletErrorCode, walletErrorMessage } from "@/lib/ethereum-provider";
 
 export default function Nav() {
@@ -59,7 +59,7 @@ export default function Nav() {
     }catch(cause){setError(walletErrorMessage(cause,"Wallet connection failed."))}
   }
 
-  function openPrivy(walletList:string[]){
+  function openPrivy(walletList:WalletListEntry[]){
     setWalletPicker(false);
     connectWallet({walletChainType:"ethereum-only",walletList});
   }
