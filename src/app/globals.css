@@ -1142,3 +1142,29 @@ h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-
  .closing-panel .hero-actions,.closing-panel .cta-actions{border-left:0;border-top:1px solid var(--term-line);padding:8px!important}
  .footer-inner{padding-top:12px!important}.footer-grid{gap:14px!important}
 }
+
+/* Footer console override — compact operational footer */
+.terminal-footer{margin-top:6px!important;padding-bottom:12px!important}
+.terminal-footer-cta{display:grid!important;grid-template-columns:1fr!important}
+.terminal-footer-prompt{height:28px!important;font-size:9px!important}
+.terminal-footer-copy{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;padding:10px 12px!important;gap:12px!important}
+.terminal-footer-copy h2{font-size:14px!important;line-height:1.15!important;letter-spacing:-.02em!important;margin:3px 0!important}
+.terminal-footer-copy p{font-size:9px!important;line-height:1.45!important}
+.terminal-footer-actions{gap:5px!important}.terminal-footer-actions a{min-height:32px!important;padding:0 10px!important;font-size:9px!important}
+.terminal-footer-stats div{min-height:50px!important;padding:8px 10px!important}.terminal-footer-stats span{font-size:8px!important}.terminal-footer-stats b{margin-top:7px!important;font-size:9px!important}
+.terminal-footer-main{padding:10px 12px!important;align-items:start!important;gap:18px!important}
+.terminal-footer-brand .logo-img{width:28px!important;height:28px!important}.terminal-footer-brand b{font-size:12px!important}.terminal-footer-brand span{font-size:8px!important}
+.terminal-footer-links{gap:18px!important}.terminal-footer-links>div{gap:5px!important}.terminal-footer-links span{font-size:8px!important}.terminal-footer-links a{font-size:9px!important}
+.terminal-footer-bottom{min-height:31px!important;font-size:8px!important}
+.terminal-footer-live i{animation:terminal-beacon 1.25s steps(2,end) infinite!important}
+@media(max-width:760px){
+ .terminal-footer{padding:0 12px 10px!important}
+ .terminal-footer-copy{grid-template-columns:1fr!important;padding:9px!important}
+ .terminal-footer-copy h2{font-size:12px!important}.terminal-footer-copy p{font-size:8px!important}
+ .terminal-footer-actions{display:grid!important;grid-template-columns:1fr 1fr!important;width:100%}
+ .terminal-footer-stats{grid-template-columns:1fr 1fr!important}.terminal-footer-stats div{min-height:46px!important}
+ .terminal-footer-main{padding:10px 9px!important;gap:12px!important}
+ .terminal-footer-brand span{max-width:210px}
+ .terminal-footer-links{grid-template-columns:1fr 1fr!important;gap:10px!important}
+ .terminal-footer-bottom{padding:6px 8px!important;gap:6px!important}
+}
