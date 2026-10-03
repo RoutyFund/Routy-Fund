@@ -28,6 +28,7 @@ export default function Nav() {
 
   async function connect(){
     if(process.env.NEXT_PUBLIC_PRIVY_APP_ID){
+      if(!ready){setError("Wallet connection is still initializing. Please try again in a moment.");return}
       setError("");
       try{
         if(authenticated){await logout();return}
@@ -70,7 +71,7 @@ export default function Nav() {
       <div className="nav-actions">
         <Link className="secondary terminal-launch" href="/launch">Launch</Link>
         <button className="menu" aria-label="Toggle navigation" aria-expanded={open} aria-controls="routy-navigation" onClick={()=>setOpen(v=>!v)}>{open?"Close":"Menu"}</button>
-        <button className="wallet" onClick={connect} disabled={Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID)&&!ready}>{authenticated&&wallets[0]?.address ? wallets[0].address.slice(0,6)+"…"+wallets[0].address.slice(-4) : account ? chainId&&BigInt(chainId)!==4663n?"Switch network":account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
+        <button className="wallet" onClick={connect} aria-disabled={Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID)&&!ready}>{authenticated&&wallets[0]?.address ? wallets[0].address.slice(0,6)+"…"+wallets[0].address.slice(-4) : account ? chainId&&BigInt(chainId)!==4663n?"Switch network":account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
       </div>
     </nav>
     {error&&<div className="notice danger" role="alert">{error}<button type="button" className="secondary" onClick={()=>setError("")}>Dismiss</button></div>}
