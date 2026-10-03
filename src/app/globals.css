@@ -979,3 +979,17 @@ body{
 .routy-wallet-option .coinbase-mark{background:#1652f0;color:#fff;border-radius:50%!important}
 .routy-wallet-option .rainbow-mark{background:linear-gradient(135deg,#ff5f6d,#ffc371,#64d8cb,#6c63ff);color:#fff}
 .routy-wallet-option .other-mark{background:#f2f4f8;color:#202939;font-size:13px}
+
+/* Wallet brand-style icons: deterministic CSS, no emoji/letter placeholders */
+.routy-wallet-option .wallet-brand-icon{width:38px;height:38px;position:relative;display:inline-grid;place-items:center;flex:0 0 38px}
+.coinbase-logo{border-radius:50%!important;background:#1652f0}
+.coinbase-logo>span{width:17px;height:17px;border:5px solid #fff;border-radius:50%!important;box-sizing:border-box}
+.rainbow-logo{overflow:hidden;border-radius:9px!important;background:linear-gradient(135deg,#ff4d6d 0 18%,#ff9f1c 18% 36%,#ffd60a 36% 53%,#35c759 53% 69%,#0a84ff 69% 84%,#7d5fff 84%)}
+.rainbow-logo>span{width:23px;height:23px;border:5px solid rgba(255,255,255,.95);border-right-color:transparent;border-bottom-color:transparent;border-radius:50%!important;transform:rotate(45deg)}
+.metamask-logo{background:#fff}
+.metamask-logo .fox-ear{position:absolute;top:3px;width:0;height:0;border-style:solid}
+.metamask-logo .fox-ear-l{left:4px;border-width:0 10px 17px 0;border-color:transparent #e2761b transparent transparent}
+.metamask-logo .fox-ear-r{right:4px;border-width:17px 10px 0 0;border-color:#f6851b transparent transparent transparent}
+.metamask-logo .fox-face{width:29px;height:24px;margin-top:9px;display:grid;place-items:center;background:#e2761b;clip-path:polygon(0 0,50% 20%,100% 0,82% 70%,50% 100%,18% 70%);color:#fff;font-size:8px}
+.other-wallets-logo{border-radius:9px!important;background:#f2f4f8;display:flex!important;align-items:center;justify-content:center;gap:3px}
+.other-wallets-logo i{width:4px;height:4px;border-radius:50%!important;background:#202939}
