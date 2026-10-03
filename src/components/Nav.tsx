@@ -51,7 +51,7 @@ export default function Nav() {
   return <header className="terminal-header">
     <div className="terminal-statusbar"><div className="terminal-status-left"><span className="terminal-led"/><span>ROUTY FUND</span><span className="terminal-sep">/</span><span>RH CHAIN 4663</span></div><div className="terminal-status-right"><span>PROTOCOL ONLINE</span><span className="terminal-sep">/</span><span>NON-CUSTODIAL</span></div></div>
     <nav className="nav">
-      <Link className="brand" href="/"><Image className="logo-img" src="/logo.png" alt="" width={32} height={32} priority/><span>routy.</span></Link>
+      <Link className="brand" href="/"><Image className="logo-img" src="/logo.png" alt="" width={32} height={32} priority/><span>routy</span></Link>
       <div id="routy-navigation" className={"navlinks "+(open?"navlinks-open":"")}>
         {links.map(([href,label])=><Link className={pathname===href||pathname.startsWith(href+"/")?"nav-active":""} key={href} href={href} onClick={()=>setOpen(false)}><span className="nav-prefix">/</span>{label}</Link>)}
       </div>
