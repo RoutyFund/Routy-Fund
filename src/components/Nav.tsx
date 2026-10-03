@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
 import { useEffect, useState } from "react";
+import {useConnectWallet,usePrivy,useWallets} from "@privy-io/react-auth";
 import { getInjectedProvider, walletErrorCode, walletErrorMessage } from "@/lib/ethereum-provider";
 
 export default function Nav() {
@@ -12,6 +13,9 @@ export default function Nav() {
   const [chainId,setChainId]=useState("");
   const [error,setError]=useState("");
   const [open,setOpen]=useState(false);
+  const {ready,authenticated,logout}=usePrivy();
+  const {connectWallet}=useConnectWallet();
+  const {wallets}=useWallets();
 
   useEffect(()=>{
     const provider=getInjectedProvider();
@@ -23,6 +27,14 @@ export default function Nav() {
   },[]);
 
   async function connect(){
+    if(process.env.NEXT_PUBLIC_PRIVY_APP_ID){
+      setError("");
+      try{
+        if(authenticated){await logout();return}
+        connectWallet();
+      }catch(cause){setError(walletErrorMessage(cause,"Wallet connection failed."))}
+      return;
+    }
     const provider=getInjectedProvider();
     if(!provider){setError("Open Routy in a compatible EVM wallet browser to connect.");return}
     setError("");
@@ -58,7 +70,7 @@ export default function Nav() {
       <div className="nav-actions">
         <Link className="secondary terminal-launch" href="/launch">Launch</Link>
         <button className="menu" aria-label="Toggle navigation" aria-expanded={open} aria-controls="routy-navigation" onClick={()=>setOpen(v=>!v)}>{open?"Close":"Menu"}</button>
-        <button className="wallet" onClick={connect}>{account ? chainId&&BigInt(chainId)!==4663n?"Switch network":account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
+        <button className="wallet" onClick={connect} disabled={Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID)&&!ready}>{authenticated&&wallets[0]?.address ? wallets[0].address.slice(0,6)+"…"+wallets[0].address.slice(-4) : account ? chainId&&BigInt(chainId)!==4663n?"Switch network":account.slice(0,6)+"…"+account.slice(-4) : "Connect Wallet"}</button>
       </div>
     </nav>
     {error&&<div className="notice danger" role="alert">{error}<button type="button" className="secondary" onClick={()=>setError("")}>Dismiss</button></div>}
