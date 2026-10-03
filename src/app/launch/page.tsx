@@ -164,7 +164,7 @@ export default function Launch(){
    const padded="0x"+((BigInt(estimated)*125n/100n).toString(16));
    setStatus("Preflight passed. Confirm the Pons launch in your wallet.");
    const hash=await provider.request<string>({method:"eth_sendTransaction",params:[{...tx,gas:padded}]});
-   savePending({version:1,chainId:4663,creator:account,targetAsset:asset,policy:Number(policy),intentNonce,setupNonce:salt,feeRouter,launchTx:hash});
+   savePending({version:1,chainId:4663,creator:account,targetAsset:asset,policy:Number(policy),intentNonce,setupNonce:salt,feeRouter,launchTx:hash,logo:logo.trim()});
    setStatus("Launch submitted. Confirming the transaction and automatic route setup…");
 
   }catch(e){setStatus(walletErrorMessage(e)||"Launch cancelled or failed.");}finally{setBusy(false)}
