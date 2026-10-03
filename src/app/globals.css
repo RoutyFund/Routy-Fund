@@ -1030,3 +1030,24 @@ h1{font-weight:620;letter-spacing:-.045em}h2,h3{font-weight:650;letter-spacing:-
 .terminal-window-head:before,.section-head:before{content:"[ ";color:var(--term-green)}.terminal-window-head:after,.section-head:after{content:" ]";color:var(--term-green)}
 .terminal-actions-panel a:hover{box-shadow:inset 3px 0 0 var(--term-green)}
 @media(max-width:760px){.primary,.wallet{min-height:40px}.terminal-statusbar{font-size:10px}.lead,.hero-lead{letter-spacing:0}}
+
+/* Protocol console homepage — data first, no marketing hero */
+.protocol-console-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;border:1px solid var(--term-line);background:#fff;padding:18px 16px;margin-bottom:8px;position:relative}
+.protocol-console-head:before{content:"SESSION: LIVE / MODE: PROTOCOL";position:absolute;right:12px;top:8px;color:#6a7d85;font:700 9px var(--font-mono),monospace;letter-spacing:.1em}
+.protocol-console-title h1{margin:18px 0 7px;font-size:clamp(24px,4vw,46px);line-height:1;letter-spacing:-.045em}
+.protocol-console-title p{margin:0;color:var(--term-muted);font:600 11px/1.55 var(--font-mono),monospace}
+.protocol-console-actions{display:flex;gap:6px;align-items:center}
+.protocol-console-actions a{padding:0 15px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+.protocol-status-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--term-line);border-right:0;margin-bottom:8px;background:#fff}
+.protocol-status-grid>div{min-height:86px;padding:12px;border-right:1px solid var(--term-line);display:flex;flex-direction:column;justify-content:space-between;position:relative}
+.protocol-status-grid>div:after{content:"";position:absolute;left:0;bottom:0;width:28px;height:2px;background:var(--term-cyan)}
+.protocol-status-grid>div:first-child:after{background:var(--term-green)}
+.protocol-status-grid span{display:flex;align-items:center;gap:7px;color:#5b727c;font:700 9px var(--font-mono),monospace;letter-spacing:.12em}
+.protocol-status-grid b{color:#0a1b20;font:700 14px var(--font-mono),monospace}
+.protocol-status-grid small{color:#5f7780;font:700 9px var(--font-mono),monospace;letter-spacing:.08em}
+.latest-launches{margin-bottom:8px}
+.latest-launch-grid{display:grid;grid-template-columns:repeat(3,1fr)}
+.latest-launch-card{border-right:1px solid var(--term-line);border-bottom:1px solid var(--term-line);border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.latest-launch-card:hover{background:#eef6f8!important;box-shadow:inset 3px 0 0 var(--term-green)!important}
+@media(max-width:850px){.protocol-console-head{grid-template-columns:1fr}.protocol-console-actions{width:100%}.protocol-console-actions a{flex:1}.protocol-status-grid{grid-template-columns:1fr 1fr}.latest-launch-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.protocol-console-head{padding:14px 12px}.protocol-console-head:before{display:none}.protocol-console-title h1{margin-top:12px;font-size:28px}.protocol-console-actions{display:grid;grid-template-columns:1fr}.protocol-status-grid{grid-template-columns:1fr 1fr}.protocol-status-grid>div{min-height:76px;padding:10px}.protocol-status-grid b{font-size:11px}.latest-launch-grid{grid-template-columns:1fr}}
