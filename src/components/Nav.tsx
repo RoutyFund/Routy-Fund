@@ -13,6 +13,7 @@ export default function Nav() {
   const [chainId,setChainId]=useState("");
   const [error,setError]=useState("");
   const [open,setOpen]=useState(false);
+  const [walletPicker,setWalletPicker]=useState(false);
   const {authenticated,logout}=usePrivy();
   const {connectWallet}=useConnectWallet();
   const {wallets}=useWallets();
@@ -31,7 +32,7 @@ export default function Nav() {
       setError("");
       try{
         if(authenticated){await logout();return}
-        connectWallet({walletChainType:"ethereum-only",walletList:["metamask","coinbase_wallet","rainbow"]});
+        setWalletPicker(true);
       }catch(cause){setError(walletErrorMessage(cause,"Wallet connection failed."))}
       return;
     }
@@ -58,6 +59,11 @@ export default function Nav() {
     }catch(cause){setError(walletErrorMessage(cause,"Wallet connection failed."))}
   }
 
+  function openPrivy(walletList:string[]){
+    setWalletPicker(false);
+    connectWallet({walletChainType:"ethereum-only",walletList});
+  }
+
   const links=[["/explore","Explore"],["/assets","Assets"],["/rewards","Rewards"],["/analytics","Analytics"],["/activity","Activity"],["/portfolio","Portfolio"],["/docs","Docs"]];
 
   return <header className="terminal-header">
@@ -74,5 +80,17 @@ export default function Nav() {
       </div>
     </nav>
     {error&&<div className="notice danger" role="alert">{error}<button type="button" className="secondary" onClick={()=>setError("")}>Dismiss</button></div>}
+    {walletPicker&&<div className="routy-wallet-overlay" role="dialog" aria-modal="true" aria-label="Select your wallet" onClick={()=>setWalletPicker(false)}>
+      <div className="routy-wallet-picker" onClick={event=>event.stopPropagation()}>
+        <button className="routy-wallet-close" aria-label="Close" onClick={()=>setWalletPicker(false)}>×</button>
+        <div className="routy-wallet-icon">▱</div>
+        <h2>Log in or sign up</h2>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["metamask"])}><span>🦊</span><b>MetaMask</b></button>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["coinbase_wallet"])}><span>◉</span><b>Coinbase Wallet</b></button>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["rainbow"])}><span>🌈</span><b>Rainbow</b></button>
+        <button className="routy-wallet-option" onClick={()=>openPrivy(["detected_ethereum_wallets","wallet_connect"])}><span>▣</span><b>Other wallets</b></button>
+        <div className="routy-wallet-protected">Protected by <b>privy</b></div>
+      </div>
+    </div>}
   </header>;
 }
