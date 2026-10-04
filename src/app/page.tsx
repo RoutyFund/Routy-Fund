@@ -4,7 +4,6 @@ import TokenLogo from "@/components/TokenLogo";
 import LatestLaunches from "@/components/LatestLaunches";
 import {EXECUTABLE_ROUTES} from "@/lib/route-catalog";
 import LiveTerminalStatus from "@/components/LiveTerminalStatus";
-import OfficialTokenCA from "@/components/OfficialTokenCA";
 
 const markets=EXECUTABLE_ROUTES.map(r=>[r.symbol,r.name,"VERIFIED",r.quoteSymbol,String(r.poolKey.fee),String(r.poolKey.tickSpacing)]);
 
@@ -12,7 +11,6 @@ export default function Home(){
  return <main className="shell"><Nav/><div className="wrap terminal-home">
   <div className="terminal-commandbar"><span className="terminal-prompt">routy@rh-4663:~$</span><span>protocol --overview --live</span><span className="terminal-cursor">█</span></div>
 
-  <OfficialTokenCA/>
 
   <section className="protocol-console-head">
    <div className="protocol-console-title">
