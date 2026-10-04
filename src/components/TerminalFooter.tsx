@@ -20,7 +20,7 @@ export default function TerminalFooter(){
    <div className="terminal-footer-links">
     <div><span>PROTOCOL</span><Link href="/explore">Explore</Link><Link href="/assets">Assets</Link><Link href="/rewards">Rewards</Link></div>
     <div><span>DATA</span><Link href="/analytics">Analytics</Link><Link href="/activity">Activity</Link><Link href="/portfolio">Portfolio</Link></div>
-    <div><span>RESOURCES</span><Link href="/docs">Docs</Link><Link href="/docs/security">Security</Link><Link href="/docs/faq">FAQ</Link><Link href="/docs/risk">Risk disclosure</Link><a href="#" aria-label="Routy on X">X ↗</a></div><div><span>OPERATE</span><Link href="/launch">Launch</Link><Link href="/deploy/release">Release status</Link><a href="https://robinhoodchain.blockscout.com" target="_blank" rel="noreferrer">Explorer ↗</a></div>
+    <div><span>RESOURCES</span><Link href="/docs">Docs</Link><Link href="/docs/security">Security</Link><Link href="/docs/faq">FAQ</Link><Link href="/docs/risk">Risk disclosure</Link><a href="https://x.com/RoutyFund" target="_blank" rel="noopener noreferrer" aria-label="Routy on X">X ↗</a></div><div><span>OPERATE</span><Link href="/launch">Launch</Link><Link href="/deploy/release">Release status</Link><a href="https://robinhoodchain.blockscout.com" target="_blank" rel="noreferrer">Explorer ↗</a></div>
    </div>
   </div>
   <div className="terminal-footer-bottom">
