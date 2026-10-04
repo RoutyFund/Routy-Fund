@@ -5,7 +5,7 @@ import {PONS_V2,factoryLaunchAbi} from "@/lib/pons";
 
 export const dynamic="force-dynamic";
 
-const DEV_WALLET="0x866d5D863381efe9e10cCb2E44f388611F781212" as Address;
+const DEV_WALLET="0xAeAEAF0adEF3BD65ab7c5cD4611437C0cE1f9F4e" as Address;
 const chain={id:4663,name:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:[process.env.RPC_URL||process.env.NEXT_PUBLIC_RPC_URL||"https://rpc.mainnet.chain.robinhood.com"]}}} as const;
 const tokenLaunched=factoryLaunchAbi.find(item=>item.type==="event"&&item.name==="TokenLaunched")!;
 
